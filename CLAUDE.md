@@ -15,7 +15,9 @@ Agente inteligente y modular diseñado para automatizar la búsqueda diaria de 1
 ## 🏗️ Dónde corre y cómo se despliega
 - **Runtime:** Google Apps Script, en la cuenta de Google del usuario (proyecto "Agente UX" en script.google.com). No depende de ningún plan de Claude ni de un computador encendido.
 - **Fuente de verdad del código:** carpeta `apps_script/` de este repositorio (rama `main`).
-- **Despliegue automático:** `Updater.gs › sincronizarDesdeGitHub` corre a diario a las 7:00 AM; si el último commit de `main` tiene sus check-runs en verde (workflow `.github/workflows/tests.yml`), reemplaza el código del proyecto vía Apps Script API (`projects.updateContent`). **Todo lo que se haga merge/push a `main` llega a producción al día siguiente**, así que las pruebas deben pasar antes de hacer push.
+- **Despliegue automático:** en cada push a `main`, `.github/workflows/tests.yml` corre las pruebas y, si pasan, hace force-push del commit a la rama `deploy`. `Updater.gs › sincronizarDesdeGitHub` corre a diario a las 7:00 AM, descarga desde `raw.githubusercontent.com/.../deploy/apps_script/` los archivos listados en `apps_script/files.json` y, si cambiaron (hash SHA-256), reemplaza el código del proyecto vía Apps Script API (`projects.updateContent`). **Todo lo que se haga push a `main` llega a producción al día siguiente.**
+- **No usar `api.github.com` desde Apps Script:** el límite sin autenticación es por IP y los servidores de Google lo comparten (error 403 "API rate limit exceeded"). Solo `raw.githubusercontent.com`.
+- **Archivo nuevo en `apps_script/`:** agrégalo a `apps_script/files.json` (la prueba lo exige).
 - **Si cambias `oauthScopes` en `appsscript.json`:** el usuario debe ejecutar manualmente cualquier función una vez para re-autorizar; avísale.
 - **Instalación inicial:** ver `INSTALACION.md` (manifiesto + `instalador/Instalador.gs` → `instalar` → `configurarAgente`).
 

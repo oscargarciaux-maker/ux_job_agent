@@ -5,19 +5,16 @@
  * 3. Ejecuta la función "instalar". Descarga todo el agente desde GitHub y reemplaza este archivo.
  */
 function instalar() {
-  const repo = 'oscargarciaux-maker/ux_job_agent';
-  const headers = { Accept: 'application/vnd.github+json', 'User-Agent': 'ux-job-agent-installer' };
-  const entries = JSON.parse(UrlFetchApp.fetch(
-    'https://api.github.com/repos/' + repo + '/contents/apps_script?ref=main', { headers: headers }).getContentText());
+  const base = 'https://raw.githubusercontent.com/oscargarciaux-maker/ux_job_agent/deploy/apps_script/';
+  const get = url => {
+    const r = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+    if (r.getResponseCode() !== 200) throw new Error('GitHub respondió ' + r.getResponseCode() + ' para ' + url);
+    return r.getContentText();
+  };
 
-  const files = entries
-    .filter(e => e.type === 'file' && (/\.gs$/.test(e.name) || e.name === 'appsscript.json'))
-    .map(e => {
-      const source = UrlFetchApp.fetch(e.download_url).getContentText();
-      return e.name === 'appsscript.json'
-        ? { name: 'appsscript', type: 'JSON', source: source }
-        : { name: e.name.replace(/\.gs$/, ''), type: 'SERVER_JS', source: source };
-    });
+  const files = JSON.parse(get(base + 'files.json')).map(name => name === 'appsscript.json'
+    ? { name: 'appsscript', type: 'JSON', source: get(base + name) }
+    : { name: name.replace(/\.gs$/, ''), type: 'SERVER_JS', source: get(base + name) });
 
   const response = UrlFetchApp.fetch('https://script.googleapis.com/v1/projects/' + ScriptApp.getScriptId() + '/content', {
     method: 'put',

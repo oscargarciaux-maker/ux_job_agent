@@ -13,3 +13,14 @@ jobs:
         with:
           node-version: "20"
       - run: node tests/apps_script.test.js
+
+  # Publica el código probado en la rama "deploy", de donde Apps Script se actualiza cada día
+  deploy:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - run: git push --force origin HEAD:refs/heads/deploy

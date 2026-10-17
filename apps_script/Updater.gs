@@ -1,41 +1,47 @@
 /**
  * Sincronización automática GitHub -> Apps Script.
- * Cada día (antes del pipeline) descarga la carpeta apps_script/ de la rama main y,
- * si hay un commit nuevo con las pruebas de GitHub Actions en verde, reemplaza el código de este proyecto.
+ * Cada día (antes del pipeline) descarga apps_script/ desde la rama "deploy", que GitHub Actions
+ * solo actualiza cuando las pruebas pasan. Si el código cambió, reemplaza el de este proyecto.
+ * Usa raw.githubusercontent.com (no la API de GitHub, cuyo límite por IP se agota en los servidores de Google).
  * Requiere activar "API de Google Apps Script" en https://script.google.com/home/usersettings
  */
 function sincronizarDesdeGitHub() {
-  const api = 'https://api.github.com/repos/' + CONFIG.GITHUB_REPO;
+  const files = fetchProjectFiles_(CONFIG.GITHUB_DEPLOY_BRANCH);
 
-  // Último commit de la rama (GitHub Actions corre las pruebas sobre el commit más reciente de cada push)
-  const sha = githubJson_(api + '/commits/' + CONFIG.GITHUB_BRANCH).sha;
-  if (sha === getProp_(PROPS.LAST_SYNC_SHA)) {
-    console.log('Código ya sincronizado con ' + sha.slice(0, 7) + '. Nada que hacer.');
+  const hash = Utilities.base64Encode(Utilities.computeDigest(
+    Utilities.DigestAlgorithm.SHA_256, JSON.stringify(files), Utilities.Charset.UTF_8));
+  if (hash === getProp_(PROPS.LAST_SYNC_HASH)) {
+    console.log('El código ya está al día con GitHub. Nada que hacer.');
     return;
   }
 
-  // Solo desplegar commits cuyas verificaciones (pruebas) pasaron
-  const checks = githubJson_(api + '/commits/' + sha + '/check-runs').check_runs || [];
-  const failed = checks.filter(c => c.status !== 'completed' || c.conclusion !== 'success');
-  if (!checks.length || failed.length) {
-    console.warn('Commit ' + sha.slice(0, 7) + ' sin pruebas en verde todavía; no se sincroniza.');
-    return;
-  }
+  updateProjectContent_(files);
+  setProp_(PROPS.LAST_SYNC_HASH, hash);
+  console.log('Código actualizado desde GitHub (' + files.length + ' archivos).');
+}
 
-  const entries = githubJson_(api + '/contents/' + CONFIG.GITHUB_DIR + '?ref=' + sha);
-  const files = entries
-    .filter(e => e.type === 'file' && (/\.gs$/.test(e.name) || e.name === 'appsscript.json'))
-    .map(e => {
-      const source = UrlFetchApp.fetch(e.download_url).getContentText();
-      return e.name === 'appsscript.json'
-        ? { name: 'appsscript', type: 'JSON', source: source }
-        : { name: e.name.replace(/\.gs$/, ''), type: 'SERVER_JS', source: source };
-    });
+function fetchProjectFiles_(branch) {
+  const base = 'https://raw.githubusercontent.com/' + CONFIG.GITHUB_REPO + '/' + branch + '/' + CONFIG.GITHUB_DIR + '/';
+  const names = JSON.parse(fetchText_(base + 'files.json'));
+  const files = names.map(name => name === 'appsscript.json'
+    ? { name: 'appsscript', type: 'JSON', source: fetchText_(base + name) }
+    : { name: name.replace(/\.gs$/, ''), type: 'SERVER_JS', source: fetchText_(base + name) });
 
   if (!files.some(f => f.type === 'JSON') || !files.some(f => f.type === 'SERVER_JS')) {
     throw new Error('Contenido incompleto en GitHub; se cancela la sincronización.');
   }
+  return files;
+}
 
+function fetchText_(url) {
+  const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+  if (response.getResponseCode() !== 200) {
+    throw new Error('GitHub respondió ' + response.getResponseCode() + ' para ' + url);
+  }
+  return response.getContentText();
+}
+
+function updateProjectContent_(files) {
   const response = UrlFetchApp.fetch('https://script.googleapis.com/v1/projects/' + ScriptApp.getScriptId() + '/content', {
     method: 'put',
     contentType: 'application/json',
@@ -47,18 +53,4 @@ function sincronizarDesdeGitHub() {
     throw new Error('Apps Script API respondió ' + response.getResponseCode() + ': ' + response.getContentText().slice(0, 300) +
       '\n¿Activaste la API de Google Apps Script en https://script.google.com/home/usersettings ?');
   }
-
-  setProp_(PROPS.LAST_SYNC_SHA, sha);
-  console.log('Código actualizado desde GitHub (commit ' + sha.slice(0, 7) + ', ' + files.length + ' archivos).');
-}
-
-function githubJson_(url) {
-  const response = UrlFetchApp.fetch(url, {
-    headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'ux-job-agent-apps-script' },
-    muteHttpExceptions: true,
-  });
-  if (response.getResponseCode() !== 200) {
-    throw new Error('GitHub respondió ' + response.getResponseCode() + ' para ' + url);
-  }
-  return JSON.parse(response.getContentText());
 }

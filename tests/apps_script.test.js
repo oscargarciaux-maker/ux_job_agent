@@ -19,6 +19,11 @@ for (const file of fs.readdirSync(dir).filter(f => f.endsWith('.gs')).sort()) {
   vm.runInContext(fs.readFileSync(path.join(dir, file), 'utf8'), context, { filename: file });
 }
 JSON.parse(fs.readFileSync(path.join(dir, 'appsscript.json'), 'utf8'));
+
+// files.json debe listar exactamente los archivos que se despliegan (si no, la sincronización los omite)
+const listed = JSON.parse(fs.readFileSync(path.join(dir, 'files.json'), 'utf8')).sort();
+const actual = fs.readdirSync(dir).filter(f => f.endsWith('.gs') || f === 'appsscript.json').sort();
+assert.deepStrictEqual(listed, actual, 'apps_script/files.json no coincide con los archivos de apps_script/');
 const run = (expr) => vm.runInContext(expr, context);
 
 const es = run('SAMPLE_VACANCIES_[0]');
