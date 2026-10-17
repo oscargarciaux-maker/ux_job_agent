@@ -1,0 +1,9 @@
+credentials.json
+token.json
+token.pickle
+.env
+__pycache__/
+.venv/
+env/
+venv/
+*.pdf
