@@ -9,7 +9,7 @@ Agente inteligente y modular diseñado para automatizar la búsqueda diaria de 1
 3. **Regla de Idioma:**
    - Vacante en Español -> CV y correo en Español.
    - Vacante en Inglés -> CV y correo en Inglés (respetando nivel de inglés limitado real).
-4. **Eficiencia Extrema de Tokens:** La deduplicación y el filtrado inicial son deterministas contra Google Sheets **antes** de cualquier procesamiento ($0$ tokens en vacantes repetidas o descartadas). Hoy el pipeline no usa ningún LLM.
+4. **Eficiencia Extrema de Tokens:** La deduplicación y el filtrado inicial son deterministas contra Google Sheets **antes** de cualquier procesamiento ($0$ tokens en vacantes repetidas o descartadas). Hoy el pipeline no usa ningún LLM; la IA solo debe procesar las vacantes ya seleccionadas.
 5. **Secretos:** Nunca escribir claves ni IDs reales en el repositorio (es **público**). Viven en *Propiedades del script* de Apps Script. En octubre 2026 se expuso una `SERPAPI_API_KEY` en el historial de git (`.env`/`.env.example`); se pidió al usuario rotarla.
 
 ## 🏗️ Dónde corre y cómo se despliega
@@ -23,10 +23,10 @@ Agente inteligente y modular diseñado para automatizar la búsqueda diaria de 1
 
 ## 🧩 Arquitectura (4 Fases) — `apps_script/`
 - `Config.gs`: constantes y nombres de propiedades (`SERPAPI_API_KEY`, `GOOGLE_DRIVE_ROOT_FOLDER_ID`, `GOOGLE_SHEET_ID`, `GOOGLE_DOCS_MASTER_TEMPLATE_ID`).
-- **Fase 1 (Búsqueda y Match)** `Search.gs` + `Personalization.gs`: SerpAPI (Google Dorking en LinkedIn, `tbs=qdr:w2`), parseo de empresa/cargo del título, Match Score determinista (Junior 100 / Mid 70 / Senior 30, promediado con ubicación Bogotá/Medellín/remoto 100, otra 50). Dedup por Link (columna D) en Sheets; top 10 por score.
-- **Fase 2 (Google Drive)** `Workspace.gs`: `/Vacantes con IA/YYYY-MM-DD/[Empresa]_[Cargo]` + `Detalle_Vacante` (Google Doc).
-- **Fase 3 (CV & PDF)** `Workspace.gs` + `Personalization.gs`: copia de la plantilla maestra (Google Doc llamado `MASTER_TEMPLATE` en cualquier lugar del Drive; si no existe, la propiedad `GOOGLE_DOCS_MASTER_TEMPLATE_ID`), reemplazo de `{{EMPRESA}}`, `{{CARGO}}`, `{{RESUMEN}}`, `{{ENFOQUE}}` en cuerpo/encabezado/pie, exportación a PDF en la carpeta. Idioma detectado por conteo de palabras funcionales.
-- **Fase 4 (Gmail)** `Workspace.gs`: borrador MIME (texto + HTML Sans Serif + PDF adjunto) solo si la oferta trae correo directo.
+- **Fase 1 (Búsqueda y Match)** `Search.gs` + `Personalization.gs`: SerpAPI motor `google_jobs` (descripción COMPLETA de la vacante; 1 crédito por cada query de `CONFIG.SEARCH_QUERIES`), filtro de antigüedad ≤14 días, dedup por Link (columna D) en Sheets, nivel (`classifySeniority`: junior/mid/senior) y Match Score (Junior 100 / Mid 80 / Senior 60, promediado con ubicación). Selección: **al menos `MIN_JUNIOR`=5 de 10 Junior** si existen; el resto por score de cualquier nivel (decisión del usuario: priorizar Junior sin excluir Senior).
+- **Fase 2 (Google Drive)** `Workspace.gs`: `/Vacantes con IA/YYYY-MM-DD/[Empresa]_[Cargo]` + `Detalle_Vacante` (Google Doc con metadatos y la descripción completa: es la entrada del paso de IA). Estado en Sheets: `Esperando CV (IA)`.
+- **Fase 3 (CV & PDF) — EN PAUSA hasta conectar la IA:** la plantilla `MASTER_TEMPLATE` (Google Doc del usuario, buscado por nombre en todo el Drive) tiene marcadores propios (`{{TITULO_SUBTITULO_PROFESIONAL}}`, `{{PERFIL_PERSONALIZADO}}`, `{{CARGO_EXP_n}}`, `{{LOGRO_n_m}}`, `{{HEADER_*}}`, etc.) y debe quedar exactamente como el usuario la diseñó. El contenido debe redactarlo una IA aplicando 100% la guía `GUIA_CV` con datos de `CONTEXTO_CV` (ambos como Google Docs privados en Drive, NUNCA en este repo público: contienen datos personales). Restricción del usuario: no pagar API aparte; usar su plan de Claude.
+- **Fase 4 (Gmail)** `Workspace.gs`: `buildMimeMessage`/`createApplicationDraft_` (texto + HTML Sans Serif + PDF adjunto), listos para cuando la Fase 3 genere el PDF; solo si la oferta trae correo directo.
 - `Main.gs`: `ejecutarPipeline` (activador 8:00 AM), `ejecutarPrueba` (2 vacantes de ejemplo, acciones reales), `ejecutarSimulacion` (sin tocar Workspace).
 - `Setup.gs`: `configurarAgente` crea carpeta/hoja/plantilla faltantes e instala el activador diario de `ejecutarPipeline` (idempotente).
 
@@ -35,7 +35,6 @@ Agente inteligente y modular diseñado para automatizar la búsqueda diaria de 1
 - No hay ejecución local de Apps Script; los servicios de Google solo existen en script.google.com.
 
 ## 📌 Pendientes conocidos
-- Perfil maestro real (`master_profile`) y guía de redacción: los textos de `RESUMEN`/correo son genéricos y solo usan datos de este archivo.
+- **Conectar la IA de la Fase 3** (ver arriba) y reactivar CV/PDF/borrador.
 - Soporte interactivo para Cartas de Presentación (*Cover Letter*).
-- Uso de LLM (Claude API con prompt caching) para personalización semántica, respetando las reglas 1–4.
 - Historial: la versión Python (OAuth + GitHub Actions) se eliminó en la migración; está en el commit `8957d0d`.

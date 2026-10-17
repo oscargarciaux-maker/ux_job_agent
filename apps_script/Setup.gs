@@ -23,11 +23,9 @@ function configurarAgente() {
 
   const master = findMasterTemplate_();
   if (master && master.isDoc) {
-    const missing = missingPlaceholders_(master.file.getId());
+    const placeholders = listPlaceholders_(master.file.getId());
     report.push('Plantilla de CV: ' + CONFIG.MASTER_TEMPLATE_NAME + ' (Google Doc OK) ' + master.file.getUrl());
-    report.push(missing.length
-      ? 'AVISO: la plantilla no tiene estos marcadores (no se personalizarán): ' + missing.map(k => '{{' + k + '}}').join(', ')
-      : 'Marcadores OK: {{EMPRESA}}, {{CARGO}}, {{RESUMEN}}, {{ENFOQUE}}');
+    report.push('Marcadores encontrados (' + placeholders.length + '): ' + placeholders.join(', '));
   } else if (master) {
     report.push('AVISO: ' + CONFIG.MASTER_TEMPLATE_NAME + ' NO es un Google Doc. Ábrelo y usa Archivo > Guardar como documento de Google, ' +
                 'luego ejecuta configurarAgente otra vez. ' + master.file.getUrl());

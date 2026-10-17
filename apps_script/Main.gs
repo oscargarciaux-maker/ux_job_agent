@@ -13,16 +13,18 @@ const SAMPLE_VACANCIES_ = [
     title: 'Diseñador UX/UI Junior',
     company: 'Empresa Demo ES',
     link: 'https://www.linkedin.com/jobs/view/test-es-0001',
-    snippet: 'Buscamos diseñador UX/UI junior en Bogotá para apoyar la evolución de nuestro sistema de diseño ' +
-             'y la investigación con usuarios. Envía tu hoja de vida a talento@example.com',
+    location: 'Bogotá, Colombia',
+    description: 'Buscamos diseñador UX/UI junior en Bogotá para apoyar la evolución de nuestro sistema de diseño ' +
+                 'y la investigación con usuarios. Envía tu hoja de vida a talento@example.com',
     source: 'Vacante de prueba',
   },
   {
     title: 'Junior UX/UI Designer',
     company: 'Demo Company EN',
     link: 'https://www.linkedin.com/jobs/view/test-en-0002',
-    snippet: 'We are looking for a junior UX/UI designer in Medellín to join the team working on our design ' +
-             'system and usability testing. Send your CV to jobs@example.com',
+    location: 'Medellín, Colombia',
+    description: 'We are looking for a junior UX/UI designer in Medellín to join the team working on our design ' +
+                 'system and usability testing. Send your CV to jobs@example.com',
     source: 'Vacante de prueba',
   },
 ];
@@ -45,7 +47,7 @@ function ejecutarSimulacion() {
 function runPipeline_(opts) {
   console.log('--- Iniciando Pipeline Diario de Vacantes ---' + (opts.dryRun ? ' [SIMULACIÓN]' : ''));
 
-  const raw = opts.useSample ? SAMPLE_VACANCIES_ : searchJuniorUxJobs_();
+  const raw = opts.useSample ? SAMPLE_VACANCIES_ : searchUxJobs_();
   console.log('1. Vacantes encontradas preliminarmente: ' + raw.length);
 
   // Deduplicación determinista ANTES de cualquier procesamiento
@@ -62,36 +64,28 @@ function runPipeline_(opts) {
     return;
   }
 
-  const ranked = fresh
-    .map(v => ({ vacancy: v, score: computeMatchScore(v) }))
-    .sort((a, b) => b.score - a.score)
-    .slice(0, CONFIG.DAILY_LIMIT);
+  const scored = fresh.map(v => ({ vacancy: v, score: computeMatchScore(v), seniority: classifySeniority(v) }));
+  const selected = selectDailyVacancies(scored, CONFIG.DAILY_LIMIT, CONFIG.MIN_JUNIOR);
+  console.log('3. Seleccionadas: ' + selected.length + ' (Junior: ' + selected.filter(x => x.seniority === 'junior').length + ')');
 
-  ranked.forEach((item, i) => {
+  selected.forEach((item, i) => {
     const v = item.vacancy;
     const language = detectLanguage(vacancyText_(v));
-    const contact = extractContactEmail(v);
-    const label = '(' + (i + 1) + '/' + ranked.length + ') ' + v.title + ' @ ' + (v.company || 'N/D') +
-                  ' [' + language.toUpperCase() + ', score ' + item.score + ']';
+    const label = '(' + (i + 1) + '/' + selected.length + ') ' + v.title + ' @ ' + (v.company || 'N/D') +
+                  ' [' + language.toUpperCase() + ', ' + item.seniority + ', score ' + item.score + ', descripción ' +
+                  (v.description || '').length + ' caracteres]';
 
     if (opts.dryRun) {
-      const email = buildApplicationEmail(v, language);
-      console.log(label + '\n   CV: ' + JSON.stringify(buildCvReplacements(v, language)) +
-                  '\n   Borrador: ' + (contact ? contact + ' | ' + email.subject : 'sin correo directo'));
+      console.log(label);
       return;
     }
 
     try {
       const folder = setupVacancyFolder_(v);
-      createVacancyDetailDoc_(folder, v, item.score, language);
-      const pdf = createTailoredCv_(v, folder, language);
-      appendVacancyRow_(sheet, v, item.score);
-      let draftInfo = 'sin correo directo, no se crea borrador';
-      if (contact) {
-        const email = buildApplicationEmail(v, language);
-        draftInfo = 'borrador creado (' + createApplicationDraft_(contact, email.subject, email.body, pdf) + ')';
-      }
-      console.log(label + ' -> carpeta, CV/PDF, registro OK; ' + draftInfo);
+      createVacancyDetailDoc_(folder, v, item, language);
+      // El CV personalizado y el borrador de Gmail se generan en el paso de IA (pendiente de conectar).
+      appendVacancyRow_(sheet, v, item.score, 'Esperando CV (IA)');
+      console.log(label + ' -> carpeta, Detalle_Vacante y registro OK');
     } catch (e) {
       console.error(label + ' -> ERROR: ' + e.message);
     }

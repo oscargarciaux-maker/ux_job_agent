@@ -17,9 +17,9 @@ function getExistingUrls_(sheet) {
   return urls;
 }
 
-function appendVacancyRow_(sheet, vacancy, score) {
+function appendVacancyRow_(sheet, vacancy, score, status) {
   const today = Utilities.formatDate(new Date(), tz_(), 'yyyy-MM-dd');
-  sheet.appendRow([today, vacancy.company || 'N/D', vacancy.title, vacancy.link, score, 'Pendiente']);
+  sheet.appendRow([today, vacancy.company || 'N/D', vacancy.title, vacancy.link, score, status]);
 }
 
 // ---------- Google Drive (/Vacantes con IA/YYYY-MM-DD/[Empresa]_[Cargo]) ----------
@@ -41,16 +41,24 @@ function setupVacancyFolder_(vacancy) {
   return dateFolder.createFolder(name);
 }
 
-function createVacancyDetailDoc_(folder, vacancy, score, language) {
+/** Guarda la vacante completa: es la entrada del paso de IA (análisis de keywords según GUIA_CV). */
+function createVacancyDetailDoc_(folder, vacancy, item, language) {
   const doc = DocumentApp.create('Detalle_Vacante');
   const body = doc.getBody();
   body.appendParagraph(vacancy.title || 'Vacante').setHeading(DocumentApp.ParagraphHeading.HEADING1);
-  body.appendParagraph('Empresa: ' + (vacancy.company || 'N/D'));
-  body.appendParagraph('Link: ' + (vacancy.link || 'N/D'));
-  body.appendParagraph('Match Score: ' + score);
-  body.appendParagraph('Idioma: ' + language.toUpperCase());
-  body.appendParagraph('Fuente: ' + (vacancy.source || 'N/D'));
-  body.appendParagraph(vacancy.snippet || '');
+  [
+    'Empresa: ' + (vacancy.company || 'N/D'),
+    'Ubicación: ' + (vacancy.location || 'N/D'),
+    'Link: ' + (vacancy.link || 'N/D'),
+    'Publicada: ' + (vacancy.postedAt || 'N/D'),
+    'Nivel: ' + item.seniority,
+    'Match Score: ' + item.score,
+    'Idioma: ' + language.toUpperCase(),
+    'Correo de contacto: ' + (extractContactEmail(vacancy) || 'N/D'),
+    'Fuente: ' + (vacancy.source || 'N/D'),
+  ].forEach(line => body.appendParagraph(line));
+  body.appendParagraph('Descripción completa').setHeading(DocumentApp.ParagraphHeading.HEADING2);
+  body.appendParagraph(vacancy.description || vacancy.snippet || '');
   doc.saveAndClose();
   DriveApp.getFileById(doc.getId()).moveTo(folder);
 }
@@ -83,28 +91,11 @@ function getTemplateFile_() {
   return DriveApp.getFileById(getProp_(PROPS.TEMPLATE_ID));
 }
 
-/** Marcadores {{...}} que el agente sabe reemplazar y que faltan en el documento. */
-function missingPlaceholders_(docId) {
-  const text = DocumentApp.openById(docId).getBody().getText();
-  return Object.keys(buildCvReplacements({}, 'es')).filter(key => text.indexOf('{{' + key + '}}') === -1);
-}
-
-function createTailoredCv_(vacancy, folder, language) {
-  const replacements = buildCvReplacements(vacancy, language);
-  const copy = getTemplateFile_()
-    .makeCopy('CV_' + (vacancy.company || 'Empresa') + '_' + language.toUpperCase(), folder);
-
-  const doc = DocumentApp.openById(copy.getId());
-  const sections = [doc.getBody(), doc.getHeader(), doc.getFooter()].filter(Boolean);
-  Object.keys(replacements).forEach(key => {
-    sections.forEach(section => section.replaceText('\\{\\{' + key + '\\}\\}', replacements[key]));
-  });
-  doc.saveAndClose();
-
-  const pdfName = 'CV_UXUI_Junior_' + (vacancy.company || 'Empresa') + '_' + language.toUpperCase() + '.pdf';
-  const pdfBlob = copy.getAs('application/pdf').setName(pdfName);
-  folder.createFile(pdfBlob);
-  return pdfBlob;
+/** Marcadores {{...}} presentes en el documento (cuerpo, encabezado y pie). */
+function listPlaceholders_(docId) {
+  const doc = DocumentApp.openById(docId);
+  const text = [doc.getBody(), doc.getHeader(), doc.getFooter()].filter(Boolean).map(s => s.getText()).join('\n');
+  return (text.match(/\{\{[A-Z0-9_]+\}\}/g) || []).filter((p, i, all) => all.indexOf(p) === i);
 }
 
 // ---------- Gmail (HITL: SOLO borradores vía users.drafts.create) ----------

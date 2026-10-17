@@ -1,33 +1,12 @@
 /**
- * Motor de personalización determinista (0 tokens de LLM).
- * Anti-alucinación: solo usa datos de la vacante y del perfil maestro (CLAUDE.md).
+ * Reglas deterministas (0 tokens de LLM): idioma, nivel, Match Score, selección diaria y correo.
+ * El contenido del CV lo redacta la IA aplicando GUIA_CV con datos de CONTEXTO_CV (pendiente de conectar).
  */
 
 const ES_WORDS_ = ['el', 'la', 'los', 'las', 'de', 'del', 'y', 'en', 'para', 'con', 'por', 'una', 'un',
   'que', 'experiencia', 'diseñador', 'diseño', 'buscamos', 'empresa', 'conocimientos'];
 const EN_WORDS_ = ['the', 'and', 'of', 'to', 'for', 'with', 'in', 'a', 'an', 'we', 'you', 'your',
   'experience', 'designer', 'design', 'looking', 'skills', 'team', 'role'];
-
-// Áreas de enfoque respaldadas por el perfil. No se agregan habilidades fuera de esta lista.
-const FOCUS_AREAS_ = [
-  { keywords: ['design system', 'sistema de diseño', 'sistemas de diseño', 'componentes', 'components', 'ui kit'],
-    es: 'Sistemas de diseño', en: 'Design systems' },
-  { keywords: ['ux', 'experiencia de usuario', 'user experience', 'usabilidad', 'usability', 'flujos', 'flows'],
-    es: 'Toma de decisiones UX', en: 'UX decision-making' },
-  { keywords: ['research', 'investigación', 'entrevistas', 'interviews', 'testing', 'pruebas con usuarios'],
-    es: 'UX Research', en: 'UX Research' },
-];
-
-const SUMMARY_ = {
-  es: 'Diseñador Industrial con enfoque en UX/UI, interesado en aportar a {empresa} como {cargo}. ' +
-      'Mi formación en diseño industrial me da bases sólidas en metodología centrada en el usuario, ' +
-      'prototipado e iteración, que aplico a sistemas de diseño, decisiones UX e investigación con usuarios. ' +
-      'Aprendo rápido nuevas herramientas y procesos.',
-  en: 'Industrial Designer focused on UX/UI, interested in joining {empresa} as {cargo}. ' +
-      'My industrial design background gives me a user-centered methodology, prototyping and iteration ' +
-      'skills, which I apply to design systems, UX decisions and user research. ' +
-      'I learn new tools and processes quickly.',
-};
 
 const EMAIL_TEMPLATES_ = {
   es: {
@@ -65,28 +44,33 @@ function detectLanguage(text) {
   return en > es ? 'en' : 'es';
 }
 
-/** Match Score determinista: seniority (Junior 100 / Mid 70 / Senior 30) + ubicación. */
-function computeMatchScore(vacancy) {
+/** Nivel de la vacante según el cargo (y la descripción para señales de junior). */
+function classifySeniority(vacancy) {
+  const title = (vacancy.title || '').toLowerCase();
   const text = vacancyText_(vacancy).toLowerCase();
-  let seniority = 70;
-  if (/\b(senior|sr\.?|lead|líder|head|manager)\b/.test(text)) seniority = 30;
-  else if (/\b(junior|jr\.?|trainee|practicante|pasante|intern|entry)\b/.test(text)) seniority = 100;
-  const location = /(bogot[aá]|medell[ií]n|remoto|remote)/.test(text) ? 100 : 50;
+  if (/\b(senior|sr\.?|lead|l[ií]der|staff|principal|head|manager|gerente|director)\b/.test(title)) return 'senior';
+  if (/\b(junior|jr\.?|trainee|practicante|pasante|intern|internship|aprendiz|entry)\b/.test(title)) return 'junior';
+  if (/\b(junior|trainee|practicante|pasante|sin experiencia|reci[eé]n egresado|entry[- ]level)\b|\b[01]\s*(?:-|a)\s*2\s*(años|years)/.test(text)) return 'junior';
+  return 'mid';
+}
+
+/** Match Score determinista: nivel (Junior 100 / Mid 80 / Senior 60) promediado con ubicación. */
+function computeMatchScore(vacancy) {
+  const seniority = { junior: 100, mid: 80, senior: 60 }[classifySeniority(vacancy)];
+  const text = (vacancyText_(vacancy) + ' ' + (vacancy.location || '')).toLowerCase();
+  const location = /(bogot[aá]|medell[ií]n|remoto|remote|teletrabajo|híbrido|hybrid)/.test(text) ? 100 : 60;
   return Math.round((seniority + location) / 2);
 }
 
-function buildCvReplacements(vacancy, language) {
-  const empresa = vacancy.company || (language === 'en' ? 'the company' : 'la empresa');
-  const cargo = vacancy.title || 'UX/UI Designer Junior';
-  const haystack = vacancyText_(vacancy).toLowerCase();
-  const matched = FOCUS_AREAS_.filter(a => a.keywords.some(k => haystack.indexOf(k) !== -1));
-  const focus = (matched.length ? matched : FOCUS_AREAS_).map(a => a[language]);
-  return {
-    EMPRESA: empresa,
-    CARGO: cargo,
-    RESUMEN: fill_(SUMMARY_[language], { empresa: empresa, cargo: cargo }),
-    ENFOQUE: focus.join(' · '),
-  };
+/**
+ * Selección diaria: reserva al menos minJunior cupos para vacantes Junior (si existen)
+ * y completa el resto con las de mayor score de cualquier nivel.
+ */
+function selectDailyVacancies(scored, limit, minJunior) {
+  const byScore = scored.slice().sort((a, b) => b.score - a.score);
+  const picked = byScore.filter(x => x.seniority === 'junior').slice(0, minJunior);
+  byScore.forEach(x => { if (picked.length < limit && picked.indexOf(x) === -1) picked.push(x); });
+  return picked.sort((a, b) => b.score - a.score).slice(0, limit);
 }
 
 function buildApplicationEmail(vacancy, language) {

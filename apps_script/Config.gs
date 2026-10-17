@@ -5,6 +5,10 @@
  */
 const CONFIG = {
   DAILY_LIMIT: 10,
+  MIN_JUNIOR: 5,             // Al menos 5 de las 10 vacantes diarias serán Junior (si existen)
+  SEARCH_QUERIES: ['diseñador ux ui junior', 'diseñador ux ui'],  // 1 crédito de SerpAPI por búsqueda
+  SEARCH_LOCATION: 'Colombia',
+  MAX_POST_AGE_DAYS: 14,
   PIPELINE_HOUR: 8,          // 8:00 AM hora de Bogotá
   ROOT_FOLDER_NAME: 'Vacantes con IA',
   SHEET_TITLE: 'Vacantes UX - Registro',
