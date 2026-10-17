@@ -21,7 +21,17 @@ function configurarAgente() {
   }
   report.push('Hoja de registro: ' + SpreadsheetApp.openById(getProp_(PROPS.SHEET_ID)).getUrl());
 
-  if (!getProp_(PROPS.TEMPLATE_ID)) {
+  const master = findMasterTemplate_();
+  if (master && master.isDoc) {
+    const missing = missingPlaceholders_(master.file.getId());
+    report.push('Plantilla de CV: ' + CONFIG.MASTER_TEMPLATE_NAME + ' (Google Doc OK) ' + master.file.getUrl());
+    report.push(missing.length
+      ? 'AVISO: la plantilla no tiene estos marcadores (no se personalizarán): ' + missing.map(k => '{{' + k + '}}').join(', ')
+      : 'Marcadores OK: {{EMPRESA}}, {{CARGO}}, {{RESUMEN}}, {{ENFOQUE}}');
+  } else if (master) {
+    report.push('AVISO: ' + CONFIG.MASTER_TEMPLATE_NAME + ' NO es un Google Doc. Ábrelo y usa Archivo > Guardar como documento de Google, ' +
+                'luego ejecuta configurarAgente otra vez. ' + master.file.getUrl());
+  } else if (!getProp_(PROPS.TEMPLATE_ID)) {
     const doc = DocumentApp.create(CONFIG.TEMPLATE_TITLE);
     const body = doc.getBody();
     body.appendParagraph('[Reemplaza este documento con tu CV real y deja estos marcadores donde quieras que se personalice]');

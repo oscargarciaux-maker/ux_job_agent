@@ -57,9 +57,41 @@ function createVacancyDetailDoc_(folder, vacancy, score, language) {
 
 // ---------- Google Docs (clonado de plantilla + reemplazo de placeholders) ----------
 
+/**
+ * Plantilla a usar: un Google Doc llamado MASTER_TEMPLATE en cualquier lugar del Drive si existe;
+ * si no, la de la propiedad GOOGLE_DOCS_MASTER_TEMPLATE_ID.
+ */
+function findMasterTemplate_() {
+  const matches = DriveApp.getFilesByName(CONFIG.MASTER_TEMPLATE_NAME);
+  let other = null;
+  while (matches.hasNext()) {
+    const file = matches.next();
+    if (file.isTrashed()) continue;
+    if (file.getMimeType() === MimeType.GOOGLE_DOCS) return { file: file, isDoc: true };
+    other = other || file;
+  }
+  return other ? { file: other, isDoc: false } : null;
+}
+
+function getTemplateFile_() {
+  const master = findMasterTemplate_();
+  if (master && master.isDoc) return master.file;
+  if (master) {
+    console.warn(CONFIG.MASTER_TEMPLATE_NAME + ' no es un Google Doc (' + master.file.getMimeType() + '). ' +
+                 'Ábrelo y usa Archivo > Guardar como documento de Google. Se usa la plantilla de respaldo.');
+  }
+  return DriveApp.getFileById(getProp_(PROPS.TEMPLATE_ID));
+}
+
+/** Marcadores {{...}} que el agente sabe reemplazar y que faltan en el documento. */
+function missingPlaceholders_(docId) {
+  const text = DocumentApp.openById(docId).getBody().getText();
+  return Object.keys(buildCvReplacements({}, 'es')).filter(key => text.indexOf('{{' + key + '}}') === -1);
+}
+
 function createTailoredCv_(vacancy, folder, language) {
   const replacements = buildCvReplacements(vacancy, language);
-  const copy = DriveApp.getFileById(getProp_(PROPS.TEMPLATE_ID))
+  const copy = getTemplateFile_()
     .makeCopy('CV_' + (vacancy.company || 'Empresa') + '_' + language.toUpperCase(), folder);
 
   const doc = DocumentApp.openById(copy.getId());
