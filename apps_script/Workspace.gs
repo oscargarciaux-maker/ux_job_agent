@@ -63,6 +63,26 @@ function createVacancyDetailDoc_(folder, vacancy, item, language) {
   DriveApp.getFileById(doc.getId()).moveTo(folder);
 }
 
+/** Publicaciones (sin texto completo): solo el enlace, para que el usuario haga el proceso a mano. */
+function createPostLinkDoc_(folder, vacancy) {
+  const doc = DocumentApp.create('Enlace_Publicacion');
+  const body = doc.getBody();
+  body.appendParagraph('Proceso manual: abre la publicación, revisa la oferta completa y adapta tu CV.');
+  body.appendParagraph(vacancy.link).setLinkUrl(vacancy.link);
+  doc.saveAndClose();
+  DriveApp.getFileById(doc.getId()).moveTo(folder);
+}
+
+/** Colorea la carpeta (requiere el servicio avanzado Drive del manifiesto). Si falla, solo avisa. */
+function setFolderColor_(folder, color) {
+  try {
+    if (typeof Drive === 'undefined') throw new Error('falta el servicio Drive en appsscript.json');
+    Drive.Files.update({ folderColorRgb: color }, folder.getId());
+  } catch (e) {
+    console.warn('No se pudo colorear la carpeta ' + folder.getName() + ': ' + e.message);
+  }
+}
+
 // ---------- Google Docs (clonado de plantilla + reemplazo de placeholders) ----------
 
 /**

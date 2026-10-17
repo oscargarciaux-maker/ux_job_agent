@@ -65,6 +65,8 @@ assert.ok(!context.isRecent('hace 3 semanas', 14) && !context.isRecent('hace 1 m
 const post = context.parseLinkedInPost({ title: 'Ana Gómez en LinkedIn: Buscamos diseñador UX/UI junior | LinkedIn',
   snippet: 'Envía tu HV a ana@example.com', link: 'https://www.linkedin.com/posts/ana_1' });
 assert.strictEqual(post.company, 'Post Ana Gómez');
+assert.strictEqual(post.isPost, true);
+assert.ok(!job.isPost);
 assert.strictEqual(post.title, 'Buscamos diseñador UX/UI junior');
 assert.strictEqual(context.extractContactEmail(post), 'ana@example.com');
 assert.strictEqual(context.classifySeniority(post), 'junior');

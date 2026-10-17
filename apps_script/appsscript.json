@@ -4,7 +4,8 @@
   "exceptionLogging": "STACKDRIVER",
   "dependencies": {
     "enabledAdvancedServices": [
-      { "userSymbol": "Gmail", "serviceId": "gmail", "version": "v1" }
+      { "userSymbol": "Gmail", "serviceId": "gmail", "version": "v1" },
+      { "userSymbol": "Drive", "serviceId": "drive", "version": "v3" }
     ]
   },
   "oauthScopes": [

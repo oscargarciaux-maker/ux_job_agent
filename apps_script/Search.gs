@@ -53,6 +53,7 @@ function parseLinkedInPost(item) {
     link: item.link || '',
     postedAt: item.date || '',
     source: 'Publicación LinkedIn (solo fragmento visible)',
+    isPost: true,   // Sin texto completo: proceso manual del usuario, no pasa por la IA
   };
 }
 

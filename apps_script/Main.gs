@@ -82,6 +82,13 @@ function runPipeline_(opts) {
 
     try {
       const folder = setupVacancyFolder_(v);
+      if (v.isPost) {
+        createPostLinkDoc_(folder, v);
+        setFolderColor_(folder, CONFIG.MANUAL_FOLDER_COLOR);
+        appendVacancyRow_(sheet, v, item.score, 'Manual (publicación)');
+        console.log(label + ' -> publicación: carpeta amarilla con el enlace (proceso manual)');
+        return;
+      }
       createVacancyDetailDoc_(folder, v, item, language);
       // El CV personalizado y el borrador de Gmail se generan en el paso de IA (pendiente de conectar).
       appendVacancyRow_(sheet, v, item.score, 'Esperando CV (IA)');
