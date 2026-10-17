@@ -84,6 +84,31 @@ assert.ok(mime.includes('application/pdf') && mime.includes('JVBERg=='));
 const htmlPart = mime.split('text/html; charset="UTF-8"')[1].split('\r\n\r\n')[1].split('\r\n--')[0];
 assert.ok(Buffer.from(htmlPart.replace(/\r\n/g, ''), 'base64').toString().includes('sans-serif'));
 
+// Fase 3: CV_IA.json (contrato + anti-alucinación)
+const contexto = 'Diseñador Industrial. Practicante en Estudio Forma (2023), rediseño que redujo errores 30%. Figma.';
+const marcadores = ['PERFIL_PERSONALIZADO', 'EMPRESA_EXP_1', 'LOGRO_1_1', 'LOGRO_1_2'];
+const cvOk = context.parseCvJson('\uFEFF' + JSON.stringify({
+  _idioma: 'es', _keywords: ['Figma'], _gaps: [], _correo_cuerpo: 'Hola, adjunto mi CV.',
+  PERFIL_PERSONALIZADO: 'Diseñador Industrial con foco en UX y costos en $ (literal).',
+  EMPRESA_EXP_1: 'Estudio Forma', LOGRO_1_1: 'Reduje errores en un 30% (2023).', LOGRO_1_2: '',
+}));
+assert.strictEqual(context.validateCvJson(cvOk, contexto, marcadores).errors.length, 0);
+const malo = Object.assign({}, cvOk, { _idioma: 'fr', EMPRESA_EXP_1: 'Google', LOGRO_1_1: 'Aumenté ventas 45%' });
+delete malo.LOGRO_1_2;
+const erroresMalo = context.validateCvJson(malo, contexto, marcadores).errors.join('\n');
+assert.ok(/_idioma/.test(erroresMalo) && /LOGRO_1_2/.test(erroresMalo) && /Google/.test(erroresMalo) && /"45"/.test(erroresMalo));
+assert.ok(!/"30"/.test(erroresMalo));
+assert.throws(() => context.parseCvJson('no es json'), /no es JSON válido/);
+assert.throws(() => context.parseCvJson('[]'), /objeto/);
+assert.strictEqual(context.shouldRemoveParagraph('{{LOGRO_1_2}}', cvOk), true);
+assert.strictEqual(context.shouldRemoveParagraph('{{EMPRESA_EXP_1}} | {{LOGRO_1_2}}', cvOk), false);
+assert.strictEqual(context.shouldRemoveParagraph('Idiomas: Español', cvOk), false);
+assert.strictEqual(context.escapeRegex_('{{A_1}}'), '\\{\\{A_1\\}\\}');
+const detalle = context.parseVacancyDetail(['Diseñador UX/UI Junior', 'Empresa: Acme', 'Link: https://x.co/1',
+  'Idioma: EN', 'Correo de contacto: N/D', 'Descripción completa'].join('\n'));
+assert.deepStrictEqual(JSON.parse(JSON.stringify(detalle)),
+  { title: 'Diseñador UX/UI Junior', company: 'Acme', link: 'https://x.co/1', email: null, language: 'en' });
+
 // HITL: ninguna llamada de envío de correo en el código
 const allCode = fs.readdirSync(dir).map(f => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n');
 assert.ok(!/\.send\(|Messages\.send|sendEmail|GmailApp/.test(allCode), 'El agente no debe poder enviar correos');
@@ -100,7 +125,7 @@ const loaderCtx = {
 vm.createContext(loaderCtx);
 vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'instalador', 'Cargador.gs'), 'utf8'), loaderCtx);
 const api = vm.runInContext('agente_()', loaderCtx);
-for (const fn of ['ejecutarPipeline', 'ejecutarPrueba', 'ejecutarSimulacion', 'configurarAgente']) {
+for (const fn of ['ejecutarPipeline', 'ejecutarPrueba', 'ejecutarSimulacion', 'configurarAgente', 'generarCVsDesdeIA']) {
   assert.strictEqual(typeof api[fn], 'function', 'El cargador debe exponer ' + fn);
   assert.strictEqual(typeof loaderCtx[fn], 'function', 'Cargador.gs debe definir ' + fn + ' (activadores/editor)');
 }
