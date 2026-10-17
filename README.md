@@ -1,5 +1,5 @@
 [implementation_plan.md](https://github.com/user-attachments/files/33605766/implementation_plan.md)
-# ux_job_agent
+
 # Plan Director Técnico: Agente Autónomo de Búsqueda de Empleo y Personalización de CVs (UX/UI Junior)
 
 Plan director técnico integral y arquitectura de software para implementar con Claude Code, Model Context Protocol (MCP), Python y Google Workspace APIs un agente determinista y semántico de búsqueda de empleo diario, scoring, deduplicación en Google Sheets, organización en Google Drive, generación de CVs a la medida en Google Docs/PDF y creación de borradores en Gmail con supervisión humana estricta, portabilidad absoluta mediante repositorio de GitHub (`ux_job_agent`) y guardrails anti-alucinación.
