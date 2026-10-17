@@ -14,6 +14,7 @@ const CONFIG = {
                         '("estamos contratando" OR "buscamos" OR "vacante" OR "hiring" OR "estamos buscando")',
   MAX_POST_AGE_DAYS: 14,
   PIPELINE_HOUR: 8,          // 8:00 AM hora de Bogotá
+  CV_HOUR: 10,               // 10:00 AM: CV/PDF/borrador desde el CV_IA.json que deja la IA (~8:30)
   ROOT_FOLDER_NAME: 'Vacantes con IA',
   SHEET_TITLE: 'Vacantes UX - Registro',
   TEMPLATE_TITLE: 'Plantilla CV Maestra',

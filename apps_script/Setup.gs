@@ -44,7 +44,7 @@ function configurarAgente() {
   }
 
   installTriggers_();
-  report.push('Activador: pipeline diario a las ' + CONFIG.PIPELINE_HOUR + ':00');
+  report.push('Activadores: pipeline diario a las ' + CONFIG.PIPELINE_HOUR + ':00 y CVs desde la IA a las ' + CONFIG.CV_HOUR + ':00');
 
   if (!getProp_(PROPS.SERPAPI_API_KEY)) {
     report.push('FALTA: agrega SERPAPI_API_KEY en Configuración del proyecto > Propiedades del script.');
@@ -54,10 +54,11 @@ function configurarAgente() {
 }
 
 function installTriggers_() {
-  const handlers = ['ejecutarPipeline'];
+  const handlers = ['ejecutarPipeline', 'generarCVsDesdeIA'];
   ScriptApp.getProjectTriggers()
     .filter(t => handlers.indexOf(t.getHandlerFunction()) !== -1)
     .forEach(t => ScriptApp.deleteTrigger(t));
 
   ScriptApp.newTrigger('ejecutarPipeline').timeBased().everyDays(1).atHour(CONFIG.PIPELINE_HOUR).create();
+  ScriptApp.newTrigger('generarCVsDesdeIA').timeBased().everyDays(1).atHour(CONFIG.CV_HOUR).create();
 }

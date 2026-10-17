@@ -27,6 +27,7 @@ Agente inteligente y modular diseñado para automatizar la búsqueda diaria de 1
 - **Fase 2 (Google Drive)** `Workspace.gs`: `/Vacantes con IA/YYYY-MM-DD/[Empresa]_[Cargo]` + `Detalle_Vacante` (Google Doc con metadatos y la descripción completa: es la entrada del paso de IA). Estado en Sheets: `Esperando CV (IA)`.
 - **Fase 3 (CV & PDF) — EN PAUSA hasta conectar la IA:** la plantilla `MASTER_TEMPLATE` (Google Doc del usuario, buscado por nombre en todo el Drive) tiene marcadores propios (`{{TITULO_SUBTITULO_PROFESIONAL}}`, `{{PERFIL_PERSONALIZADO}}`, `{{CARGO_EXP_n}}`, `{{LOGRO_n_m}}`, `{{HEADER_*}}`, etc.) y debe quedar exactamente como el usuario la diseñó. El contenido debe redactarlo una IA aplicando 100% la guía `GUIA_CV` con datos de `CONTEXTO_CV` (ambos como Google Docs privados en Drive, NUNCA en este repo público: contienen datos personales). Restricción del usuario: no pagar API aparte; usar su plan de Claude.
 - **Fase 4 (Gmail)** `Workspace.gs`: `buildMimeMessage`/`createApplicationDraft_` (texto + HTML Sans Serif + PDF adjunto), listos para cuando la Fase 3 genere el PDF; solo si la oferta trae correo directo.
+- **Fase 3b** `CV.gs`: `generarCVsDesdeIA` (activador 10:00 AM, `CONFIG.CV_HOUR`): para cada carpeta de hoy con `CV_IA.json` y sin PDF → `validateCvJson` (marcadores completos, `_idioma`, cifras y valores de marcadores `*EMPRESA*` presentes en `CONTEXTO_CV`), copia `MASTER_TEMPLATE` como `CV_[Empresa]`, reemplazo literal (`replaceLiteral_`: findText+delete+insert, conserva formato, sin problemas con `$`), elimina párrafos que solo tenían marcadores vacíos, traduce rótulos fijos si `en`, PDF en la carpeta, borrador Gmail si `Detalle_Vacante` trae correo. Sheets → `Pendiente (borrador listo)` / `Pendiente` / `CV rechazado (IA): motivo`.
 - `Main.gs`: `ejecutarPipeline` (activador 8:00 AM), `ejecutarPrueba` (2 vacantes de ejemplo, acciones reales), `ejecutarSimulacion` (sin tocar Workspace).
 - `Setup.gs`: `configurarAgente` crea carpeta/hoja/plantilla faltantes e instala el activador diario de `ejecutarPipeline` (idempotente).
 
@@ -42,8 +43,8 @@ El usuario NO quiere pagar API aparte: la IA corre con su **plan de Claude** med
 **Privacidad:** `GUIA_CV` y `CONTEXTO_CV` viven SOLO en Drive (Google Docs en la carpeta raíz). Nunca en este repo público.
 
 ### Próximos pasos (para la siguiente sesión, que debe iniciarse CON el conector Google Drive activo)
-1. Verificar con el conector que se pueden leer `GUIA_CV`, `CONTEXTO_CV`, `MASTER_TEMPLATE` y un `Detalle_Vacante`, y subir un `CV_IA.json` de prueba a una carpeta de vacante.
-2. Implementar en Apps Script `generarCVsDesdeIA` (activador ~10:00): para cada carpeta de hoy con `CV_IA.json` y sin PDF → validar anti-alucinación, copiar `MASTER_TEMPLATE`, reemplazar marcadores (texto literal; ojo con `$` en `replaceText`, que usa regex) y eliminar párrafos/viñetas cuyos marcadores queden vacíos, traducir rótulos fijos de la plantilla si `_idioma` = `en` ("Herramientas:", "Competencias Blandas:", "Idiomas:", "Abierto a relocalización / Remoto"), PDF, borrador Gmail si hay correo, estado en Sheets → `Pendiente`. Exponerla en `exports_()` y `Cargador.gs`.
+1. **(Pendiente; el conector de Drive estaba conectado en la cuenta pero desactivado en el chat del 2026-10-17)** Verificar con el conector que se pueden leer `GUIA_CV`, `CONTEXTO_CV`, `MASTER_TEMPLATE` y un `Detalle_Vacante`, y subir un `CV_IA.json` de prueba a una carpeta de vacante.
+2. **HECHO (2026-10-17, `apps_script/CV.gs`)**; falta que el usuario re-pegue `Cargador.gs` y re-ejecute `configurarAgente` para instalar el activador de las 10:00. Diseño original: implementar en Apps Script `generarCVsDesdeIA` (activador ~10:00): para cada carpeta de hoy con `CV_IA.json` y sin PDF → validar anti-alucinación, copiar `MASTER_TEMPLATE`, reemplazar marcadores (texto literal; ojo con `$` en `replaceText`, que usa regex) y eliminar párrafos/viñetas cuyos marcadores queden vacíos, traducir rótulos fijos de la plantilla si `_idioma` = `en` ("Herramientas:", "Competencias Blandas:", "Idiomas:", "Abierto a relocalización / Remoto"), PDF, borrador Gmail si hay correo, estado en Sheets → `Pendiente`. Exponerla en `exports_()` y `Cargador.gs`.
 3. Crear la tarea programada diaria de Claude (~8:30 Bogotá) con el conector Google Drive y un prompt autónomo que aplique la guía según este archivo.
 
 ### Alternativa si el usuario deja de tener plan de Claude: Gemini (gratis)
@@ -59,6 +60,7 @@ Reemplazar solo el "cerebro"; el resto del pipeline y el contrato `CV_IA.json` n
 - No hay ejecución local de Apps Script; los servicios de Google solo existen en script.google.com.
 
 ## 📌 Pendientes conocidos
-- **Conectar la IA de la Fase 3** (ver arriba) y reactivar CV/PDF/borrador.
+- **Conectar la IA de la Fase 3** (ver arriba): `generarCVsDesdeIA` ya existe; falta la tarea programada de Claude que escribe `CV_IA.json`.
+- El nombre del PDF es `CV_[Empresa].pdf` (no incluye el nombre del usuario: no se conoce el marcador de nombre de `MASTER_TEMPLATE`).
 - Soporte interactivo para Cartas de Presentación (*Cover Letter*).
 - Historial: la versión Python (OAuth + GitHub Actions) se eliminó en la migración; está en el commit `8957d0d`.

@@ -1,11 +1,11 @@
 /**
  * Orquestador del pipeline diario (se ejecuta solo a las 8:00 AM).
- * Funciones para usar desde el editor: ejecutarPipeline, ejecutarPrueba, ejecutarSimulacion.
+ * Funciones para usar desde el editor: ejecutarPipeline, ejecutarPrueba, ejecutarSimulacion, generarCVsDesdeIA.
  */
 
 /** Funciones públicas que expone el agente al Cargador (instalador/Cargador.gs). */
 function exports_() {
-  return { ejecutarPipeline, ejecutarPrueba, ejecutarSimulacion, configurarAgente };
+  return { ejecutarPipeline, ejecutarPrueba, ejecutarSimulacion, configurarAgente, generarCVsDesdeIA };
 }
 
 const SAMPLE_VACANCIES_ = [

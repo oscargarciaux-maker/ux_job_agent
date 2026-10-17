@@ -9,6 +9,7 @@ function ejecutarPipeline() { agente_().ejecutarPipeline(); }
 function ejecutarPrueba() { agente_().ejecutarPrueba(); }
 function ejecutarSimulacion() { agente_().ejecutarSimulacion(); }
 function configurarAgente() { agente_().configurarAgente(); }
+function generarCVsDesdeIA() { agente_().generarCVsDesdeIA(); }
 
 function agente_() {
   const get = url => {
