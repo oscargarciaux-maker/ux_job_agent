@@ -18,6 +18,7 @@ Agente inteligente y modular diseñado para automatizar la búsqueda diaria de 1
 - **Despliegue automático:** en cada push a `main`, `.github/workflows/tests.yml` corre las pruebas y, si pasan, hace force-push del commit a la rama `deploy`. El proyecto de Apps Script del usuario solo contiene `instalador/Cargador.gs` (+ manifiesto): en cada ejecución descarga desde `raw.githubusercontent.com/.../deploy/apps_script/` los `.gs` listados en `apps_script/files.json`, los evalúa con `new Function(...)` y llama a lo que devuelve `exports_()` (en `Main.gs`). **Todo push a `main` con pruebas en verde llega a producción en la siguiente ejecución.**
 - **Restricciones de ese diseño:** no usar `api.github.com` (límite por IP agotado en servidores de Google) ni la Apps Script API (exige activar la API en un proyecto de Google Cloud). Una función pública nueva debe agregarse a `exports_()` **y** a `Cargador.gs` (este último lo debe re-pegar el usuario). Un archivo `.gs` nuevo debe agregarse a `apps_script/files.json` (la prueba lo exige).
 - **El manifiesto no se sincroniza:** si cambias `apps_script/appsscript.json` (scopes, servicios avanzados), el usuario debe re-pegarlo a mano y re-autorizar; avísale.
+- **Estado:** instalado y verificado en la cuenta del usuario el 2026-10-17 (`configurarAgente` y `ejecutarPrueba` OK: carpetas, CV/PDF, registro y 2 borradores). Activador diario 8:00 AM activo.
 - **Instalación inicial:** ver `INSTALACION.md` (manifiesto + `instalador/Cargador.gs` → `configurarAgente`).
 
 ## 🧩 Arquitectura (4 Fases) — `apps_script/`
