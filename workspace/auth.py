@@ -1,4 +1,5 @@
 import os
+import json
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -33,6 +34,15 @@ def get_credentials() -> Credentials:
     global _cached_creds
     if _cached_creds and _cached_creds.valid:
         return _cached_creds
+
+    # Modo nube (GitHub Actions): token.json completo guardado como secreto GOOGLE_TOKEN_JSON
+    token_json = os.getenv("GOOGLE_TOKEN_JSON")
+    if token_json:
+        creds = Credentials.from_authorized_user_info(json.loads(token_json), SCOPES)
+        if not creds.valid:
+            creds.refresh(Request())
+        _cached_creds = creds
+        return creds
 
     creds = None
     if os.path.exists(TOKEN_PATH):
