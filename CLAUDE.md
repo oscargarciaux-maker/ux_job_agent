@@ -1,4 +1,3 @@
-#ux_job_agent
 cat << 'EOF' > CLAUDE.md
 # CLAUDE.md - Agente Autónomo de Búsqueda de Empleo UX/UI
 
