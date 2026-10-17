@@ -41,6 +41,11 @@ El usuario NO quiere pagar API aparte: la IA corre con su **plan de Claude** med
 
 **Privacidad:** `GUIA_CV` y `CONTEXTO_CV` viven SOLO en Drive (Google Docs en la carpeta raíz). Nunca en este repo público.
 
+### Próximos pasos (para la siguiente sesión, que debe iniciarse CON el conector Google Drive activo)
+1. Verificar con el conector que se pueden leer `GUIA_CV`, `CONTEXTO_CV`, `MASTER_TEMPLATE` y un `Detalle_Vacante`, y subir un `CV_IA.json` de prueba a una carpeta de vacante.
+2. Implementar en Apps Script `generarCVsDesdeIA` (activador ~10:00): para cada carpeta de hoy con `CV_IA.json` y sin PDF → validar anti-alucinación, copiar `MASTER_TEMPLATE`, reemplazar marcadores (texto literal; ojo con `$` en `replaceText`, que usa regex) y eliminar párrafos/viñetas cuyos marcadores queden vacíos, traducir rótulos fijos de la plantilla si `_idioma` = `en` ("Herramientas:", "Competencias Blandas:", "Idiomas:", "Abierto a relocalización / Remoto"), PDF, borrador Gmail si hay correo, estado en Sheets → `Pendiente`. Exponerla en `exports_()` y `Cargador.gs`.
+3. Crear la tarea programada diaria de Claude (~8:30 Bogotá) con el conector Google Drive y un prompt autónomo que aplique la guía según este archivo.
+
 ### Alternativa si el usuario deja de tener plan de Claude: Gemini (gratis)
 Reemplazar solo el "cerebro"; el resto del pipeline y el contrato `CV_IA.json` no cambian.
 1. El usuario crea una clave gratuita en https://aistudio.google.com/apikey y la guarda en Propiedades del script como `GEMINI_API_KEY`.
