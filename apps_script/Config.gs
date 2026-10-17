@@ -8,6 +8,10 @@ const CONFIG = {
   MIN_JUNIOR: 5,             // Al menos 5 de las 10 vacantes diarias serán Junior (si existen)
   SEARCH_QUERIES: ['diseñador ux ui junior', 'diseñador ux ui'],  // 1 crédito de SerpAPI por búsqueda
   SEARCH_LOCATION: 'Colombia',
+  // Publicaciones de reclutadores en LinkedIn (contratan sin publicar vacante formal). 1 crédito más por día.
+  // Solo trae el fragmento visible del post (LinkedIn no permite leer el post completo sin sesión).
+  LINKEDIN_POSTS_QUERY: 'site:linkedin.com/posts ("diseñador ux" OR "diseñador ui" OR "ux/ui" OR "ux designer" OR "product designer") ' +
+                        '("estamos contratando" OR "buscamos" OR "vacante" OR "hiring" OR "estamos buscando")',
   MAX_POST_AGE_DAYS: 14,
   PIPELINE_HOUR: 8,          // 8:00 AM hora de Bogotá
   ROOT_FOLDER_NAME: 'Vacantes con IA',

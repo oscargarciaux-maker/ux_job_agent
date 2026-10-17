@@ -1,6 +1,7 @@
 /**
- * Fase 1: búsqueda con SerpAPI (motor Google Jobs), que devuelve la DESCRIPCIÓN COMPLETA de cada vacante
- * (LinkedIn, Computrabajo, sitios de empresas, etc.). La búsqueda orgánica de Google solo daba un fragmento.
+ * Fase 1: búsqueda con SerpAPI.
+ * - Motor Google Jobs: vacantes formales con DESCRIPCIÓN COMPLETA (LinkedIn, Computrabajo, sitios de empresas...).
+ * - Google Dorking en linkedin.com/posts: reclutadores que contratan por publicación (solo fragmento visible).
  */
 function searchUxJobs_() {
   const apiKey = getProp_(PROPS.SERPAPI_API_KEY);
@@ -20,7 +21,39 @@ function searchUxJobs_() {
       .filter(v => v.link && isRecent(v.postedAt, CONFIG.MAX_POST_AGE_DAYS))
       .forEach(v => { byLink[v.link] = byLink[v.link] || v; });
   });
+  if (CONFIG.LINKEDIN_POSTS_QUERY) {
+    searchLinkedInPosts_(apiKey).forEach(v => { byLink[v.link] = byLink[v.link] || v; });
+  }
   return Object.keys(byLink).map(k => byLink[k]);
+}
+
+/** Posts de reclutadores en LinkedIn (últimas 2 semanas) vía Google Dorking. */
+function searchLinkedInPosts_(apiKey) {
+  const params = { engine: 'google', q: CONFIG.LINKEDIN_POSTS_QUERY, tbs: 'qdr:w2', hl: 'es', gl: 'co', num: 20, api_key: apiKey };
+  const query = Object.keys(params).map(k => k + '=' + encodeURIComponent(params[k])).join('&');
+  const response = UrlFetchApp.fetch('https://serpapi.com/search.json?' + query, { muteHttpExceptions: true });
+  if (response.getResponseCode() !== 200) {
+    console.warn('SerpAPI respondió ' + response.getResponseCode() + ' para publicaciones de LinkedIn.');
+    return [];
+  }
+  return (JSON.parse(response.getContentText()).organic_results || []).map(parseLinkedInPost).filter(v => v.link);
+}
+
+/** "Ana Gómez en LinkedIn: Buscamos diseñador UX..." -> vacante tipo publicación. */
+function parseLinkedInPost(item) {
+  const rawTitle = (item.title || '').replace(/\s*\|\s*LinkedIn\s*$/i, '');
+  const match = rawTitle.match(/^(.+?)\s+(?:en|on)\s+LinkedIn:\s*(.*)$/i);
+  const author = match ? match[1].trim() : '';
+  return {
+    title: (match ? match[2] : rawTitle).trim().slice(0, 80) || 'Publicación de LinkedIn',
+    company: author ? 'Post ' + author : 'Post LinkedIn',
+    location: '',
+    description: [rawTitle, item.snippet || ''].join('\n'),
+    snippet: '',
+    link: item.link || '',
+    postedAt: item.date || '',
+    source: 'Publicación LinkedIn (solo fragmento visible)',
+  };
 }
 
 /** Convierte un resultado de Google Jobs (SerpAPI) en una vacante del agente. */
