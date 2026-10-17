@@ -15,11 +15,10 @@ Agente inteligente y modular diseñado para automatizar la búsqueda diaria de 1
 ## 🏗️ Dónde corre y cómo se despliega
 - **Runtime:** Google Apps Script, en la cuenta de Google del usuario (proyecto "Agente UX" en script.google.com). No depende de ningún plan de Claude ni de un computador encendido.
 - **Fuente de verdad del código:** carpeta `apps_script/` de este repositorio (rama `main`).
-- **Despliegue automático:** en cada push a `main`, `.github/workflows/tests.yml` corre las pruebas y, si pasan, hace force-push del commit a la rama `deploy`. `Updater.gs › sincronizarDesdeGitHub` corre a diario a las 7:00 AM, descarga desde `raw.githubusercontent.com/.../deploy/apps_script/` los archivos listados en `apps_script/files.json` y, si cambiaron (hash SHA-256), reemplaza el código del proyecto vía Apps Script API (`projects.updateContent`). **Todo lo que se haga push a `main` llega a producción al día siguiente.**
-- **No usar `api.github.com` desde Apps Script:** el límite sin autenticación es por IP y los servidores de Google lo comparten (error 403 "API rate limit exceeded"). Solo `raw.githubusercontent.com`.
-- **Archivo nuevo en `apps_script/`:** agrégalo a `apps_script/files.json` (la prueba lo exige).
-- **Si cambias `oauthScopes` en `appsscript.json`:** el usuario debe ejecutar manualmente cualquier función una vez para re-autorizar; avísale.
-- **Instalación inicial:** ver `INSTALACION.md` (manifiesto + `instalador/Instalador.gs` → `instalar` → `configurarAgente`).
+- **Despliegue automático:** en cada push a `main`, `.github/workflows/tests.yml` corre las pruebas y, si pasan, hace force-push del commit a la rama `deploy`. El proyecto de Apps Script del usuario solo contiene `instalador/Cargador.gs` (+ manifiesto): en cada ejecución descarga desde `raw.githubusercontent.com/.../deploy/apps_script/` los `.gs` listados en `apps_script/files.json`, los evalúa con `new Function(...)` y llama a lo que devuelve `exports_()` (en `Main.gs`). **Todo push a `main` con pruebas en verde llega a producción en la siguiente ejecución.**
+- **Restricciones de ese diseño:** no usar `api.github.com` (límite por IP agotado en servidores de Google) ni la Apps Script API (exige activar la API en un proyecto de Google Cloud). Una función pública nueva debe agregarse a `exports_()` **y** a `Cargador.gs` (este último lo debe re-pegar el usuario). Un archivo `.gs` nuevo debe agregarse a `apps_script/files.json` (la prueba lo exige).
+- **El manifiesto no se sincroniza:** si cambias `apps_script/appsscript.json` (scopes, servicios avanzados), el usuario debe re-pegarlo a mano y re-autorizar; avísale.
+- **Instalación inicial:** ver `INSTALACION.md` (manifiesto + `instalador/Cargador.gs` → `configurarAgente`).
 
 ## 🧩 Arquitectura (4 Fases) — `apps_script/`
 - `Config.gs`: constantes y nombres de propiedades (`SERPAPI_API_KEY`, `GOOGLE_DRIVE_ROOT_FOLDER_ID`, `GOOGLE_SHEET_ID`, `GOOGLE_DOCS_MASTER_TEMPLATE_ID`).
@@ -28,7 +27,7 @@ Agente inteligente y modular diseñado para automatizar la búsqueda diaria de 1
 - **Fase 3 (CV & PDF)** `Workspace.gs` + `Personalization.gs`: copia de la plantilla maestra, reemplazo de `{{EMPRESA}}`, `{{CARGO}}`, `{{RESUMEN}}`, `{{ENFOQUE}}` en cuerpo/encabezado/pie, exportación a PDF en la carpeta. Idioma detectado por conteo de palabras funcionales.
 - **Fase 4 (Gmail)** `Workspace.gs`: borrador MIME (texto + HTML Sans Serif + PDF adjunto) solo si la oferta trae correo directo.
 - `Main.gs`: `ejecutarPipeline` (activador 8:00 AM), `ejecutarPrueba` (2 vacantes de ejemplo, acciones reales), `ejecutarSimulacion` (sin tocar Workspace).
-- `Setup.gs`: `configurarAgente` crea carpeta/hoja/plantilla faltantes e instala activadores (idempotente).
+- `Setup.gs`: `configurarAgente` crea carpeta/hoja/plantilla faltantes e instala el activador diario de `ejecutarPipeline` (idempotente).
 
 ## 🛠️ Comandos
 - Pruebas (obligatorias antes de push): `node tests/apps_script.test.js`

@@ -3,6 +3,11 @@
  * Funciones para usar desde el editor: ejecutarPipeline, ejecutarPrueba, ejecutarSimulacion.
  */
 
+/** Funciones públicas que expone el agente al Cargador (instalador/Cargador.gs). */
+function exports_() {
+  return { ejecutarPipeline, ejecutarPrueba, ejecutarSimulacion, configurarAgente };
+}
+
 const SAMPLE_VACANCIES_ = [
   {
     title: 'Diseñador UX/UI Junior',

@@ -36,7 +36,7 @@ function configurarAgente() {
   }
 
   installTriggers_();
-  report.push('Activadores: sincronización GitHub ' + CONFIG.SYNC_HOUR + ':00 y pipeline ' + CONFIG.PIPELINE_HOUR + ':00 (diario)');
+  report.push('Activador: pipeline diario a las ' + CONFIG.PIPELINE_HOUR + ':00');
 
   if (!getProp_(PROPS.SERPAPI_API_KEY)) {
     report.push('FALTA: agrega SERPAPI_API_KEY en Configuración del proyecto > Propiedades del script.');
@@ -46,11 +46,10 @@ function configurarAgente() {
 }
 
 function installTriggers_() {
-  const handlers = ['ejecutarPipeline', 'sincronizarDesdeGitHub'];
+  const handlers = ['ejecutarPipeline'];
   ScriptApp.getProjectTriggers()
     .filter(t => handlers.indexOf(t.getHandlerFunction()) !== -1)
     .forEach(t => ScriptApp.deleteTrigger(t));
 
-  ScriptApp.newTrigger('sincronizarDesdeGitHub').timeBased().everyDays(1).atHour(CONFIG.SYNC_HOUR).create();
   ScriptApp.newTrigger('ejecutarPipeline').timeBased().everyDays(1).atHour(CONFIG.PIPELINE_HOUR).create();
 }
