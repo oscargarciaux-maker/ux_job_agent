@@ -1,20 +1,18 @@
 import os
+import sys
 from datetime import datetime
-from google.oauth2.service_account import Credentials
-from googleapiclient.discovery import build
 from dotenv import load_dotenv
 
-load_dotenv()
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-SCOPES = ['https://www.googleapis.com/auth/drive']
+from workspace.auth import build_service
+
+load_dotenv()
 
 class GoogleDriveService:
     def __init__(self):
         self.root_folder_id = os.getenv("GOOGLE_DRIVE_ROOT_FOLDER_ID")
-        credentials_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "credentials.json")
-        
-        creds = Credentials.from_service_account_file(credentials_path, scopes=SCOPES)
-        self.service = build('drive', 'v3', credentials=creds)
+        self.service = build_service('drive', 'v3')
 
     def create_folder(self, folder_name: str, parent_id: str = None) -> str:
         """

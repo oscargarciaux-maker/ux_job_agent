@@ -1,5 +1,5 @@
 import os
-from serpapi import GoogleSearch
+import serpapi
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -21,14 +21,13 @@ class LinkedInSerpApiClient:
         params = {
             "engine": "google",
             "q": query,
-            "api_key": self.api_key,
             "tbs": "qdr:w2", # Filtro estricto de las últimas 2 semanas
             "hl": "es",
             "gl": "co"
         }
 
-        search = GoogleSearch(params)
-        results = search.get_dict()
+        client = serpapi.Client(api_key=self.api_key)
+        results = client.search(params).as_dict()
         organic_results = results.get("organic_results", [])
 
         vacancies = []
