@@ -10,6 +10,7 @@ function ejecutarPrueba() { agente_().ejecutarPrueba(); }
 function ejecutarSimulacion() { agente_().ejecutarSimulacion(); }
 function configurarAgente() { agente_().configurarAgente(); }
 function generarCVsDesdeIA() { agente_().generarCVsDesdeIA(); }
+function probarCVsDesdeIA() { agente_().probarCVsDesdeIA(); }
 
 function agente_() {
   const get = url => {

@@ -125,7 +125,7 @@ const loaderCtx = {
 vm.createContext(loaderCtx);
 vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'instalador', 'Cargador.gs'), 'utf8'), loaderCtx);
 const api = vm.runInContext('agente_()', loaderCtx);
-for (const fn of ['ejecutarPipeline', 'ejecutarPrueba', 'ejecutarSimulacion', 'configurarAgente', 'generarCVsDesdeIA']) {
+for (const fn of ['ejecutarPipeline', 'ejecutarPrueba', 'ejecutarSimulacion', 'configurarAgente', 'generarCVsDesdeIA', 'probarCVsDesdeIA']) {
   assert.strictEqual(typeof api[fn], 'function', 'El cargador debe exponer ' + fn);
   assert.strictEqual(typeof loaderCtx[fn], 'function', 'Cargador.gs debe definir ' + fn + ' (activadores/editor)');
 }

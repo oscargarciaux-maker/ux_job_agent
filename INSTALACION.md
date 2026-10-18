@@ -12,6 +12,6 @@ Después de esto el agente corre solo todos los días y siempre usa la última v
 7. **Prueba:** ejecuta `ejecutarPrueba`. Debe crear 2 carpetas de prueba en Drive y 2 borradores en Gmail (a direcciones `@example.com`, puedes borrarlos).
 
 ## Uso diario
-- **Automático:** 8:00 AM busca vacantes y deja los borradores en Gmail.
-- **Manual:** en el editor ejecuta `ejecutarPipeline` (real), `ejecutarPrueba` (vacantes de prueba) o `ejecutarSimulacion` (no toca nada).
+- **Automático:** 8:00–9:00 AM busca vacantes y crea `Detalle_Vacante` en Drive → 9:10 la tarea programada de Claude deja `CV_IA.json` en cada carpeta → 10:00–11:00 `generarCVsDesdeIA` crea el CV (Doc + PDF) y el borrador en Gmail.
+- **Manual:** en el editor ejecuta `ejecutarPipeline` (real), `ejecutarPrueba` (vacantes de prueba), `ejecutarSimulacion` (no toca nada) o `probarCVsDesdeIA` (arma el CV de la carpeta `PRUEBA_IA`).
 - Si algo falla, Google te envía un correo con el error.
