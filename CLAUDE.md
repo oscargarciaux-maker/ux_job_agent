@@ -47,7 +47,7 @@ El usuario NO quiere pagar API aparte: la IA corre con su **plan de Claude** med
 ### Estado (2026-10-18)
 - ✅ Conector de Drive verificado: lee `GUIA_CV`, `CONTEXTO_CV`, `MASTER_TEMPLATE` y sube archivos. Carpeta de prueba `Vacantes con IA/PRUEBA_IA/Empresa Demo ES_Diseñador UX_UI Junior` con `Detalle_Vacante` y un `CV_IA.json` real (incluye `LOGRO_4_3` = "" para probar el borrado).
 - ✅ `generarCVsDesdeIA` + `probarCVsDesdeIA` (`CV.gs`), en `exports_()` y `Cargador.gs`; activador 10:00.
-- ✅ Tarea programada "CV con IA diario" creada, pero **sin conector**: la API no permite adjuntarlo en esta organización, y el usuario no encontró la opción en la UI de la tarea. Sin el conector la sesión no ve Drive. Alternativas: recrearla desde una sesión que ya tenga el conector, o pedirle al usuario que la cree desde la UI de rutinas eligiendo Google Drive al crearla.
+- ✅ Tarea programada "CV con IA diario" con el conector de Google Drive (el usuario lo agregó desde la UI el 2026-10-18; la API `create_trigger`/`update_trigger` no permite adjuntar conectores en esta organización, así que cualquier cambio de conector se hace en la UI).
 - ⏳ Usuario: re-pegar `Cargador.gs`, ejecutar `configurarAgente` y `probarCVsDesdeIA`; revisar el PDF (formato, ≤2 páginas, sin huecos).
 
 ### Alternativa si el usuario deja de tener plan de Claude: Gemini (gratis)
@@ -63,6 +63,6 @@ Reemplazar solo el "cerebro"; el resto del pipeline y el contrato `CV_IA.json` n
 - No hay ejecución local de Apps Script; los servicios de Google solo existen en script.google.com.
 
 ## 📌 Pendientes conocidos
-- **Conectar la IA de la Fase 3**: falta que la tarea programada tenga el conector de Drive (ver "Estado").
+- **Verificar la primera corrida real de la tarea "CV con IA diario"** (que deje `CV_IA.json` válidos en las carpetas del día).
 - Soporte interactivo para Cartas de Presentación (*Cover Letter*).
 - Historial: la versión Python (OAuth + GitHub Actions) se eliminó en la migración; está en el commit `8957d0d`.
