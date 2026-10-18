@@ -48,7 +48,7 @@ El usuario NO quiere pagar API aparte: la IA corre con su **plan de Claude** med
 - ✅ Conector de Drive verificado: lee `GUIA_CV`, `CONTEXTO_CV`, `MASTER_TEMPLATE` y sube archivos. Carpeta de prueba `Vacantes con IA/PRUEBA_IA/Empresa Demo ES_Diseñador UX_UI Junior` con `Detalle_Vacante` y un `CV_IA.json` real (incluye `LOGRO_4_3` = "" para probar el borrado).
 - ✅ `generarCVsDesdeIA` + `probarCVsDesdeIA` (`CV.gs`), en `exports_()` y `Cargador.gs`; activador 10:00.
 - ✅ Tarea programada "CV con IA diario" con el conector de Google Drive (el usuario lo agregó desde la UI el 2026-10-18; la API `create_trigger`/`update_trigger` no permite adjuntar conectores en esta organización, así que cualquier cambio de conector se hace en la UI).
-- ⏳ Usuario: re-pegar `Cargador.gs`, ejecutar `configurarAgente` y `probarCVsDesdeIA`; revisar el PDF (formato, ≤2 páginas, sin huecos).
+- ✅ `probarCVsDesdeIA` verificado en la cuenta del usuario (2026-10-18): PDF de 2 páginas, sin huecos. La plantilla tiene un párrafo en blanco entre viñetas; `removeGapsBetweenBullets_` (`CV.gs`) lo quita en cada copia para que las viñetas queden seguidas (sin él, el CV pasaba a 3 páginas).
 
 ### Alternativa si el usuario deja de tener plan de Claude: Gemini (gratis)
 Reemplazar solo el "cerebro"; el resto del pipeline y el contrato `CV_IA.json` no cambian.
