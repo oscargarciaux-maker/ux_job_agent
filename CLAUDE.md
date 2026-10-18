@@ -50,6 +50,8 @@ El usuario NO quiere pagar API aparte: la IA corre con su **plan de Claude** med
 - ✅ Tarea programada "CV con IA diario" con el conector de Google Drive (el usuario lo agregó desde la UI el 2026-10-18; la API `create_trigger`/`update_trigger` no permite adjuntar conectores en esta organización, así que cualquier cambio de conector se hace en la UI).
 - ✅ `probarCVsDesdeIA` verificado en la cuenta del usuario (2026-10-18): PDF de 2 páginas, sin huecos. La plantilla tiene un párrafo en blanco entre viñetas; `removeGapsBetweenBullets_` (`CV.gs`) lo quita en cada copia para que las viñetas queden seguidas (sin él, el CV pasaba a 3 páginas).
 
+- ✅ Prueba real de punta a punta (2026-10-17 hora Bogotá, lanzada a mano): `ejecutarPipeline` → 10 vacantes; tarea "CV con IA diario" (`fire_trigger`) → 10 `CV_IA.json` en ~6 min; `generarCVsDesdeIA` → 10 PDF de 2 páginas, 0 rechazos, rótulos traducidos en los 2 CV en inglés. Ninguna vacante traía correo (0 borradores).
+
 ### Alternativa si el usuario deja de tener plan de Claude: Gemini (gratis)
 Reemplazar solo el "cerebro"; el resto del pipeline y el contrato `CV_IA.json` no cambian.
 1. El usuario crea una clave gratuita en https://aistudio.google.com/apikey y la guarda en Propiedades del script como `GEMINI_API_KEY`.
@@ -63,6 +65,5 @@ Reemplazar solo el "cerebro"; el resto del pipeline y el contrato `CV_IA.json` n
 - No hay ejecución local de Apps Script; los servicios de Google solo existen en script.google.com.
 
 ## 📌 Pendientes conocidos
-- **Verificar la primera corrida real de la tarea "CV con IA diario"** (que deje `CV_IA.json` válidos en las carpetas del día).
 - Soporte interactivo para Cartas de Presentación (*Cover Letter*).
 - Historial: la versión Python (OAuth + GitHub Actions) se eliminó en la migración; está en el commit `8957d0d`.
