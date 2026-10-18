@@ -195,6 +195,7 @@ function fillCvDocument_(docId, cv) {
         p.setText('');  // Docs no permite borrar el último párrafo de una sección o celda
       }
     });
+    removeGapsBetweenBullets_(section);
     Object.keys(cv).forEach(key => {
       if (CV_META_KEYS_.indexOf(key) === -1 && typeof cv[key] === 'string') {
         replaceLiteral_(section, '{{' + key + '}}', cv[key]);
@@ -205,6 +206,18 @@ function fillCvDocument_(docId, cv) {
     }
   });
   doc.saveAndClose();
+}
+
+/** Viñetas seguidas: borra los párrafos en blanco entre dos viñetas (los separadores entre secciones se quedan). */
+function removeGapsBetweenBullets_(section) {
+  const isBullet = el => el && el.getType() === DocumentApp.ElementType.LIST_ITEM;
+  for (let i = section.getNumChildren() - 2; i > 0; i--) {
+    const el = section.getChild(i);
+    if (el.getType() === DocumentApp.ElementType.PARAGRAPH && !el.asParagraph().getText().trim() &&
+        isBullet(section.getChild(i - 1)) && isBullet(section.getChild(i + 1))) {
+      el.removeFromParent();
+    }
+  }
 }
 
 /** Reemplazo literal (sin regex en el reemplazo, así "$" y "\" del texto de la IA se conservan tal cual). */
