@@ -17,7 +17,6 @@ const TEMPLATE_LABELS_EN_ = {
 
 /** Para cada carpeta de hoy con CV_IA.json y sin PDF: valida, llena la plantilla, PDF, borrador y registro. */
 function generarCVsDesdeIA() {
-  console.log('--- Generando CVs desde CV_IA.json ---');
   const root = DriveApp.getFolderById(getProp_(PROPS.ROOT_FOLDER_ID));
   const today = Utilities.formatDate(new Date(), tz_(), 'yyyy-MM-dd');
   const dateFolders = root.getFoldersByName(today);
@@ -25,15 +24,26 @@ function generarCVsDesdeIA() {
     console.log('No hay carpeta de vacantes para ' + today + '.');
     return;
   }
+  buildCvsInFolder_(dateFolders.next(), getRegistrySheet_());
+}
 
+/** Prueba desde el editor: arma los CV de la carpeta PRUEBA_IA (en la carpeta raíz) sin tocar la hoja de registro. */
+function probarCVsDesdeIA() {
+  const root = DriveApp.getFolderById(getProp_(PROPS.ROOT_FOLDER_ID));
+  const testFolders = root.getFoldersByName(CONFIG.CV_TEST_FOLDER);
+  if (!testFolders.hasNext()) throw new Error('No existe la carpeta ' + CONFIG.CV_TEST_FOLDER + ' dentro de ' + root.getName());
+  buildCvsInFolder_(testFolders.next(), null);
+}
+
+function buildCvsInFolder_(dateFolder, sheet) {
+  console.log('--- Generando CVs desde CV_IA.json en ' + dateFolder.getName() + ' ---');
   const contextDoc = findDocByName_(CONFIG.CONTEXT_DOC_NAME);
   if (!contextDoc) throw new Error('No se encontró el Google Doc ' + CONFIG.CONTEXT_DOC_NAME + ' (necesario para validar).');
   const contextText = DocumentApp.openById(contextDoc.getId()).getBody().getText();
   const template = getTemplateFile_();
   const placeholders = listPlaceholders_(template.getId()).map(p => p.slice(2, -2));
-  const sheet = getRegistrySheet_();
 
-  const folders = dateFolders.next().getFolders();
+  const folders = dateFolder.getFolders();
   while (folders.hasNext()) {
     const folder = folders.next();
     const label = folder.getName();
@@ -174,6 +184,11 @@ function fillCvDocument_(docId, cv) {
   sections.forEach(section => {
     section.getParagraphs().forEach(p => {
       if (!shouldRemoveParagraph(p.getText(), cv)) return;
+      // También el párrafo en blanco que lo separa del siguiente, para no dejar huecos en el CV
+      const next = p.getNextSibling();
+      if (next && next.getType() === DocumentApp.ElementType.PARAGRAPH && !next.asParagraph().getText().trim()) {
+        next.removeFromParent();
+      }
       try {
         p.removeFromParent();
       } catch (e) {
@@ -239,7 +254,7 @@ function replaceFile_(folder, name, content) {
 
 /** Cambia el Estado (columna F) de la fila cuyo Link (columna D) coincide. */
 function updateVacancyStatus_(sheet, link, status) {
-  if (!link) return;
+  if (!sheet || !link) return;
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return;
   const links = sheet.getRange(2, 4, lastRow - 1, 1).getValues();
