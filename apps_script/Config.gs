@@ -19,6 +19,10 @@ const CONFIG = {
   TEMPLATE_TITLE: 'Plantilla CV Maestra',
   MANUAL_FOLDER_COLOR: '#fad165',   // Amarillo de Drive: carpetas de publicaciones para proceso manual
   MASTER_TEMPLATE_NAME: 'MASTER_TEMPLATE',   // Si existe en la carpeta raíz, tiene prioridad
+  CONTEXT_DOC_NAME: 'CONTEXTO_CV',   // Google Doc privado con los datos reales (validación anti-alucinación)
+  CV_JSON_NAME: 'CV_IA.json',        // Lo deja la IA en la carpeta de cada vacante
+  CV_ERRORS_NAME: 'CV_IA_ERRORES.txt',
+  CV_HOUR: 10,               // 10:00 AM: arma CV/PDF/borrador con los CV_IA.json de hoy
   SHEET_HEADERS: ['Fecha', 'Empresa', 'Cargo', 'Link', 'Match Score', 'Estado'],
 };
 

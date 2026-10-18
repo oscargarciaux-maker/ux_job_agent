@@ -1,11 +1,11 @@
 /**
  * Orquestador del pipeline diario (se ejecuta solo a las 8:00 AM).
- * Funciones para usar desde el editor: ejecutarPipeline, ejecutarPrueba, ejecutarSimulacion.
+ * Funciones para usar desde el editor: ejecutarPipeline, ejecutarPrueba, ejecutarSimulacion, generarCVsDesdeIA (CV.gs).
  */
 
 /** Funciones públicas que expone el agente al Cargador (instalador/Cargador.gs). */
 function exports_() {
-  return { ejecutarPipeline, ejecutarPrueba, ejecutarSimulacion, configurarAgente };
+  return { ejecutarPipeline, ejecutarPrueba, ejecutarSimulacion, configurarAgente, generarCVsDesdeIA };
 }
 
 const SAMPLE_VACANCIES_ = [
@@ -90,7 +90,7 @@ function runPipeline_(opts) {
         return;
       }
       createVacancyDetailDoc_(folder, v, item, language);
-      // El CV personalizado y el borrador de Gmail se generan en el paso de IA (pendiente de conectar).
+      // El CV personalizado y el borrador de Gmail los arma generarCVsDesdeIA (CV.gs) desde CV_IA.json.
       appendVacancyRow_(sheet, v, item.score, 'Esperando CV (IA)');
       console.log(label + ' -> carpeta, Detalle_Vacante y registro OK');
     } catch (e) {

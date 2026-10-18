@@ -26,7 +26,8 @@ Agente inteligente y modular diseñado para automatizar la búsqueda diaria de 1
 - **Fase 1 (Búsqueda y Match)** `Search.gs` + `Personalization.gs`: SerpAPI motor `google_jobs` (descripción COMPLETA de la vacante; 1 crédito por cada query de `CONFIG.SEARCH_QUERIES`) + Google Dorking de `linkedin.com/posts` (`CONFIG.LINKEDIN_POSTS_QUERY`, reclutadores que contratan sin vacante formal; solo trae el fragmento visible del post). **Las publicaciones (`isPost`) NO pasan por la IA:** su carpeta se colorea amarilla (`MANUAL_FOLDER_COLOR`, servicio avanzado Drive v3) y solo contiene `Enlace_Publicacion`; Sheets: `Manual (publicación)`. El usuario las procesa a mano. Total ≈3 créditos/día ≈ 93/mes (plan gratuito de SerpAPI: 100/mes), filtro de antigüedad ≤14 días, dedup por Link (columna D) en Sheets, nivel (`classifySeniority`: junior/mid/senior) y Match Score (Junior 100 / Mid 80 / Senior 60, promediado con ubicación). Selección: **al menos `MIN_JUNIOR`=5 de 10 Junior** si existen; el resto por score de cualquier nivel (decisión del usuario: priorizar Junior sin excluir Senior).
 - **Fase 2 (Google Drive)** `Workspace.gs`: `/Vacantes con IA/YYYY-MM-DD/[Empresa]_[Cargo]` + `Detalle_Vacante` (Google Doc con metadatos y la descripción completa: es la entrada del paso de IA). Estado en Sheets: `Esperando CV (IA)`.
 - **Fase 3 (CV & PDF) — EN PAUSA hasta conectar la IA:** la plantilla `MASTER_TEMPLATE` (Google Doc del usuario, buscado por nombre en todo el Drive) tiene marcadores propios (`{{TITULO_SUBTITULO_PROFESIONAL}}`, `{{PERFIL_PERSONALIZADO}}`, `{{CARGO_EXP_n}}`, `{{LOGRO_n_m}}`, `{{HEADER_*}}`, etc.) y debe quedar exactamente como el usuario la diseñó. El contenido debe redactarlo una IA aplicando 100% la guía `GUIA_CV` con datos de `CONTEXTO_CV` (ambos como Google Docs privados en Drive, NUNCA en este repo público: contienen datos personales). Restricción del usuario: no pagar API aparte; usar su plan de Claude.
-- **Fase 4 (Gmail)** `Workspace.gs`: `buildMimeMessage`/`createApplicationDraft_` (texto + HTML Sans Serif + PDF adjunto), listos para cuando la Fase 3 genere el PDF; solo si la oferta trae correo directo.
+- **Fase 3b (armado del CV)** `CV.gs › generarCVsDesdeIA` (activador diario `CONFIG.CV_HOUR`=10:00): para cada carpeta de hoy con `CV_IA.json` (archivo de texto o Google Doc) y sin PDF → `validateCvJson` (contrato + anti-alucinación contra `CONTEXTO_CV`) → copia `MASTER_TEMPLATE` como `CV_[carpeta]`, elimina párrafos cuyos marcadores estén todos vacíos (`shouldRemoveParagraph`), reemplaza marcadores con `replaceLiteral_` (findText + insert/delete, sin regex en el reemplazo: `$` seguro), traduce rótulos fijos si `_idioma`=`en` (`TEMPLATE_LABELS_EN_`) → PDF → borrador Gmail (asunto de `buildApplicationEmail`, cuerpo `_correo_cuerpo`) solo si `Detalle_Vacante` trae correo → Sheets `Pendiente`. Si la validación falla: `CV_IA_ERRORES.txt` en la carpeta y Sheets `CV rechazado (validación)` (la IA puede corregir y Apps Script reintenta en la siguiente corrida mientras no haya PDF).
+- **Fase 4 (Gmail)** `Workspace.gs`: `buildMimeMessage`/`createApplicationDraft_` (texto + HTML Sans Serif + PDF adjunto); solo si la oferta trae correo directo.
 - `Main.gs`: `ejecutarPipeline` (activador 8:00 AM), `ejecutarPrueba` (2 vacantes de ejemplo, acciones reales), `ejecutarSimulacion` (sin tocar Workspace).
 - `Setup.gs`: `configurarAgente` crea carpeta/hoja/plantilla faltantes e instala el activador diario de `ejecutarPipeline` (idempotente).
 
@@ -41,10 +42,12 @@ El usuario NO quiere pagar API aparte: la IA corre con su **plan de Claude** med
 
 **Privacidad:** `GUIA_CV` y `CONTEXTO_CV` viven SOLO en Drive (Google Docs en la carpeta raíz). Nunca en este repo público.
 
+**Validación (`validateCvJson`):** `_idioma` ∈ {es, en}; todo marcador de la plantilla presente (aunque sea `""`); valores de texto; sin `{{ }}`; cada número del CV y de `_correo_cuerpo` (normalizado sin `.`/`,`) debe existir en `CONTEXTO_CV`; los valores de claves con `EMPRESA`/`COMPANY` deben aparecer literalmente en `CONTEXTO_CV`. Claves que no existen en la plantilla solo generan aviso.
+
 ### Próximos pasos (para la siguiente sesión, que debe iniciarse CON el conector Google Drive activo)
-1. Verificar con el conector que se pueden leer `GUIA_CV`, `CONTEXTO_CV`, `MASTER_TEMPLATE` y un `Detalle_Vacante`, y subir un `CV_IA.json` de prueba a una carpeta de vacante.
-2. Implementar en Apps Script `generarCVsDesdeIA` (activador ~10:00): para cada carpeta de hoy con `CV_IA.json` y sin PDF → validar anti-alucinación, copiar `MASTER_TEMPLATE`, reemplazar marcadores (texto literal; ojo con `$` en `replaceText`, que usa regex) y eliminar párrafos/viñetas cuyos marcadores queden vacíos, traducir rótulos fijos de la plantilla si `_idioma` = `en` ("Herramientas:", "Competencias Blandas:", "Idiomas:", "Abierto a relocalización / Remoto"), PDF, borrador Gmail si hay correo, estado en Sheets → `Pendiente`. Exponerla en `exports_()` y `Cargador.gs`.
-3. Crear la tarea programada diaria de Claude (~8:30 Bogotá) con el conector Google Drive y un prompt autónomo que aplique la guía según este archivo.
+1. ~~Implementar `generarCVsDesdeIA`~~ — hecho (`CV.gs`). Pendiente del usuario: re-pegar `instalador/Cargador.gs` (nueva función `generarCVsDesdeIA`) y ejecutar `configurarAgente` para instalar el activador de las 10:00. No cambió el manifiesto.
+2. Verificar con el conector que se pueden leer `GUIA_CV`, `CONTEXTO_CV`, `MASTER_TEMPLATE` y un `Detalle_Vacante`, y subir un `CV_IA.json` de prueba a una carpeta de vacante de hoy; luego ejecutar `generarCVsDesdeIA` desde el editor y revisar el PDF (≤2 páginas, formato intacto, párrafos vacíos eliminados).
+3. Crear la tarea programada diaria de Claude (~8:30 Bogotá) con el conector Google Drive y un prompt autónomo que aplique la guía según este archivo (si existe `CV_IA_ERRORES.txt`, corregir y reescribir `CV_IA.json`).
 
 ### Alternativa si el usuario deja de tener plan de Claude: Gemini (gratis)
 Reemplazar solo el "cerebro"; el resto del pipeline y el contrato `CV_IA.json` no cambian.
@@ -59,6 +62,6 @@ Reemplazar solo el "cerebro"; el resto del pipeline y el contrato `CV_IA.json` n
 - No hay ejecución local de Apps Script; los servicios de Google solo existen en script.google.com.
 
 ## 📌 Pendientes conocidos
-- **Conectar la IA de la Fase 3** (ver arriba) y reactivar CV/PDF/borrador.
+- **Conectar la IA de la Fase 3** (ver arriba): el armado (`generarCVsDesdeIA`) ya existe; falta quien escriba `CV_IA.json`.
 - Soporte interactivo para Cartas de Presentación (*Cover Letter*).
 - Historial: la versión Python (OAuth + GitHub Actions) se eliminó en la migración; está en el commit `8957d0d`.
