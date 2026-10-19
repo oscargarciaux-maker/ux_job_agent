@@ -110,6 +110,8 @@ assert.ok(context.isReachablePost({ description: 'Hiring UI Designer - LATAM rem
 assert.ok(context.isReachablePost({ description: 'Buscamos diseñador UX en Bogotá' }));
 assert.ok(!context.isReachablePost({ description: "We're hiring at Tata Elxsi, Bangalore. Looking for UX designers" }));
 assert.ok(!context.isReachablePost({ description: 'Dhanraj G - hiring #remotejobs #videoannotation' }));
+assert.ok(!context.isReachablePost({ description: 'Hiring #remotejobs video annotation, UI tool experience, remote' }));
+assert.ok(context.isReachablePost({ description: 'We are hiring a Product Designer, remote LATAM' }));
 assert.ok(/^site:linkedin\.com\/posts \("product designer"/.test(context.buildLinkedInPostsQuery('"product designer"')));
 assert.strictEqual(links(['https://bebee.com/co/jobs/1']).link, '');
 // Vacantes ya aplicadas: estado por color de carpeta, nombre de carpeta y empresa ya aplicada

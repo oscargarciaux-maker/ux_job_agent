@@ -7,12 +7,14 @@ const CONFIG = {
   DAILY_LIMIT: 10,
   MIN_JUNIOR: 5,             // Al menos 5 de las 10 vacantes diarias serán Junior (si existen)
   // Rotación diaria (decisión del usuario 2026-10-19): cada día se usan QUERIES_PER_DAY búsquedas consecutivas del
-  // pool (1 crédito de SerpAPI cada una), así Google Jobs devuelve vacantes distintas. Van en pares: perfil + sector.
+  // pool (1 crédito de SerpAPI cada una), así Google Jobs devuelve vacantes distintas. Términos AMPLIOS: el 2026-10-19
+  // "product designer junior" y "diseñador ux banca seguros" dieron 0 resultados en Colombia. El sector fintech lo
+  // prioriza FINTECH_BONUS, no la búsqueda.
   SEARCH_QUERY_POOL: [
     'diseñador ux ui junior', 'diseñador ux ui fintech',
-    'product designer junior', 'diseñador ux banca seguros',
-    'diseñador ui junior', 'ux researcher',
-    'diseñador de producto digital', 'ux designer remoto',
+    'diseñador ux ui', 'product designer',
+    'ux designer', 'diseñador ui',
+    'diseñador de producto', 'ux ui designer',
   ],
   QUERIES_PER_DAY: 2,
   // Orden de preferencia del enlace de cada vacante (Google Jobs lista todos los sitios donde está publicada).
@@ -46,7 +48,7 @@ const CONFIG = {
   // Apps Script corta a los 6 min: se deja de crear vacantes a los 4 (las que falten se retoman en la próxima corrida)
   TIME_BUDGET_MS: 4 * 60 * 1000,
   // La publicación debe ser de un rol de diseño (evita "remote hiring" de otros oficios, p. ej. video annotation)
-  LINKEDIN_POST_ROLE_PATTERN: /\bux\b|\bui\b|ux\/ui|ui\/ux|product design|dise[nñ]ad|designer|figma|design system|user research/i,
+  LINKEDIN_POST_ROLE_PATTERN: /ux\s*\/\s*ui|ui\s*\/\s*ux|(ux|ui|product)\s+design|designer\s+(ux|ui)|dise[nñ]ador|design system|figma|ux research/i,
   // Si Google Jobs no trae la fecha, se lee "datePosted" de la página original (gratis, sin SerpAPI). Las que siguen
   // sin fecha solo entran (marcadas "SIN VERIFICAR") si con las verificadas no se llega a MIN_DAILY.
   MIN_DAILY: 5,              // Pueden ser menos de DAILY_LIMIT, pero no menos de 5 (decisión del usuario)
