@@ -114,6 +114,9 @@ assert.ok(!context.isReachablePost({ description: 'Hiring #remotejobs video anno
 assert.ok(context.isReachablePost({ description: 'We are hiring a Product Designer, remote LATAM' }));
 assert.ok(/^site:linkedin\.com\/posts \("product designer"/.test(context.buildLinkedInPostsQuery('"product designer"')));
 assert.strictEqual(links(['https://bebee.com/co/jobs/1']).link, '');
+assert.ok(context.isReachableRemoteJob({ location: 'Anywhere', description: 'Remote role, LATAM time zones' }));
+assert.ok(!context.isReachableRemoteJob({ location: 'Anywhere', description: 'Remote, US only. Must reside in the US.' }));
+assert.ok(!context.isReachableRemoteJob({ location: 'Berlin', description: 'Hybrid role in our Berlin office' }));
 // Vacantes ya aplicadas: estado por color de carpeta, nombre de carpeta y empresa ya aplicada
 assert.strictEqual(context.colorToStatus('#f83a22'), 'Rechazada');
 assert.strictEqual(context.colorToStatus('#d06b64'), 'Rechazada');
