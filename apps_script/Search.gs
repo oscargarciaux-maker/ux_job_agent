@@ -33,7 +33,7 @@ function searchUxJobs_() {
                 (remote ? ', ' + (recent.length - usable.length) + ' no accesibles desde Colombia' : ''));
     usable.forEach(v => { byKey[vacancyKey(v)] = byKey[vacancyKey(v)] || v; });
   });
-  [searchRemotive_, searchGetOnBoard_].forEach(source => {
+  [searchRemotive_, searchGetOnBoard_, searchJobicy_].forEach(source => {
     try {
       source().forEach(v => { byKey[vacancyKey(v)] = byKey[vacancyKey(v)] || v; });
     } catch (e) {
@@ -76,6 +76,22 @@ function parseRemotiveJob(job) {
 }
 
 /** Get on Board (portal tech de LATAM): remotas o en Colombia. */
+function searchJobicy_() {
+  const jobs = (fetchJson_(CONFIG.EXTRA_SOURCES.jobicy.url).jobs || [])
+    .filter(j => !/freelance/i.test([].concat(j.jobType || []).join(' '))).map(parseJobicyJob);
+  const kept = jobs.filter(v => isDesignRole(v) && isRecent(v.postedAt, CONFIG.MAX_POST_AGE_DAYS));
+  console.log('Jobicy: ' + jobs.length + ' remotas para LATAM, ' + kept.length + ' de UX/UI recientes');
+  return kept;
+}
+
+function parseJobicyJob(job) {
+  return {
+    title: job.jobTitle || '', company: job.companyName || '', location: 'Remote ' + (job.jobGeo || 'LATAM'),
+    description: stripHtml_(job.jobDescription || job.jobExcerpt), snippet: '', link: job.url || '',
+    postedAt: String(job.pubDate || '').slice(0, 10), source: 'Jobicy', sourceBonus: 0,
+  };
+}
+
 function searchGetOnBoard_() {
   const cfg = CONFIG.EXTRA_SOURCES.getonbrd;
   const byLink = {};
@@ -106,8 +122,9 @@ function parseGetOnBoardJob(item) {
 
 /** Rol de diseño UX/UI/producto (no diseño gráfico puro, no otros oficios). */
 function isDesignRole(vacancy) {
-  return /ux|ui\b|user experience|experiencia de usuario|product design|dise[nñ]ador(a)? de producto|interaction|interfaz|interfaces/i
-    .test(vacancy.title || '');
+  const title = vacancy.title || '';
+  return /ux|ui\b|user experience|experiencia de usuario|product design|dise[nñ]ador(a)? de producto|interaction|interfaz|interfaces/i.test(title) &&
+    !/copywrit|writer|redactor|\bseo\b|content/i.test(title);  // "Senior SEO & UX Copywriter" no es diseño
 }
 
 function stripHtml_(html) {
@@ -147,7 +164,9 @@ function buildLinkedInPostsQuery(roles) {
 /** Solo publicaciones a las que se puede aplicar desde Colombia (Colombia, LATAM o remoto) y de un rol de diseño. */
 function isReachablePost(post) {
   const text = post.description || '';
-  return CONFIG.LINKEDIN_POST_LOCATION_PATTERN.test(text) && CONFIG.LINKEDIN_POST_ROLE_PATTERN.test(text);
+  // Solo publicaciones reales (no páginas de listados de empleos de LinkedIn) y que no estén cerradas
+  return /linkedin\.com\/(posts|feed\/update)\//i.test(post.link || '') && !/caducad|expirad|expired|cerrad|closed|ya no/i.test(text) &&
+    CONFIG.LINKEDIN_POST_LOCATION_PATTERN.test(text) && CONFIG.LINKEDIN_POST_ROLE_PATTERN.test(text);
 }
 
 /** n elementos consecutivos del pool que cambian cada día (mismo día = mismas búsquedas; rota sin repetir). */
