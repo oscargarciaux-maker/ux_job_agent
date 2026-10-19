@@ -18,7 +18,9 @@ function searchUxJobs_() {
       console.warn('SerpAPI respondió ' + response.getResponseCode() + ' para "' + q + '": ' + response.getContentText().slice(0, 200));
       return;
     }
-    const jobs = (JSON.parse(response.getContentText()).jobs_results || []).map(parseGoogleJob);
+    const data = JSON.parse(response.getContentText());
+    if (data.error) console.warn('SerpAPI para "' + q + '": ' + data.error);
+    const jobs = (data.jobs_results || []).map(parseGoogleJob);
     const usable = jobs.filter(v => v.link && isRecent(v.postedAt, CONFIG.MAX_POST_AGE_DAYS));
     console.log('"' + q + '": ' + jobs.length + ' resultados, ' + jobs.filter(v => !v.link).length +
                 ' solo en sitios bloqueados, ' + (jobs.length - usable.length - jobs.filter(v => !v.link).length) + ' viejas');
