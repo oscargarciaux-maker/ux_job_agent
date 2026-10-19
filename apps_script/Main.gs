@@ -59,10 +59,9 @@ function runPipeline_(opts) {
     const existing = getExistingUrls_(sheet);
     let applied = [];
     try {
-      sincronizarAplicadas();
-      applied = getAppliedCompanies_();
+      applied = getAppliedCompanies_();  // La hoja la mantiene al día el activador horario de sincronizarAplicadas
     } catch (e) {
-      console.warn('No se pudo leer la carpeta de aplicadas: ' + e.message);
+      console.warn('No se pudo leer la hoja ' + CONFIG.APPLIED_SHEET_NAME + ': ' + e.message);
     }
     fresh = raw.filter(v => v.link && !existing[v.link] && !existing[vacancyKey(v)] && !isAppliedCompany(v.company, applied));
   }
@@ -81,7 +80,15 @@ function runPipeline_(opts) {
   const selected = selectWithDateRule(scored, CONFIG.DAILY_LIMIT, CONFIG.MIN_JUNIOR, CONFIG.MIN_DAILY);
   console.log('3. Seleccionadas: ' + selected.length + ' (Junior: ' + selected.filter(x => x.seniority === 'junior').length + ')');
 
-  selected.forEach((item, i) => {
+  // Primero las vacantes formales (pasan a la IA), luego las publicaciones (proceso manual)
+  selected.sort((a, b) => (a.vacancy.isPost ? 1 : 0) - (b.vacancy.isPost ? 1 : 0));
+  const startedAt = Date.now();
+  selected.some((item, i) => {
+    if (Date.now() - startedAt > CONFIG.TIME_BUDGET_MS) {
+      console.warn('Se acaba el tiempo de Apps Script: quedan ' + (selected.length - i) +
+                   ' vacantes sin crear; no se registraron, así que la próxima corrida las retoma.');
+      return true;
+    }
     const v = item.vacancy;
     const language = detectLanguage(vacancyText_(v));
     const label = '(' + (i + 1) + '/' + selected.length + ') ' + v.title + ' @ ' + (v.company || 'N/D') +
@@ -90,7 +97,7 @@ function runPipeline_(opts) {
 
     if (opts.dryRun) {
       console.log(label);
-      return;
+      return false;
     }
 
     try {
@@ -100,7 +107,7 @@ function runPipeline_(opts) {
         setFolderColor_(folder, CONFIG.MANUAL_FOLDER_COLOR);
         appendVacancyRow_(sheet, v, item.score, 'Manual (publicación)');
         console.log(label + ' -> publicación: carpeta amarilla con el enlace (proceso manual)');
-        return;
+        return false;
       }
       createVacancyDetailDoc_(folder, v, item, language);
       // El CV personalizado y el borrador de Gmail los arma generarCVsDesdeIA (CV.gs) desde CV_IA.json.
@@ -109,6 +116,7 @@ function runPipeline_(opts) {
     } catch (e) {
       console.error(label + ' -> ERROR: ' + e.message);
     }
+    return false;
   });
 
   console.log('--- Pipeline Diario Finalizado ---');

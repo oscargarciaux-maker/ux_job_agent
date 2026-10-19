@@ -43,6 +43,10 @@ const CONFIG = {
   LINKEDIN_POST_LOCATION_TERMS: '("remoto" OR "remote" OR "LATAM" OR "Colombia")',
   LINKEDIN_POST_LOCATION_PATTERN: /remot|remote|latam|latinoam|am[eé]rica latina|colombia|bogot|medell|anywhere|work from home|home office/i,
   MAX_POST_AGE_DAYS: 14,
+  // Apps Script corta a los 6 min: se deja de crear vacantes a los 4 (las que falten se retoman en la próxima corrida)
+  TIME_BUDGET_MS: 4 * 60 * 1000,
+  // La publicación debe ser de un rol de diseño (evita "remote hiring" de otros oficios, p. ej. video annotation)
+  LINKEDIN_POST_ROLE_PATTERN: /\bux\b|\bui\b|ux\/ui|ui\/ux|product design|dise[nñ]ad|designer|figma|design system|user research/i,
   // Si Google Jobs no trae la fecha, se lee "datePosted" de la página original (gratis, sin SerpAPI). Las que siguen
   // sin fecha solo entran (marcadas "SIN VERIFICAR") si con las verificadas no se llega a MIN_DAILY.
   MIN_DAILY: 5,              // Pueden ser menos de DAILY_LIMIT, pero no menos de 5 (decisión del usuario)
