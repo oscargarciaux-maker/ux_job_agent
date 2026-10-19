@@ -72,7 +72,7 @@ function parseGoogleJob(job) {
     description: job.description || '',
     snippet: '',
     link: best ? best.link : '',
-    postedAt: ext.posted_at || '',
+    postedAt: ext.posted_at || (job.extensions || []).filter(e => /hace|ago|\bd[ií]as?\b|days?\b|semana|week|hora|hour/i.test(e))[0] || '',
     source: best ? best.source : (job.via || 'Google Jobs'),
     sourceBonus: best ? best.bonus : 0,
   };
@@ -94,9 +94,58 @@ function hostOf_(link) {
   return (link.match(/^https?:\/\/(?:www\.)?([^/?#]+)/i) || [null, link])[1];
 }
 
+/**
+ * Para las vacantes sin fecha en Google Jobs, lee la página original (UrlFetchApp, sin créditos de SerpAPI) y toma
+ * "datePosted"/"validThrough" de su JobPosting (JSON-LD, el formato que Google Jobs exige a los portales).
+ * Devuelve solo las vacantes vigentes; marca dateUnverified en las que no se pudo verificar.
+ */
+function verifyPostingDates_(vacancies) {
+  const pending = vacancies.filter(v => !v.isPost && !v.postedAt);
+  if (pending.length) {
+    let responses = [];
+    try {
+      responses = UrlFetchApp.fetchAll(pending.map(v => ({ url: v.link, muteHttpExceptions: true, followRedirects: true })));
+    } catch (e) {
+      console.warn('No se pudieron leer las páginas de las vacantes para verificar su fecha: ' + e.message);
+    }
+    pending.forEach((v, i) => {
+      const r = responses[i];
+      const dates = r && r.getResponseCode() === 200 ? extractJobPostingDates(r.getContentText()) : {};
+      if (dates.posted) v.postedAt = dates.posted;
+      if (dates.validThrough) v.validThrough = dates.validThrough;
+      if (!dates.posted) v.dateUnverified = true;
+    });
+  }
+  const today = new Date();
+  return vacancies.filter(v => {
+    const ok = isRecent(v.postedAt, CONFIG.MAX_POST_AGE_DAYS, today) && !isExpired(v.validThrough, today);
+    if (!ok) console.log('Descartada por antigüedad: ' + v.title + ' @ ' + v.company + ' (publicada ' + v.postedAt + ')');
+    return ok;
+  });
+}
+
+/** Fechas del JobPosting (JSON-LD) de la página de una vacante: { posted, validThrough } en YYYY-MM-DD o null. */
+function extractJobPostingDates(html) {
+  const find = key => {
+    const m = String(html || '').match(new RegExp('"' + key + '"\\s*:\\s*"(\\d{4}-\\d{2}-\\d{2})'));
+    return m ? m[1] : null;
+  };
+  return { posted: find('datePosted'), validThrough: find('validThrough') };
+}
+
+function isExpired(validThrough, today) {
+  return !!validThrough && daysBetween_(validThrough, today) > 0;
+}
+
+function daysBetween_(isoDate, today) {
+  const [y, m, d] = isoDate.split('-').map(Number);
+  return Math.floor((Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()) - Date.UTC(y, m - 1, d)) / 86400000);
+}
+
 /** true si la vacante tiene <= maxDays de publicada. Si no se puede saber, se conserva. */
-function isRecent(postedAt, maxDays) {
+function isRecent(postedAt, maxDays, today) {
   const text = (postedAt || '').toLowerCase();
+  if (/^\d{4}-\d{2}-\d{2}/.test(text)) return daysBetween_(text.slice(0, 10), today || new Date()) <= maxDays;
   const n = parseInt((text.match(/\d+/) || ['1'])[0], 10);
   if (/hora|hour|minut/.test(text)) return true;
   if (/d[ií]a|day/.test(text)) return n <= maxDays;

@@ -76,6 +76,15 @@ const byPriority = context.selectDailyVacancies([{ seniority: 'mid', score: 80, 
 assert.strictEqual(byPriority[0].priority, 99);
 assert.ok(context.isRecent('hace 3 días', 14) && context.isRecent('2 weeks ago', 14) && context.isRecent('', 14));
 assert.ok(!context.isRecent('hace 3 semanas', 14) && !context.isRecent('hace 1 mes', 14));
+// Fecha leída del JobPosting (JSON-LD) de la página original
+const hoy = new Date(2026, 9, 18);
+const fechas = context.extractJobPostingDates('<script type="application/ld+json">{"@type":"JobPosting","datePosted": "2026-08-24T10:00:00.000Z","validThrough":"2026-12-01T00:00"}</script>');
+assert.strictEqual(fechas.posted, '2026-08-24');
+assert.strictEqual(fechas.validThrough, '2026-12-01');
+assert.strictEqual(context.extractJobPostingDates('<html>sin datos</html>').posted, null);
+assert.ok(!context.isRecent('2026-08-24', 14, hoy) && context.isRecent('2026-10-10', 14, hoy));
+assert.ok(context.isExpired('2026-10-17', hoy) && !context.isExpired('2026-10-18', hoy) && !context.isExpired(null, hoy));
+assert.ok(context.computePriority({ title: 'X', dateUnverified: true }, 100) < context.computePriority({ title: 'X' }, 60));
 
 // Publicaciones de LinkedIn
 const post = context.parseLinkedInPost({ title: 'Ana Gómez en LinkedIn: Buscamos diseñador UX/UI junior | LinkedIn',

@@ -53,7 +53,7 @@ function createVacancyDetailDoc_(folder, vacancy, item, language) {
     'Empresa: ' + (vacancy.company || 'N/D'),
     'Ubicación: ' + (vacancy.location || 'N/D'),
     'Link: ' + (vacancy.link || 'N/D'),
-    'Publicada: ' + (vacancy.postedAt || 'N/D'),
+    'Publicada: ' + (vacancy.postedAt || 'SIN VERIFICAR (revisa la fecha en el enlace antes de postularte)'),
     'Nivel: ' + item.seniority,
     'Match Score: ' + item.score,
     'Idioma: ' + language.toUpperCase(),
