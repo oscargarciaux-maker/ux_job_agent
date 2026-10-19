@@ -70,7 +70,7 @@ function runPipeline_(opts) {
     const score = computeMatchScore(v);
     return { vacancy: v, score: score, priority: computePriority(v, score), seniority: classifySeniority(v) };
   });
-  const selected = selectDailyVacancies(scored, CONFIG.DAILY_LIMIT, CONFIG.MIN_JUNIOR);
+  const selected = selectWithDateRule(scored, CONFIG.DAILY_LIMIT, CONFIG.MIN_JUNIOR, CONFIG.MIN_DAILY);
   console.log('3. Seleccionadas: ' + selected.length + ' (Junior: ' + selected.filter(x => x.seniority === 'junior').length + ')');
 
   selected.forEach((item, i) => {
