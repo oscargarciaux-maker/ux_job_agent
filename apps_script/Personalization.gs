@@ -62,10 +62,11 @@ function computeMatchScore(vacancy) {
   return Math.round((seniority + location) / 2);
 }
 
-/** Prioridad para elegir las 10 del día: Match Score + fuente (LinkedIn > Indeed > Computrabajo) + fintech. */
+/** Prioridad para elegir las 10 del día: Match Score + fuente + fintech; las de fecha sin verificar van al final. */
 function computePriority(vacancy, score) {
   const fintech = CONFIG.FINTECH_PATTERN.test(vacancyText_(vacancy) + ' ' + (vacancy.company || '')) ? CONFIG.FINTECH_BONUS : 0;
-  return score + (vacancy.sourceBonus || 0) + fintech;
+  const unverified = vacancy.dateUnverified ? CONFIG.UNVERIFIED_DATE_PENALTY : 0;
+  return score + (vacancy.sourceBonus || 0) + fintech - unverified;
 }
 
 /** Clave para reconocer la misma vacante publicada con enlaces distintos: empresa|cargo normalizados. */

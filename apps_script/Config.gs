@@ -26,6 +26,9 @@ const CONFIG = {
   LINKEDIN_POSTS_QUERY: 'site:linkedin.com/posts ("diseñador ux" OR "diseñador ui" OR "ux/ui" OR "ux designer" OR "product designer") ' +
                         '("estamos contratando" OR "buscamos" OR "vacante" OR "hiring" OR "estamos buscando")',
   MAX_POST_AGE_DAYS: 14,
+  // Si Google Jobs no trae la fecha, se lee "datePosted" de la página original (gratis, sin SerpAPI). Si tampoco
+  // aparece, la vacante entra marcada "sin verificar" y queda detrás de todas las de fecha verificada.
+  UNVERIFIED_DATE_PENALTY: 100,
   PIPELINE_HOUR: 8,          // 8:00 AM hora de Bogotá
   ROOT_FOLDER_NAME: 'Vacantes con IA',
   SHEET_TITLE: 'Vacantes UX - Registro',

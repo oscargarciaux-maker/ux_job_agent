@@ -58,7 +58,9 @@ function runPipeline_(opts) {
     const existing = getExistingUrls_(sheet);
     fresh = raw.filter(v => v.link && !existing[v.link] && !existing[vacancyKey(v)]);
   }
-  console.log('2. Vacantes nuevas: ' + fresh.length);
+  if (!opts.useSample) fresh = verifyPostingDates_(fresh);
+  console.log('2. Vacantes nuevas y con <= ' + CONFIG.MAX_POST_AGE_DAYS + ' días: ' + fresh.length +
+              ' (sin fecha verificable: ' + fresh.filter(v => v.dateUnverified).length + ')');
   if (!fresh.length) {
     console.log('No hay vacantes nuevas hoy. Pipeline finalizado.');
     return;
