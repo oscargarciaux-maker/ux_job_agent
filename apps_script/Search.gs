@@ -33,10 +33,87 @@ function searchUxJobs_() {
                 (remote ? ', ' + (recent.length - usable.length) + ' no accesibles desde Colombia' : ''));
     usable.forEach(v => { byKey[vacancyKey(v)] = byKey[vacancyKey(v)] || v; });
   });
+  [searchRemotive_, searchGetOnBoard_].forEach(source => {
+    try {
+      source().forEach(v => { byKey[vacancyKey(v)] = byKey[vacancyKey(v)] || v; });
+    } catch (e) {
+      console.warn('Fuente ' + source.name + ' falló: ' + e.message);
+    }
+  });
   if (CONFIG.LINKEDIN_POST_ROLE_POOL.length) {
     searchLinkedInPosts_(apiKey).forEach(v => { byKey[v.link] = byKey[v.link] || v; });
   }
-  return Object.keys(byKey).map(k => byKey[k]);
+  return Object.keys(byKey).map(k => byKey[k]).filter(v => {
+    const reason = exclusionReason(v);
+    if (reason) console.log('Descartada (' + reason + '): ' + v.title + ' @ ' + v.company);
+    return !reason;
+  });
+}
+
+// ---------- Fuentes gratuitas (API pública, 0 créditos de SerpAPI) ----------
+
+function fetchJson_(url) {
+  const r = UrlFetchApp.fetch(url, { muteHttpExceptions: true, headers: { Accept: 'application/json' } });
+  if (r.getResponseCode() !== 200) throw new Error('HTTP ' + r.getResponseCode() + ' en ' + url);
+  return JSON.parse(r.getContentText());
+}
+
+/** Remotive: empleos remotos de diseño; solo los abiertos a LATAM/Colombia/mundo y de UX/UI/producto. */
+function searchRemotive_() {
+  const jobs = (fetchJson_(CONFIG.EXTRA_SOURCES.remotive.url).jobs || []).map(parseRemotiveJob);
+  const kept = jobs.filter(v => isDesignRole(v) && CONFIG.REACHABLE_REMOTE_LOCATION.test(v.location) &&
+                                isRecent(v.postedAt, CONFIG.MAX_POST_AGE_DAYS));
+  console.log('Remotive: ' + jobs.length + ' de diseño remoto, ' + kept.length + ' de UX/UI recientes y abiertas a Colombia/LATAM');
+  return kept;
+}
+
+function parseRemotiveJob(job) {
+  return {
+    title: job.title || '', company: job.company_name || '', location: job.candidate_required_location || '',
+    description: stripHtml_(job.description), snippet: '', link: job.url || '',
+    postedAt: String(job.publication_date || '').slice(0, 10), source: 'Remotive', sourceBonus: 0,
+  };
+}
+
+/** Get on Board (portal tech de LATAM): remotas o en Colombia. */
+function searchGetOnBoard_() {
+  const cfg = CONFIG.EXTRA_SOURCES.getonbrd;
+  const byLink = {};
+  cfg.queries.forEach(q => {
+    (fetchJson_(cfg.url + encodeURIComponent(q)).data || []).map(parseGetOnBoardJob)
+      .forEach(v => { if (v.link) byLink[v.link] = v; });
+  });
+  const jobs = Object.keys(byLink).map(k => byLink[k]);
+  const kept = jobs.filter(v => isDesignRole(v) && CONFIG.REACHABLE_REMOTE_LOCATION.test(v.location) &&
+                                isRecent(v.postedAt, CONFIG.MAX_POST_AGE_DAYS));
+  console.log('Get on Board: ' + jobs.length + ' resultados, ' + kept.length + ' de UX/UI recientes y abiertas a Colombia/LATAM');
+  return kept;
+}
+
+function parseGetOnBoardJob(item) {
+  const a = (item && item.attributes) || {};
+  const company = (((a.company || {}).data || {}).attributes || {}).name || '';
+  const countries = [].concat(a.countries || []).join(', ');
+  const remote = a.remote || /remote|fully/i.test(String(a.remote_modality || ''));
+  const published = a.published_at ? new Date(Number(a.published_at) * 1000).toISOString().slice(0, 10) : '';
+  return {
+    title: a.title || '', company: company, location: (remote ? 'Remote LATAM ' : '') + countries,
+    description: stripHtml_([a.description_headline, a.description, a.functions, a.desirable].filter(Boolean).join('\n')),
+    snippet: '', link: ((item && item.links) || {}).public_url || '',
+    postedAt: published, source: 'Get on Board', sourceBonus: 0,
+  };
+}
+
+/** Rol de diseño UX/UI/producto (no diseño gráfico puro, no otros oficios). */
+function isDesignRole(vacancy) {
+  return /ux|ui\b|user experience|experiencia de usuario|product design|dise[nñ]ador(a)? de producto|interaction|interfaz|interfaces/i
+    .test(vacancy.title || '');
+}
+
+function stripHtml_(html) {
+  return String(html || '').replace(/<br\s*\/?>|<\/p>|<\/li>/gi, '\n').replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&#39;|&rsquo;/g, "'").replace(/&quot;/g, '"')
+    .replace(/[ \t]+/g, ' ').replace(/\n\s*\n+/g, '\n').trim();
 }
 
 /** Posts de reclutadores en LinkedIn (últimas 2 semanas) vía Google Dorking, con el rol del día. */
@@ -119,7 +196,7 @@ function parseGoogleJob(job) {
     description: job.description || '',
     snippet: '',
     link: best ? best.link : '',
-    postedAt: ext.posted_at || (job.extensions || []).filter(e => /hace|ago|\bd[ií]as?\b|days?\b|semana|week|hora|hour/i.test(e))[0] || '',
+    postedAt: ext.posted_at || (job.extensions || []).filter(e => /\bhace\b|\bago\b/i.test(e))[0] || '',  // No "30–80 an hour" (salario)
     source: best ? best.source : (job.via || 'Google Jobs'),
     sourceBonus: best ? best.bonus : 0,
   };
