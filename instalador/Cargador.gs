@@ -11,6 +11,7 @@ function ejecutarSimulacion() { agente_().ejecutarSimulacion(); }
 function configurarAgente() { agente_().configurarAgente(); }
 function generarCVsDesdeIA() { agente_().generarCVsDesdeIA(); }
 function probarCVsDesdeIA() { agente_().probarCVsDesdeIA(); }
+function sincronizarAplicadas() { agente_().sincronizarAplicadas(); }
 
 function agente_() {
   const get = url => {

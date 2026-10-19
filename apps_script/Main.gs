@@ -5,7 +5,8 @@
 
 /** Funciones públicas que expone el agente al Cargador (instalador/Cargador.gs). */
 function exports_() {
-  return { ejecutarPipeline, ejecutarPrueba, ejecutarSimulacion, configurarAgente, generarCVsDesdeIA, probarCVsDesdeIA };
+  return { ejecutarPipeline, ejecutarPrueba, ejecutarSimulacion, configurarAgente, generarCVsDesdeIA, probarCVsDesdeIA,
+           sincronizarAplicadas };
 }
 
 const SAMPLE_VACANCIES_ = [
@@ -56,7 +57,14 @@ function runPipeline_(opts) {
   if (!opts.dryRun) {
     sheet = getRegistrySheet_();
     const existing = getExistingUrls_(sheet);
-    fresh = raw.filter(v => v.link && !existing[v.link] && !existing[vacancyKey(v)]);
+    let applied = [];
+    try {
+      sincronizarAplicadas();
+      applied = getAppliedCompanies_();
+    } catch (e) {
+      console.warn('No se pudo leer la carpeta de aplicadas: ' + e.message);
+    }
+    fresh = raw.filter(v => v.link && !existing[v.link] && !existing[vacancyKey(v)] && !isAppliedCompany(v.company, applied));
   }
   if (!opts.useSample) fresh = verifyPostingDates_(fresh);
   console.log('2. Vacantes nuevas y con <= ' + CONFIG.MAX_POST_AGE_DAYS + ' días: ' + fresh.length +

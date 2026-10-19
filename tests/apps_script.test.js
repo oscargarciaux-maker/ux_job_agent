@@ -94,6 +94,22 @@ context.UrlFetchApp = { fetchAll: reqs => reqs.map(r => ({ getResponseCode: () =
 const vigentes = context.verifyPostingDates_(Object.keys(paginas).map(link => ({ title: link, link: link, postedAt: '' })));
 assert.deepStrictEqual(vigentes.map(v => v.link), ['https://a.co/nueva', 'https://a.co/sinfecha']);
 assert.ok(vigentes[1].dateUnverified && !vigentes[0].dateUnverified);
+// Vacantes ya aplicadas: estado por color de carpeta, nombre de carpeta y empresa ya aplicada
+assert.strictEqual(context.colorToStatus('#f83a22'), 'Rechazada');
+assert.strictEqual(context.colorToStatus('#d06b64'), 'Rechazada');
+assert.strictEqual(context.colorToStatus('#16a765'), 'En proceso');
+assert.strictEqual(context.colorToStatus('#7bd148'), 'En proceso');
+assert.strictEqual(context.colorToStatus('#fad165'), 'Aplicada, sin respuesta');
+assert.strictEqual(context.colorToStatus('#ffad46'), 'Aplicada, sin respuesta');
+assert.strictEqual(context.colorToStatus('#8f8f8f'), 'Aplicada');
+assert.strictEqual(context.colorToStatus(undefined), 'Aplicada');
+assert.deepStrictEqual(JSON.parse(JSON.stringify(context.parseAppliedFolderName('Publicis Groupe_Diseñador(a) UX_UI'))),
+  { company: 'Publicis Groupe', title: 'Diseñador(a) UX/UI' });
+assert.strictEqual(context.parseAppliedFolderName('Dropi').company, 'Dropi');
+assert.ok(context.isAppliedCompany('Periferia IT Group', ['PeriferiaIT', 'Dropi']));
+assert.ok(context.isAppliedCompany('Lite Thinking company', ['Lite Thinking']));
+assert.ok(!context.isAppliedCompany('Nequi', ['PeriferiaIT', 'Dropi']));
+assert.ok(!context.isAppliedCompany('CONFIDENTIAL', ['Confidential']));
 // Fecha sin verificar: solo completa hasta MIN_DAILY (5)
 const conFecha = n => Array.from({ length: n }, (_, i) => ({ vacancy: { title: 'v' + i }, seniority: 'mid', score: 80 }));
 const sinFecha = n => Array.from({ length: n }, (_, i) => ({ vacancy: { title: 'u' + i, dateUnverified: true }, seniority: 'junior', score: 100 }));
