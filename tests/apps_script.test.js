@@ -106,12 +106,16 @@ for (let i = 0; i < 4; i++) context.pickDailyItems(qpool, 2, new Date(2026, 9, 1
 assert.strictEqual(semana.size, 8, 'en 4 días se usan las 8 búsquedas');
 assert.strictEqual(context.linkedInPostDate('https://www.linkedin.com/posts/x_y-activity-7516573783793659905-2WJX'), '2026-10-15');
 assert.strictEqual(context.linkedInPostDate('https://www.linkedin.com/posts/sin-id'), '');
-assert.ok(context.isReachablePost({ description: 'Hiring UI Designer - LATAM remote' }));
-assert.ok(context.isReachablePost({ description: 'Buscamos diseñador UX en Bogotá' }));
-assert.ok(!context.isReachablePost({ description: "We're hiring at Tata Elxsi, Bangalore. Looking for UX designers" }));
-assert.ok(!context.isReachablePost({ description: 'Dhanraj G - hiring #remotejobs #videoannotation' }));
-assert.ok(!context.isReachablePost({ description: 'Hiring #remotejobs video annotation, UI tool experience, remote' }));
-assert.ok(context.isReachablePost({ description: 'We are hiring a Product Designer, remote LATAM' }));
+const POST_LINK = 'https://www.linkedin.com/posts/ana_hiring-activity-7380000000000000000-abcd';
+assert.ok(context.isReachablePost({ link: POST_LINK, description: 'Hiring UI Designer - LATAM remote' }));
+assert.ok(context.isReachablePost({ link: POST_LINK, description: 'Buscamos diseñador UX en Bogotá' }));
+assert.ok(!context.isReachablePost({ link: POST_LINK, description: "We're hiring at Tata Elxsi, Bangalore. Looking for UX designers" }));
+assert.ok(!context.isReachablePost({ link: POST_LINK, description: 'Dhanraj G - hiring #remotejobs #videoannotation' }));
+assert.ok(!context.isReachablePost({ link: POST_LINK, description: 'Hiring #remotejobs video annotation, UI tool experience, remote' }));
+assert.ok(context.isReachablePost({ link: POST_LINK, description: 'We are hiring a Product Designer, remote LATAM' }));
+// Páginas de listados de LinkedIn y ofertas caducadas no son publicaciones
+assert.ok(!context.isReachablePost({ link: 'https://co.linkedin.com/jobs/dise%C3%B1ador-ux-ui-empleos', description: 'Vacantes de diseñador ux ui remoto en Colombia' }));
+assert.ok(!context.isReachablePost({ link: POST_LINK, description: 'Oferta Caducada - Diseñador UX remoto Colombia' }));
 assert.ok(/^site:linkedin\.com\/posts \("product designer"/.test(context.buildLinkedInPostsQuery('"product designer"')));
 assert.strictEqual(links(['https://bebee.com/co/jobs/1']).link, '');
 assert.ok(context.isReachableRemoteJob({ location: 'Anywhere', description: 'Remote role, LATAM time zones' }));
@@ -134,7 +138,10 @@ assert.ok(context.computePriority({ title: 'UX', description: '6+ years of exper
           context.computePriority({ title: 'UX', description: '3 years of experience' }, 80));
 assert.strictEqual(context.parseGoogleJob({ title: 'X', extensions: ['30–80 an hour', 'hace 3 días'] }).postedAt, 'hace 3 días');
 assert.strictEqual(context.parseGoogleJob({ title: 'X', extensions: ['30–80 an hour'] }).postedAt, '');
-// Fuentes gratuitas: Remotive y Get on Board
+// Fuentes gratuitas: Remotive, Get on Board y Jobicy
+const jcy = context.parseJobicyJob({ url: 'https://jobicy.com/jobs/1-ux', jobTitle: 'UX/UI Designer', companyName: 'Acme',
+  jobGeo: 'LATAM', pubDate: '2026-10-15 10:00:00', jobDescription: '<p>Figma</p>' });
+assert.ok(jcy.postedAt === '2026-10-15' && jcy.description === 'Figma' && /LATAM/.test(jcy.location));
 const rem = context.parseRemotiveJob({ url: 'https://remotive.com/remote-jobs/design/ux-1', title: 'Product Designer', company_name: 'Acme',
   publication_date: '2026-10-15T10:00:00', candidate_required_location: 'LATAM', description: '<p>Hola &amp; <b>chao</b></p>' });
 assert.strictEqual(rem.postedAt, '2026-10-15');
@@ -145,6 +152,7 @@ const gob = context.parseGetOnBoardJob({ id: 'ux-designer-acme', attributes: { t
 assert.strictEqual(gob.company, 'Acme');
 assert.ok(/Remote LATAM Colombia/.test(gob.location) && /^\d{4}-\d{2}-\d{2}$/.test(gob.postedAt));
 assert.ok(context.isDesignRole({ title: 'Diseñador UX/UI' }) && !context.isDesignRole({ title: 'Graphic Designer' }));
+assert.ok(!context.isDesignRole({ title: 'Senior SEO & UX Copywriter' }) && !context.isDesignRole({ title: 'UX Writer' }));
 // Vacantes ya aplicadas: estado por color de carpeta, nombre de carpeta y empresa ya aplicada
 assert.strictEqual(context.colorToStatus('#f83a22'), 'Rechazada');
 assert.strictEqual(context.colorToStatus('#d06b64'), 'Rechazada');

@@ -41,8 +41,10 @@ const CONFIG = {
   // Fuentes gratuitas (sin créditos de SerpAPI) con API pública. 1 llamada por día cada una.
   EXTRA_SOURCES: {
     remotive: { url: 'https://remotive.com/api/remote-jobs?category=design&limit=100' },
+    // Jobicy: solo vacantes remotas abiertas a LATAM (geo=latam)
+    jobicy: { url: 'https://jobicy.com/api/v2/remote-jobs?count=100&geo=latam' },
     getonbrd: { url: 'https://www.getonbrd.com/api/v0/search/jobs?per_page=100&expand=%5B%22company%22%5D&query=' ,
-                queries: ['ux', 'ui', 'product designer', 'diseñador'] },
+                queries: ['ux', 'ui', 'product designer', 'diseñador', 'figma', 'experiencia de usuario', 'diseño de producto'] },
   },
   // Ubicaciones de vacantes remotas a las que se puede aplicar desde Colombia
   REACHABLE_REMOTE_LOCATION: /worldwide|anywhere|latam|latin|am[eé]rica|south america|colombia|global|international/i,
