@@ -26,9 +26,9 @@ const CONFIG = {
   LINKEDIN_POSTS_QUERY: 'site:linkedin.com/posts ("diseñador ux" OR "diseñador ui" OR "ux/ui" OR "ux designer" OR "product designer") ' +
                         '("estamos contratando" OR "buscamos" OR "vacante" OR "hiring" OR "estamos buscando")',
   MAX_POST_AGE_DAYS: 14,
-  // Si Google Jobs no trae la fecha, se lee "datePosted" de la página original (gratis, sin SerpAPI). Si tampoco
-  // aparece, la vacante entra marcada "sin verificar" y queda detrás de todas las de fecha verificada.
-  UNVERIFIED_DATE_PENALTY: 100,
+  // Si Google Jobs no trae la fecha, se lee "datePosted" de la página original (gratis, sin SerpAPI). Las que siguen
+  // sin fecha solo entran (marcadas "SIN VERIFICAR") si con las verificadas no se llega a MIN_DAILY.
+  MIN_DAILY: 5,              // Pueden ser menos de DAILY_LIMIT, pero no menos de 5 (decisión del usuario)
   PIPELINE_HOUR: 8,          // 8:00 AM hora de Bogotá
   ROOT_FOLDER_NAME: 'Vacantes con IA',
   SHEET_TITLE: 'Vacantes UX - Registro',
@@ -39,6 +39,8 @@ const CONFIG = {
   CV_JSON_NAME: 'CV_IA.json',        // Lo deja la IA en la carpeta de cada vacante
   CV_ERRORS_NAME: 'CV_IA_ERRORES.txt',
   CV_TEST_FOLDER: 'PRUEBA_IA',       // Carpeta de prueba en la raíz para probarCVsDesdeIA
+  CV_EXPORT_PDF: false,      // En pausa: el usuario ajusta a mano el Google Doc del CV y exporta él mismo
+  CV_FILE_PREFIX: 'HV_',     // HV_Nombre_Apellido_Cargo (guía Adaptia); el nombre completo lo da _nombre_archivo
   CV_HOUR: 10,               // 10:00 AM: arma CV/PDF/borrador con los CV_IA.json de hoy
   SHEET_HEADERS: ['Fecha', 'Empresa', 'Cargo', 'Link', 'Match Score', 'Estado'],
 };

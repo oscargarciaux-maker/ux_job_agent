@@ -1,11 +1,11 @@
 /**
- * Fase 3: arma el CV a partir de CV_IA.json (redactado por la IA) sobre MASTER_TEMPLATE, exporta el PDF
+ * Fase 3: arma el CV a partir de CV_IA.json (redactado por la IA) sobre MASTER_TEMPLATE, exporta el PDF (si CV_EXPORT_PDF)
  * y crea el borrador de Gmail. Se ejecuta solo a las CONFIG.CV_HOUR (después del paso de IA).
  * Contrato CV_IA.json: una clave por marcador de MASTER_TEMPLATE (sin llaves; "" = eliminar ese párrafo)
  * + metadatos _idioma ('es'/'en'), _keywords, _gaps y _correo_cuerpo.
  */
 
-const CV_META_KEYS_ = ['_idioma', '_keywords', '_gaps', '_correo_cuerpo'];
+const CV_META_KEYS_ = ['_idioma', '_keywords', '_gaps', '_correo_cuerpo', '_nombre_archivo'];
 
 // Rótulos fijos de MASTER_TEMPLATE que se traducen cuando la vacante está en inglés.
 const TEMPLATE_LABELS_EN_ = {
@@ -15,7 +15,7 @@ const TEMPLATE_LABELS_EN_ = {
   'Abierto a relocalización / Remoto': 'Open to relocation / Remote',
 };
 
-/** Para cada carpeta de hoy con CV_IA.json y sin PDF: valida, llena la plantilla, PDF, borrador y registro. */
+/** Para cada carpeta de hoy con CV_IA.json y sin CV generado: valida, llena la plantilla, PDF (si está activo), borrador y registro. */
 function generarCVsDesdeIA() {
   const root = DriveApp.getFolderById(getProp_(PROPS.ROOT_FOLDER_ID));
   const today = Utilities.formatDate(new Date(), tz_(), 'yyyy-MM-dd');
@@ -50,8 +50,8 @@ function buildCvsInFolder_(dateFolder, sheet) {
     try {
       const jsonFile = firstFileByName_(folder, CONFIG.CV_JSON_NAME);
       if (!jsonFile) continue;
-      if (folder.getFilesByType(MimeType.PDF).hasNext()) {
-        console.log(label + ' -> ya tiene PDF, se omite');
+      if (hasGeneratedCv_(folder)) {
+        console.log(label + ' -> ya tiene CV generado, se omite');
         continue;
       }
       const detailFile = firstFileByName_(folder, 'Detalle_Vacante');
@@ -73,20 +73,20 @@ function buildCvsInFolder_(dateFolder, sheet) {
         continue;
       }
 
-      const cvName = 'CV_' + label;
+      const cvName = buildCvFileName(cv, vacancy, label);
       const copy = template.makeCopy(cvName, folder);
       fillCvDocument_(copy.getId(), cv);
-      const pdf = folder.createFile(copy.getAs(MimeType.PDF).setName(cvName + '.pdf'));
+      const pdf = CONFIG.CV_EXPORT_PDF ? folder.createFile(copy.getAs(MimeType.PDF).setName(cvName + '.pdf')) : null;
       removeFiles_(folder, CONFIG.CV_ERRORS_NAME);
 
       let draftNote = 'sin correo directo';
       if (vacancy.email && cv._correo_cuerpo) {
         const subject = buildApplicationEmail(vacancy, cv._idioma).subject;
-        createApplicationDraft_(vacancy.email, subject, cv._correo_cuerpo, pdf.getBlob());
+        createApplicationDraft_(vacancy.email, subject, cv._correo_cuerpo, pdf ? pdf.getBlob() : null);  // Sin PDF: el usuario lo adjunta
         draftNote = 'borrador para ' + vacancy.email;
       }
       updateVacancyStatus_(sheet, vacancy.link, 'Pendiente');
-      console.log(label + ' -> CV, PDF y ' + draftNote + ' OK');
+      console.log(label + ' -> ' + cvName + (pdf ? ' (Doc + PDF)' : ' (Google Doc)') + ' y ' + draftNote + ' OK');
     } catch (e) {
       console.error(label + ' -> ERROR: ' + e.message);
     }
@@ -146,6 +146,17 @@ function validateCvJson(cv, contextText, placeholders) {
     }
   });
   return { errors: errors.filter((e, i, all) => all.indexOf(e) === i), warnings: warnings };
+}
+
+/**
+ * Nombre del CV: HV_Nombre_Apellido_Cargo (guía Adaptia). La IA lo propone en _nombre_archivo con el cargo tal como
+ * lo pide la vacante; si falta o no empieza por HV_, se usa HV_ + cargo de la vacante (o el nombre de la carpeta).
+ */
+function buildCvFileName(cv, vacancy, label) {
+  const clean = t => String(t || '').normalize('NFC').replace(/[\\/:*?"<>|#%]+/g, ' ').trim().replace(/\s+/g, '_');
+  const proposed = clean(cv._nombre_archivo);
+  if (proposed.indexOf(CONFIG.CV_FILE_PREFIX) === 0 && proposed.length > CONFIG.CV_FILE_PREFIX.length) return proposed;
+  return CONFIG.CV_FILE_PREFIX + clean((vacancy && vacancy.title) || label);
 }
 
 /** Un párrafo se elimina si todos sus marcadores quedan vacíos (p. ej. una 4.ª experiencia que no aplica). */
@@ -248,6 +259,18 @@ function findDocByName_(name) {
 function readTextFile_(file) {
   if (file.getMimeType() === MimeType.GOOGLE_DOCS) return DocumentApp.openById(file.getId()).getBody().getText();
   return file.getBlob().getDataAsString('UTF-8');
+}
+
+/** Ya hay CV en la carpeta: PDF (corridas anteriores) o Google Doc que empiece por CV_ o HV_ (lo deja intacto). */
+function hasGeneratedCv_(folder) {
+  if (folder.getFilesByType(MimeType.PDF).hasNext()) return true;
+  const docs = folder.getFilesByType(MimeType.GOOGLE_DOCS);
+  while (docs.hasNext()) {
+    const name = docs.next().getName();
+    if (name === CONFIG.CV_JSON_NAME) continue;  // El conector de Drive puede guardar CV_IA.json como Doc
+    if (name.indexOf('CV_') === 0 || name.indexOf(CONFIG.CV_FILE_PREFIX) === 0) return true;
+  }
+  return false;
 }
 
 function firstFileByName_(folder, name) {

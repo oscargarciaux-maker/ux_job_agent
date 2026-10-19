@@ -84,7 +84,18 @@ assert.strictEqual(fechas.validThrough, '2026-12-01');
 assert.strictEqual(context.extractJobPostingDates('<html>sin datos</html>').posted, null);
 assert.ok(!context.isRecent('2026-08-24', 14, hoy) && context.isRecent('2026-10-10', 14, hoy));
 assert.ok(context.isExpired('2026-10-17', hoy) && !context.isExpired('2026-10-18', hoy) && !context.isExpired(null, hoy));
-assert.ok(context.computePriority({ title: 'X', dateUnverified: true }, 100) < context.computePriority({ title: 'X' }, 60));
+// Fecha sin verificar: solo completa hasta MIN_DAILY (5)
+const conFecha = n => Array.from({ length: n }, (_, i) => ({ vacancy: { title: 'v' + i }, seniority: 'mid', score: 80 }));
+const sinFecha = n => Array.from({ length: n }, (_, i) => ({ vacancy: { title: 'u' + i, dateUnverified: true }, seniority: 'junior', score: 100 }));
+assert.strictEqual(context.selectWithDateRule(conFecha(7).concat(sinFecha(4)), 10, 5, 5).length, 7);
+const relleno = context.selectWithDateRule(conFecha(2).concat(sinFecha(6)), 10, 5, 5);
+assert.strictEqual(relleno.length, 5);
+assert.strictEqual(relleno.filter(x => x.vacancy.dateUnverified).length, 3);
+assert.strictEqual(context.selectWithDateRule(sinFecha(2), 10, 5, 5).length, 2);
+// Nombre del archivo del CV (guía Adaptia: HV_Nombre_Apellido_Cargo)
+assert.strictEqual(context.buildCvFileName({ _nombre_archivo: 'HV_Ana_Pérez_Diseñador(a) UX/UI' }, {}, 'x'), 'HV_Ana_Pérez_Diseñador(a)_UX_UI');
+assert.strictEqual(context.buildCvFileName({}, { title: 'UX Designer' }, 'x'), 'HV_UX_Designer');
+assert.strictEqual(context.buildCvFileName({ _nombre_archivo: 'CV_malo' }, null, 'Acme_UX'), 'HV_Acme_UX');
 
 // Publicaciones de LinkedIn
 const post = context.parseLinkedInPost({ title: 'Ana Gómez en LinkedIn: Buscamos diseñador UX/UI junior | LinkedIn',
