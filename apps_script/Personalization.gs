@@ -48,7 +48,10 @@ function detectLanguage(text) {
 function classifySeniority(vacancy) {
   const title = (vacancy.title || '').toLowerCase();
   const text = vacancyText_(vacancy).toLowerCase();
-  if (/\b(senior|sr\.?|lead|l[ií]der|staff|principal|head|manager|gerente|director)\b/.test(title)) return 'senior';
+  const years = requiredYears(vacancy);
+  if (/\b(senior|sr\.?|lead|l[ií]der|staff|principal|head|manager|gerente|director)\b/.test(title)) {
+    return years !== null && years < CONFIG.EXPERIENCE_YEARS_LIMIT ? 'mid' : 'senior';  // "Senior" con < 5 años sí aplica
+  }
   if (/\b(junior|jr\.?|trainee|practicante|pasante|intern|internship|aprendiz|entry)\b/.test(title)) return 'junior';
   if (/\b(junior|trainee|practicante|pasante|sin experiencia|reci[eé]n egresado|entry[- ]level)\b|\b[01]\s*(?:-|a)\s*2\s*(años|years)/.test(text)) return 'junior';
   return 'mid';
@@ -65,7 +68,34 @@ function computeMatchScore(vacancy) {
 /** Prioridad para elegir las 10 del día: Match Score + fuente (LinkedIn > Indeed > Computrabajo) + fintech. */
 function computePriority(vacancy, score) {
   const fintech = CONFIG.FINTECH_PATTERN.test(vacancyText_(vacancy) + ' ' + (vacancy.company || '')) ? CONFIG.FINTECH_BONUS : 0;
-  return score + (vacancy.sourceBonus || 0) + fintech;
+  const years = requiredYears(vacancy);
+  const tooMuch = years !== null && years >= CONFIG.EXPERIENCE_YEARS_LIMIT ? CONFIG.EXPERIENCE_PENALTY : 0;
+  return score + (vacancy.sourceBonus || 0) + fintech - tooMuch;
+}
+
+/**
+ * Años mínimos de experiencia que pide la vacante ("3+ years", "Entre 2 y 5 años", "mínimo 4 años de experiencia").
+ * Solo cuenta números cerca de "experiencia/experience" (así "15 años en el mercado" de la empresa no cuenta).
+ * Devuelve el menor mínimo encontrado o null.
+ */
+function requiredYears(vacancy) {
+  const text = vacancyText_(vacancy);
+  const re = /(\d{1,2})\s*\+?\s*(?:(?:-|–|a|to|y|and)\s*\d{1,2}\s*)?(?:años|anos|years|yrs)/gi;
+  let m, best = null;
+  while ((m = re.exec(text))) {
+    const around = text.slice(Math.max(0, m.index - 80), m.index + m[0].length + 80);
+    if (!/experienc|experiencia/i.test(around)) continue;
+    const n = parseInt(m[1], 10);
+    if (n <= 20 && (best === null || n < best)) best = n;
+  }
+  return best;
+}
+
+/** Motivo para descartar la vacante por su texto (CONFIG.EXCLUDED_VACANCY_RULES) o null. */
+function exclusionReason(vacancy) {
+  const text = vacancyText_(vacancy) + ' ' + (vacancy.company || '');
+  const rule = CONFIG.EXCLUDED_VACANCY_RULES.filter(r => r.pattern.test(text))[0];
+  return rule ? rule.reason : null;
 }
 
 /** Clave para reconocer la misma vacante publicada con enlaces distintos: empresa|cargo normalizados. */

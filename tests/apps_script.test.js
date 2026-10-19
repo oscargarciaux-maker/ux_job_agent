@@ -117,6 +117,34 @@ assert.strictEqual(links(['https://bebee.com/co/jobs/1']).link, '');
 assert.ok(context.isReachableRemoteJob({ location: 'Anywhere', description: 'Remote role, LATAM time zones' }));
 assert.ok(!context.isReachableRemoteJob({ location: 'Anywhere', description: 'Remote, US only. Must reside in the US.' }));
 assert.ok(!context.isReachableRemoteJob({ location: 'Berlin', description: 'Hybrid role in our Berlin office' }));
+// Exclusiones y años de experiencia (decisiones del usuario 2026-10-19)
+assert.strictEqual(context.exclusionReason({ title: 'UI Intern', description: 'Compensation: Unpaid Internship' }), 'pasantía no remunerada');
+assert.strictEqual(context.exclusionReason({ title: 'Diseñador Web', description: 'modalidad freelance por proyecto' }), 'por proyecto / freelance');
+assert.strictEqual(context.exclusionReason({ title: 'UX', description: 'blah #J-18808-Ljbffr' }), 'copia de JobLeads');
+assert.strictEqual(context.exclusionReason({ title: 'UI/UX Designer', description: '12-month contract, 100% remote' }), null);
+assert.strictEqual(context.exclusionReason({ title: 'UX Designer', description: 'Experiencia freelance o en agencia es un plus' }), null);
+assert.strictEqual(context.exclusionReason({ title: 'Diseñador Web UI/UX — Remoto (Freelance)', description: '' }), 'por proyecto / freelance');
+assert.strictEqual(links(['https://www.upwork.com/freelance-jobs/apply/x']).link, '');
+assert.strictEqual(context.requiredYears({ description: '6+ years of UI/UX or web design experience' }), 6);
+assert.strictEqual(context.requiredYears({ description: 'Experiencia: Entre 2 y 5 años en UX/UI Design' }), 2);
+assert.strictEqual(context.requiredYears({ description: 'En BairesDev llevamos 15 años liderando proyectos' }), null);
+assert.strictEqual(context.classifySeniority({ title: 'Senior UX Designer', description: '3+ years of experience' }), 'mid');
+assert.strictEqual(context.classifySeniority({ title: 'Senior UX Designer', description: '7 years of experience' }), 'senior');
+assert.ok(context.computePriority({ title: 'UX', description: '6+ years of experience' }, 90) <
+          context.computePriority({ title: 'UX', description: '3 years of experience' }, 80));
+assert.strictEqual(context.parseGoogleJob({ title: 'X', extensions: ['30–80 an hour', 'hace 3 días'] }).postedAt, 'hace 3 días');
+assert.strictEqual(context.parseGoogleJob({ title: 'X', extensions: ['30–80 an hour'] }).postedAt, '');
+// Fuentes gratuitas: Remotive y Get on Board
+const rem = context.parseRemotiveJob({ url: 'https://remotive.com/remote-jobs/design/ux-1', title: 'Product Designer', company_name: 'Acme',
+  publication_date: '2026-10-15T10:00:00', candidate_required_location: 'LATAM', description: '<p>Hola &amp; <b>chao</b></p>' });
+assert.strictEqual(rem.postedAt, '2026-10-15');
+assert.strictEqual(rem.description, 'Hola & chao');
+const gob = context.parseGetOnBoardJob({ id: 'ux-designer-acme', attributes: { title: 'UX Designer', remote: true, countries: ['Colombia'],
+  published_at: 1792000000, description: '<p>Diseño</p>', company: { data: { attributes: { name: 'Acme' } } } },
+  links: { public_url: 'https://www.getonbrd.com/jobs/design-ux/ux-designer-acme' } });
+assert.strictEqual(gob.company, 'Acme');
+assert.ok(/Remote LATAM Colombia/.test(gob.location) && /^\d{4}-\d{2}-\d{2}$/.test(gob.postedAt));
+assert.ok(context.isDesignRole({ title: 'Diseñador UX/UI' }) && !context.isDesignRole({ title: 'Graphic Designer' }));
 // Vacantes ya aplicadas: estado por color de carpeta, nombre de carpeta y empresa ya aplicada
 assert.strictEqual(context.colorToStatus('#f83a22'), 'Rechazada');
 assert.strictEqual(context.colorToStatus('#d06b64'), 'Rechazada');
