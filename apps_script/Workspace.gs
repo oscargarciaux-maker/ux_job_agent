@@ -8,13 +8,16 @@ function getRegistrySheet_() {
   return SpreadsheetApp.openById(getProp_(PROPS.SHEET_ID)).getSheets()[0];
 }
 
-/** URLs ya registradas (columna D: Link). */
+/** Vacantes ya registradas: por Link (columna D) y por empresa|cargo (B|C), por si vuelve con otro enlace. */
 function getExistingUrls_(sheet) {
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return {};
-  const urls = {};
-  sheet.getRange(2, 4, lastRow - 1, 1).getValues().forEach(row => { if (row[0]) urls[row[0]] = true; });
-  return urls;
+  const seen = {};
+  sheet.getRange(2, 2, lastRow - 1, 3).getValues().forEach(row => {
+    if (row[2]) seen[row[2]] = true;
+    seen[vacancyKey({ company: row[0], title: row[1] })] = true;
+  });
+  return seen;
 }
 
 function appendVacancyRow_(sheet, vacancy, score, status) {

@@ -58,6 +58,22 @@ const job = context.parseGoogleJob({
 });
 assert.strictEqual(job.link, 'https://www.linkedin.com/jobs/view/9');
 assert.strictEqual(job.description, 'Descripción completa...');
+assert.strictEqual(job.source, 'LinkedIn');
+// Prioridad de fuente: Indeed > Computrabajo > portal; agregadores de pago nunca se eligen
+const links = o => context.parseGoogleJob({ title: 'X', apply_options: o.map(l => ({ link: l })) });
+assert.strictEqual(links(['https://co.computrabajo.com/1', 'https://co.indeed.com/2', 'https://acme.com/3']).link, 'https://co.indeed.com/2');
+assert.strictEqual(links(['https://co.jooble.org/jdp/1', 'https://acme.com/careers/3']).link, 'https://acme.com/careers/3');
+assert.strictEqual(links(['https://acme.com/careers/3']).source, 'acme.com');
+assert.strictEqual(links(['https://co.jooble.org/jdp/1', 'https://co.trabajo.org/2', 'https://www.jobleads.com/3']).link, '');
+// Prioridad del día: LinkedIn y fintech suben; misma vacante con otro enlace se reconoce
+const plain = { title: 'Diseñador UX/UI', company: 'Acme', description: 'Bogotá' };
+const fin = { title: 'Diseñador UX/UI', company: 'Nequi', description: 'Fintech en Bogotá', sourceBonus: 9 };
+assert.ok(context.computePriority(fin, 80) > context.computePriority(plain, 80));
+assert.strictEqual(context.computePriority(plain, 80), 80);
+assert.strictEqual(context.vacancyKey({ company: 'Lite Thinking', title: 'Diseñador UX/UI Junior' }),
+  context.vacancyKey({ company: 'lite thinking', title: 'Disenador UX UI junior' }));
+const byPriority = context.selectDailyVacancies([{ seniority: 'mid', score: 80, priority: 99 }, { seniority: 'mid', score: 90, priority: 90 }], 1, 0);
+assert.strictEqual(byPriority[0].priority, 99);
 assert.ok(context.isRecent('hace 3 días', 14) && context.isRecent('2 weeks ago', 14) && context.isRecent('', 14));
 assert.ok(!context.isRecent('hace 3 semanas', 14) && !context.isRecent('hace 1 mes', 14));
 
