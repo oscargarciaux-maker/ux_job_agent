@@ -66,7 +66,7 @@ const CONFIG = {
   LINKEDIN_POST_HIRING_TERMS: '("hiring" OR "contratando" OR "buscamos" OR "vacante" OR "estamos buscando")',
   LINKEDIN_POST_LOCATION_TERMS: '("remoto" OR "remote" OR "LATAM" OR "Colombia")',
   LINKEDIN_POST_LOCATION_PATTERN: /remot|remote|latam|latinoam|am[eé]rica latina|colombia|bogot|medell|anywhere|work from home|home office/i,
-  MAX_POST_AGE_DAYS: 14,
+  MAX_POST_AGE_DAYS: 21,  // Decisión del usuario 2026-10-19 (antes 14)
   // Apps Script corta a los 6 min: se deja de crear vacantes a los 4 (las que falten se retoman en la próxima corrida)
   TIME_BUDGET_MS: 4 * 60 * 1000,
   // La publicación debe ser de un rol de diseño (evita "remote hiring" de otros oficios, p. ej. video annotation)

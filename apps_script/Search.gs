@@ -133,11 +133,11 @@ function stripHtml_(html) {
     .replace(/[ \t]+/g, ' ').replace(/\n\s*\n+/g, '\n').trim();
 }
 
-/** Posts de reclutadores en LinkedIn (últimas 2 semanas) vía Google Dorking, con el rol del día. */
+/** Posts de reclutadores en LinkedIn (últimas 3 semanas) vía Google Dorking, con el rol del día. */
 function searchLinkedInPosts_(apiKey) {
   const q = buildLinkedInPostsQuery(pickDailyItems(CONFIG.LINKEDIN_POST_ROLE_POOL, 1, new Date())[0]);
   console.log('Publicaciones de LinkedIn de hoy: ' + q);
-  const params = { engine: 'google', q: q, tbs: 'qdr:w2', hl: 'es', gl: 'co', num: 20, api_key: apiKey };
+  const params = { engine: 'google', q: q, tbs: 'qdr:w3', hl: 'es', gl: 'co', num: 20, api_key: apiKey };
   const query = Object.keys(params).map(k => k + '=' + encodeURIComponent(params[k])).join('&');
   const response = UrlFetchApp.fetch('https://serpapi.com/search.json?' + query, { muteHttpExceptions: true });
   if (response.getResponseCode() !== 200) {
