@@ -44,7 +44,7 @@ function configurarAgente() {
   }
 
   installTriggers_();
-  report.push('Activadores: pipeline diario a las ' + CONFIG.PIPELINE_HOUR + ':00 y CVs desde IA a las ' + CONFIG.CV_HOUR + ':00');
+  report.push('Activadores: pipeline diario a las ' + CONFIG.PIPELINE_HOUR + ':00 y CVs desde IA a las ' + CONFIG.CV_HOUR + ':00; hoja Aplicadas cada hora');
   if (!findDocByName_(CONFIG.CONTEXT_DOC_NAME)) {
     report.push('FALTA: el Google Doc ' + CONFIG.CONTEXT_DOC_NAME + ' (sin él se rechazan todos los CV_IA.json).');
   }
@@ -57,11 +57,12 @@ function configurarAgente() {
 }
 
 function installTriggers_() {
-  const handlers = ['ejecutarPipeline', 'generarCVsDesdeIA'];
+  const handlers = ['ejecutarPipeline', 'generarCVsDesdeIA', 'sincronizarAplicadas'];
   ScriptApp.getProjectTriggers()
     .filter(t => handlers.indexOf(t.getHandlerFunction()) !== -1)
     .forEach(t => ScriptApp.deleteTrigger(t));
 
   ScriptApp.newTrigger('ejecutarPipeline').timeBased().everyDays(1).atHour(CONFIG.PIPELINE_HOUR).create();
   ScriptApp.newTrigger('generarCVsDesdeIA').timeBased().everyDays(1).atHour(CONFIG.CV_HOUR).create();
+  ScriptApp.newTrigger('sincronizarAplicadas').timeBased().everyHours(1).create();  // Refleja los cambios de color
 }
