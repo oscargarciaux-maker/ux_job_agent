@@ -44,6 +44,8 @@ El usuario NO quiere pagar API aparte: la IA corre con su **plan de Claude** med
 
 **Anti-alucinación:** la IA solo usa datos de `CONTEXTO_CV`; Apps Script rechaza el JSON si aparecen empresas o cifras (números, %, $) que no estén en `CONTEXTO_CV`.
 
+**`CRITERIOS_BUSQUEDA`** (Google Doc en `Vacantes con IA`, creado 2026-10-19): las reglas de búsqueda en lenguaje natural para un agente de búsqueda separado (rol, nivel, ubicación, antigüedad, descartes, fuentes, deduplicación contra `Vacantes UX - Registro` y `Aplicadas`, y cómo dejar `Detalle_Vacante` + fila en Sheets para que la IA escriba el CV). **Si cambias un filtro en `Config.gs`/`Search.gs`/`Personalization.gs`, actualiza también ese documento.**
+
 **Privacidad:** `GUIA_CV`, `CONTEXTO_CV` y `REGLAS_CV` viven SOLO en Drive (Google Docs en la carpeta raíz). Nunca en este repo público.
 
 **Validación (`validateCvJson`):** `_idioma` ∈ {es, en}; todo marcador de la plantilla presente (aunque sea `""`); valores de texto; sin `{{ }}`; cada número del CV y de `_correo_cuerpo` (normalizado sin `.`/`,`) debe existir en `CONTEXTO_CV`; los valores de claves con `EMPRESA`/`COMPANY` deben aparecer literalmente en `CONTEXTO_CV`. Claves que no existen en la plantilla solo generan aviso.
