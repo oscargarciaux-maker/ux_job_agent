@@ -35,6 +35,7 @@ const CONFIG = {
     { reason: 'por proyecto / freelance',
       pattern: /modalidad freelance|freelance (role|position|contract|basis|job)|(contrato|contrataci[oó]n|pago|vinculaci[oó]n|modalidad) por proyecto|project[- ]based (contract|role|position|work)|paid per project|per project basis|\(freelance\)|- freelance\b/i },
   ],
+  EXCLUDED_TITLE_PATTERN: /\b(staff|principal|head|director|directora|vp|manager|gerente)\b/i,
   // Piden 5 o más años: no se descartan, pero bajan de prioridad. Con menos de 5 años cuenta como mid aunque diga Senior.
   EXPERIENCE_YEARS_LIMIT: 5,
   EXPERIENCE_PENALTY: 30,

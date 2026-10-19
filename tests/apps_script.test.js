@@ -156,6 +156,10 @@ assert.ok(/Remote LATAM Colombia/.test(gob.location) && /^\d{4}-\d{2}-\d{2}$/.te
 assert.ok(context.isDesignRole({ title: 'Diseñador UX/UI' }) && !context.isDesignRole({ title: 'Graphic Designer' }));
 assert.ok(!context.isDesignRole({ title: 'Senior SEO & UX Copywriter' }) && !context.isDesignRole({ title: 'UX Writer' }));
 assert.ok(context.isDesignRole({ title: 'Diseñador Digital' }) && context.isDesignRole({ title: 'Visual Designer' }));
+assert.ok(!context.isDesignRole({ title: 'Administrador/a de Infraestructura Linux' }) && !context.isDesignRole({ title: 'Outsystems Front-end / UI Developer' }));
+assert.ok(context.isDesignRole({ title: 'UI/UX Designer (Mobile Native)' }) && context.isDesignRole({ title: 'Diseñador(a) UX/UI' }));
+assert.strictEqual(context.exclusionReason({ title: 'Staff Product Designer (Contract)', description: '' }), 'cargo de liderazgo (staff/principal/head/director/manager)');
+assert.strictEqual(context.exclusionReason({ title: 'Senior UX Designer', description: '' }), null);
 const loc = run('CONFIG.REACHABLE_REMOTE_LOCATION');
 assert.ok(loc.test('Americas') && loc.test('UTC-5') && loc.test('GMT -3') && !loc.test('North America') && !loc.test('USA') && !loc.test('UTC+8'));
 // Vacantes ya aplicadas: estado por color de carpeta, nombre de carpeta y empresa ya aplicada

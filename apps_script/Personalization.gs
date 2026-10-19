@@ -95,7 +95,9 @@ function requiredYears(vacancy) {
 function exclusionReason(vacancy) {
   const text = vacancyText_(vacancy) + ' ' + (vacancy.company || '');
   const rule = CONFIG.EXCLUDED_VACANCY_RULES.filter(r => r.pattern.test(text))[0];
-  return rule ? rule.reason : null;
+  if (rule) return rule.reason;
+  // Cargos de liderazgo muy por encima de junior (Senior sí entra, con la regla de años)
+  return CONFIG.EXCLUDED_TITLE_PATTERN.test(vacancy.title || '') ? 'cargo de liderazgo (staff/principal/head/director/manager)' : null;
 }
 
 /** Clave para reconocer la misma vacante publicada con enlaces distintos: empresa|cargo normalizados. */
