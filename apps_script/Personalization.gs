@@ -117,7 +117,7 @@ function selectDailyVacancies(scored, limit, minJunior) {
 }
 
 /**
- * Selección con la regla de fecha: solo vacantes con fecha verificada (<= 14 días); las que no tienen fecha
+ * Selección con la regla de fecha: solo vacantes con fecha verificada (<= MAX_POST_AGE_DAYS); las que no tienen fecha
  * verificable entran solo para completar minDaily (pueden ser menos de limit, pero no menos de minDaily).
  */
 function selectWithDateRule(scored, limit, minJunior, minDaily) {
