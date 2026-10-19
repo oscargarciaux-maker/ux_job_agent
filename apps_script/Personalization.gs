@@ -62,15 +62,28 @@ function computeMatchScore(vacancy) {
   return Math.round((seniority + location) / 2);
 }
 
+/** Prioridad para elegir las 10 del día: Match Score + fuente (LinkedIn > Indeed > Computrabajo) + fintech. */
+function computePriority(vacancy, score) {
+  const fintech = CONFIG.FINTECH_PATTERN.test(vacancyText_(vacancy) + ' ' + (vacancy.company || '')) ? CONFIG.FINTECH_BONUS : 0;
+  return score + (vacancy.sourceBonus || 0) + fintech;
+}
+
+/** Clave para reconocer la misma vacante publicada con enlaces distintos: empresa|cargo normalizados. */
+function vacancyKey(vacancy) {
+  const norm = t => String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+  return norm(vacancy.company) + '|' + norm(vacancy.title);
+}
+
 /**
  * Selección diaria: reserva al menos minJunior cupos para vacantes Junior (si existen)
- * y completa el resto con las de mayor score de cualquier nivel.
+ * y completa el resto con las de mayor prioridad (o score) de cualquier nivel.
  */
 function selectDailyVacancies(scored, limit, minJunior) {
-  const byScore = scored.slice().sort((a, b) => b.score - a.score);
+  const rank = x => (x.priority !== undefined ? x.priority : x.score);
+  const byScore = scored.slice().sort((a, b) => rank(b) - rank(a));
   const picked = byScore.filter(x => x.seniority === 'junior').slice(0, minJunior);
   byScore.forEach(x => { if (picked.length < limit && picked.indexOf(x) === -1) picked.push(x); });
-  return picked.sort((a, b) => b.score - a.score).slice(0, limit);
+  return picked.sort((a, b) => rank(b) - rank(a)).slice(0, limit);
 }
 
 function buildApplicationEmail(vacancy, language) {

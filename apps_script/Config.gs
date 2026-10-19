@@ -6,7 +6,20 @@
 const CONFIG = {
   DAILY_LIMIT: 10,
   MIN_JUNIOR: 5,             // Al menos 5 de las 10 vacantes diarias serán Junior (si existen)
-  SEARCH_QUERIES: ['diseñador ux ui junior', 'diseñador ux ui'],  // 1 crédito de SerpAPI por búsqueda
+  // 1 crédito de SerpAPI por búsqueda. La 2.ª prioriza fintech; la 1.ª cubre cualquier sector.
+  SEARCH_QUERIES: ['diseñador ux ui junior', 'diseñador ux ui fintech'],
+  // Orden de preferencia del enlace de cada vacante (Google Jobs lista todos los sitios donde está publicada).
+  // Cualquier otro sitio (portal de la empresa u otro) va después. Más alto = más prioridad al elegir las 10 del día.
+  SOURCE_PRIORITY: [
+    { name: 'LinkedIn', pattern: /linkedin\.com/i, bonus: 9 },
+    { name: 'Indeed', pattern: /indeed\./i, bonus: 6 },
+    { name: 'Computrabajo', pattern: /computrabajo\./i, bonus: 3 },
+  ],
+  // Agregadores que llevan a páginas de pago: nunca se usa su enlace. Si una vacante solo está en ellos, se descarta.
+  BLOCKED_SOURCES: /trabajo\.org|jooble\.|jobleads\./i,
+  // Sector preferido (no excluyente): suma puntos al elegir las 10 del día.
+  FINTECH_PATTERN: /fintech|banc[oa]|bancari|financier|pagos|payments|cr[eé]dito|neobanco|seguros|insurtech|wallet|billetera|nequi|daviplata|nubank|rappipay/i,
+  FINTECH_BONUS: 10,
   SEARCH_LOCATION: 'Colombia',
   // Publicaciones de reclutadores en LinkedIn (contratan sin publicar vacante formal). 1 crédito más por día.
   // Solo trae el fragmento visible del post (LinkedIn no permite leer el post completo sin sesión).

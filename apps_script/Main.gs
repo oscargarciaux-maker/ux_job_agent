@@ -56,7 +56,7 @@ function runPipeline_(opts) {
   if (!opts.dryRun) {
     sheet = getRegistrySheet_();
     const existing = getExistingUrls_(sheet);
-    fresh = raw.filter(v => v.link && !existing[v.link]);
+    fresh = raw.filter(v => v.link && !existing[v.link] && !existing[vacancyKey(v)]);
   }
   console.log('2. Vacantes nuevas: ' + fresh.length);
   if (!fresh.length) {
@@ -64,7 +64,10 @@ function runPipeline_(opts) {
     return;
   }
 
-  const scored = fresh.map(v => ({ vacancy: v, score: computeMatchScore(v), seniority: classifySeniority(v) }));
+  const scored = fresh.map(v => {
+    const score = computeMatchScore(v);
+    return { vacancy: v, score: score, priority: computePriority(v, score), seniority: classifySeniority(v) };
+  });
   const selected = selectDailyVacancies(scored, CONFIG.DAILY_LIMIT, CONFIG.MIN_JUNIOR);
   console.log('3. Seleccionadas: ' + selected.length + ' (Junior: ' + selected.filter(x => x.seniority === 'junior').length + ')');
 

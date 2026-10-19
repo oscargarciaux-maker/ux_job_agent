@@ -1,13 +1,13 @@
 /**
  * Fase 1: búsqueda con SerpAPI.
- * - Motor Google Jobs: vacantes formales con DESCRIPCIÓN COMPLETA (LinkedIn, Computrabajo, sitios de empresas...).
+ * - Motor Google Jobs: vacantes formales con DESCRIPCIÓN COMPLETA (LinkedIn, Indeed, Computrabajo, sitios de empresas...).
  * - Google Dorking en linkedin.com/posts: reclutadores que contratan por publicación (solo fragmento visible).
  */
 function searchUxJobs_() {
   const apiKey = getProp_(PROPS.SERPAPI_API_KEY);
   if (!apiKey) throw new Error('Falta la propiedad SERPAPI_API_KEY en Propiedades del script.');
 
-  const byLink = {};
+  const byKey = {};   // Misma vacante en ambas búsquedas -> una sola
   CONFIG.SEARCH_QUERIES.forEach(q => {
     const params = { engine: 'google_jobs', q: q, location: CONFIG.SEARCH_LOCATION, hl: 'es', gl: 'co', api_key: apiKey };
     const query = Object.keys(params).map(k => k + '=' + encodeURIComponent(params[k])).join('&');
@@ -19,12 +19,12 @@ function searchUxJobs_() {
     (JSON.parse(response.getContentText()).jobs_results || [])
       .map(parseGoogleJob)
       .filter(v => v.link && isRecent(v.postedAt, CONFIG.MAX_POST_AGE_DAYS))
-      .forEach(v => { byLink[v.link] = byLink[v.link] || v; });
+      .forEach(v => { byKey[vacancyKey(v)] = byKey[vacancyKey(v)] || v; });
   });
   if (CONFIG.LINKEDIN_POSTS_QUERY) {
-    searchLinkedInPosts_(apiKey).forEach(v => { byLink[v.link] = byLink[v.link] || v; });
+    searchLinkedInPosts_(apiKey).forEach(v => { byKey[v.link] = byKey[v.link] || v; });
   }
-  return Object.keys(byLink).map(k => byLink[k]);
+  return Object.keys(byKey).map(k => byKey[k]);
 }
 
 /** Posts de reclutadores en LinkedIn (últimas 2 semanas) vía Google Dorking. */
@@ -57,10 +57,13 @@ function parseLinkedInPost(item) {
   };
 }
 
-/** Convierte un resultado de Google Jobs (SerpAPI) en una vacante del agente. */
+/**
+ * Convierte un resultado de Google Jobs (SerpAPI) en una vacante del agente.
+ * Elige el enlace original según CONFIG.SOURCE_PRIORITY (LinkedIn > Indeed > Computrabajo > portal de la empresa u
+ * otro) y nunca uno de CONFIG.BLOCKED_SOURCES; si solo hay enlaces bloqueados, link queda vacío (se descarta).
+ */
 function parseGoogleJob(job) {
-  const options = job.apply_options || [];
-  const linkedIn = options.filter(o => /linkedin\.com/i.test(o.link || ''))[0];
+  const best = pickApplyOption((job.apply_options || []).map(o => o.link || ''));
   const ext = job.detected_extensions || {};
   return {
     title: job.title || '',
@@ -68,10 +71,27 @@ function parseGoogleJob(job) {
     location: job.location || '',
     description: job.description || '',
     snippet: '',
-    link: (linkedIn || options[0] || {}).link || job.share_link || '',
+    link: best ? best.link : '',
     postedAt: ext.posted_at || '',
-    source: job.via || 'Google Jobs',
+    source: best ? best.source : (job.via || 'Google Jobs'),
+    sourceBonus: best ? best.bonus : 0,
   };
+}
+
+/** Mejor enlace de postulación: { link, source, bonus } o null si todos están bloqueados. */
+function pickApplyOption(links) {
+  let best = null;
+  links.filter(link => link && !CONFIG.BLOCKED_SOURCES.test(link)).forEach(link => {
+    const known = CONFIG.SOURCE_PRIORITY.filter(s => s.pattern.test(link))[0];
+    const option = known ? { link: link, source: known.name, bonus: known.bonus }
+                         : { link: link, source: hostOf_(link), bonus: 0 };
+    if (!best || option.bonus > best.bonus) best = option;
+  });
+  return best;
+}
+
+function hostOf_(link) {
+  return (link.match(/^https?:\/\/(?:www\.)?([^/?#]+)/i) || [null, link])[1];
 }
 
 /** true si la vacante tiene <= maxDays de publicada. Si no se puede saber, se conserva. */
