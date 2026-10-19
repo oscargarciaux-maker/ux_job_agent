@@ -6,17 +6,18 @@
 const CONFIG = {
   DAILY_LIMIT: 10,
   MIN_JUNIOR: 5,             // Al menos 5 de las 10 vacantes diarias serán Junior (si existen)
-  // Rotación diaria (decisión del usuario 2026-10-19): cada día se usan QUERIES_PER_DAY búsquedas consecutivas del
-  // pool (1 crédito de SerpAPI cada una), así Google Jobs devuelve vacantes distintas. Términos AMPLIOS: el 2026-10-19
-  // "product designer junior" y "diseñador ux banca seguros" dieron 0 resultados en Colombia. El sector fintech lo
-  // prioriza FINTECH_BONUS, no la búsqueda.
+  // Rotación diaria (decisiones del usuario 2026-10-19). Cada día: 1 búsqueda de SEARCH_QUERY_POOL en Colombia y 1 de
+  // REMOTE_QUERY_POOL (remoto para LATAM, sin limitar a Colombia), 1 crédito de SerpAPI cada una.
+  // Solo español en Colombia: "product designer", "product designer junior" y "diseñador ux banca seguros" dieron
+  // 0 resultados. El sector fintech lo prioriza FINTECH_BONUS, no la búsqueda.
   SEARCH_QUERY_POOL: [
-    'diseñador ux ui junior', 'diseñador ux ui fintech',
-    'diseñador ux ui', 'product designer',
-    'ux designer', 'diseñador ui',
-    'diseñador de producto', 'ux ui designer',
+    'diseñador ux ui junior', 'diseñador ux ui fintech', 'diseñador ux ui', 'diseñador ux',
+    'diseñador ui', 'diseñador de experiencia de usuario', 'diseñador de interfaces', 'diseñador de producto digital',
   ],
-  QUERIES_PER_DAY: 2,
+  REMOTE_QUERY_POOL: [
+    'remote ux designer latam', 'remote ui ux designer latin america',
+    'remote product designer latam', 'ux ui designer remote colombia',
+  ],
   // Orden de preferencia del enlace de cada vacante (Google Jobs lista todos los sitios donde está publicada).
   // Cualquier otro sitio (portal de la empresa u otro) va después. Más alto = más prioridad al elegir las 10 del día.
   SOURCE_PRIORITY: [

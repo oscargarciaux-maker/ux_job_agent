@@ -8,10 +8,14 @@ function searchUxJobs_() {
   if (!apiKey) throw new Error('Falta la propiedad SERPAPI_API_KEY en Propiedades del script.');
 
   const byKey = {};   // Misma vacante en ambas búsquedas -> una sola
-  const queries = pickDailyItems(CONFIG.SEARCH_QUERY_POOL, CONFIG.QUERIES_PER_DAY, new Date());
-  console.log('Búsquedas de hoy: ' + queries.join(' | '));
-  queries.forEach(q => {
-    const params = { engine: 'google_jobs', q: q, location: CONFIG.SEARCH_LOCATION, hl: 'es', gl: 'co', api_key: apiKey };
+  const today = new Date();
+  const queries = [{ q: pickDailyItems(CONFIG.SEARCH_QUERY_POOL, 1, today)[0], remote: false },
+                   { q: pickDailyItems(CONFIG.REMOTE_QUERY_POOL, 1, today)[0], remote: true }];
+  console.log('Búsquedas de hoy: ' + queries.map(x => x.q).join(' | '));
+  queries.forEach(({ q, remote }) => {
+    // Las remotas no se limitan a Colombia: cualquier país, siempre que la vacante diga remoto/LATAM/Colombia
+    const params = remote ? { engine: 'google_jobs', q: q, hl: 'en', api_key: apiKey }
+                          : { engine: 'google_jobs', q: q, location: CONFIG.SEARCH_LOCATION, hl: 'es', gl: 'co', api_key: apiKey };
     const query = Object.keys(params).map(k => k + '=' + encodeURIComponent(params[k])).join('&');
     const response = UrlFetchApp.fetch('https://serpapi.com/search.json?' + query, { muteHttpExceptions: true });
     if (response.getResponseCode() !== 200) {
@@ -21,9 +25,12 @@ function searchUxJobs_() {
     const data = JSON.parse(response.getContentText());
     if (data.error) console.warn('SerpAPI para "' + q + '": ' + data.error);
     const jobs = (data.jobs_results || []).map(parseGoogleJob);
-    const usable = jobs.filter(v => v.link && isRecent(v.postedAt, CONFIG.MAX_POST_AGE_DAYS));
-    console.log('"' + q + '": ' + jobs.length + ' resultados, ' + jobs.filter(v => !v.link).length +
-                ' solo en sitios bloqueados, ' + (jobs.length - usable.length - jobs.filter(v => !v.link).length) + ' viejas');
+    const blocked = jobs.filter(v => !v.link).length;
+    const recent = jobs.filter(v => v.link && isRecent(v.postedAt, CONFIG.MAX_POST_AGE_DAYS));
+    const usable = remote ? recent.filter(isReachableRemoteJob) : recent;
+    console.log('"' + q + '": ' + jobs.length + ' resultados, ' + blocked + ' solo en sitios bloqueados, ' +
+                (jobs.length - blocked - recent.length) + ' viejas' +
+                (remote ? ', ' + (recent.length - usable.length) + ' no accesibles desde Colombia' : ''));
     usable.forEach(v => { byKey[vacancyKey(v)] = byKey[vacancyKey(v)] || v; });
   });
   if (CONFIG.LINKEDIN_POST_ROLE_POOL.length) {
@@ -47,6 +54,13 @@ function searchLinkedInPosts_(apiKey) {
   const kept = posts.filter(v => v.link && isRecent(v.postedAt, CONFIG.MAX_POST_AGE_DAYS) && isReachablePost(v));
   console.log('Publicaciones: ' + posts.length + ' resultados, ' + kept.length + ' de diseño y accesibles desde Colombia');
   return kept;
+}
+
+/** Vacante remota a la que se puede aplicar desde Colombia: su ubicación o descripción dice remoto/LATAM/Colombia. */
+function isReachableRemoteJob(job) {
+  const text = (job.location || '') + ' ' + (job.description || '');
+  if (/\b(us|u\.s\.|usa|united states|uk|europe|eu|india)\s*(only|residents?|based)\b|must (reside|live) in (the )?(us|usa|united states|uk|europe)/i.test(text)) return false;
+  return CONFIG.LINKEDIN_POST_LOCATION_PATTERN.test(text);
 }
 
 function buildLinkedInPostsQuery(roles) {
