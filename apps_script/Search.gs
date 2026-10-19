@@ -123,8 +123,9 @@ function parseGetOnBoardJob(item) {
 /** Rol de diseño UX/UI/producto (no diseño gráfico puro, no otros oficios). */
 function isDesignRole(vacancy) {
   const title = vacancy.title || '';
-  return /ux|ui\b|user experience|experiencia de usuario|product design|dise[nñ]ador(a)? de producto|interaction|interfaz|interfaces|dise[nñ]o de (producto|experiencia|interacci)|dise[nñ]ador(a)? (digital|web)|web designer|visual designer|service design|design system/i.test(title) &&
-    !/copywrit|writer|redactor|\bseo\b|content/i.test(title);  // "Senior SEO & UX Copywriter" no es diseño
+  // \bux\b: "Linux" contiene "ux" (el 2026-10-19 entraron 2 vacantes de infraestructura Linux)
+  return /\bux\b|\bui\b|user experience|experiencia de usuario|product design|dise[nñ]ador(a)? de producto|interaction|interfaz|interfaces|dise[nñ]o de (producto|experiencia|interacci)|dise[nñ]ador(a)? (digital|web)|web designer|visual designer|service design|design system/i.test(title) &&
+    !/copywrit|writer|redactor|\bseo\b|content|developer|desarrollador|programador|engineer|ingenier/i.test(title);  // Ni redacción ni programación
 }
 
 function stripHtml_(html) {
