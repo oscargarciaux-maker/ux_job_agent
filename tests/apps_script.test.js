@@ -94,6 +94,23 @@ context.UrlFetchApp = { fetchAll: reqs => reqs.map(r => ({ getResponseCode: () =
 const vigentes = context.verifyPostingDates_(Object.keys(paginas).map(link => ({ title: link, link: link, postedAt: '' })));
 assert.deepStrictEqual(vigentes.map(v => v.link), ['https://a.co/nueva', 'https://a.co/sinfecha']);
 assert.ok(vigentes[1].dateUnverified && !vigentes[0].dateUnverified);
+// Rotación diaria de búsquedas y publicaciones de LinkedIn
+const qpool = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+const d0 = context.pickDailyItems(qpool, 2, new Date(2026, 9, 19));
+const d1 = context.pickDailyItems(qpool, 2, new Date(2026, 9, 20));
+assert.strictEqual(d0.length, 2);
+assert.notDeepStrictEqual(d0, d1);
+assert.deepStrictEqual(context.pickDailyItems(qpool, 2, new Date(2026, 9, 19, 23)), d0);
+const semana = new Set();
+for (let i = 0; i < 4; i++) context.pickDailyItems(qpool, 2, new Date(2026, 9, 19 + i)).forEach(q => semana.add(q));
+assert.strictEqual(semana.size, 8, 'en 4 días se usan las 8 búsquedas');
+assert.strictEqual(context.linkedInPostDate('https://www.linkedin.com/posts/x_y-activity-7516573783793659905-2WJX'), '2026-10-15');
+assert.strictEqual(context.linkedInPostDate('https://www.linkedin.com/posts/sin-id'), '');
+assert.ok(context.isReachablePost({ description: 'Hiring UI Designer - LATAM remote' }));
+assert.ok(context.isReachablePost({ description: 'Buscamos diseñador UX en Bogotá' }));
+assert.ok(!context.isReachablePost({ description: "We're hiring at Tata Elxsi, Bangalore. Looking for UX designers" }));
+assert.ok(/^site:linkedin\.com\/posts \("product designer"/.test(context.buildLinkedInPostsQuery('"product designer"')));
+assert.strictEqual(links(['https://bebee.com/co/jobs/1']).link, '');
 // Vacantes ya aplicadas: estado por color de carpeta, nombre de carpeta y empresa ya aplicada
 assert.strictEqual(context.colorToStatus('#f83a22'), 'Rechazada');
 assert.strictEqual(context.colorToStatus('#d06b64'), 'Rechazada');
