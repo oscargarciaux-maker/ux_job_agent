@@ -84,6 +84,16 @@ assert.strictEqual(fechas.validThrough, '2026-12-01');
 assert.strictEqual(context.extractJobPostingDates('<html>sin datos</html>').posted, null);
 assert.ok(!context.isRecent('2026-08-24', 14, hoy) && context.isRecent('2026-10-10', 14, hoy));
 assert.ok(context.isExpired('2026-10-17', hoy) && !context.isExpired('2026-10-18', hoy) && !context.isExpired(null, hoy));
+// Verificación por la página original: vieja, vencida, enlace muerto (404) o sin fecha
+const haceDias = n => new Date(Date.now() - n * 86400000).toISOString().slice(0, 10);
+const paginas = {
+  'https://a.co/vieja': [200, '"datePosted":"' + haceDias(60) + '"'], 'https://a.co/nueva': [200, '"datePosted": "' + haceDias(3) + '"'],
+  'https://a.co/muerta': [404, ''], 'https://a.co/sinfecha': [200, '<html></html>'],
+};
+context.UrlFetchApp = { fetchAll: reqs => reqs.map(r => ({ getResponseCode: () => paginas[r.url][0], getContentText: () => paginas[r.url][1] })) };
+const vigentes = context.verifyPostingDates_(Object.keys(paginas).map(link => ({ title: link, link: link, postedAt: '' })));
+assert.deepStrictEqual(vigentes.map(v => v.link), ['https://a.co/nueva', 'https://a.co/sinfecha']);
+assert.ok(vigentes[1].dateUnverified && !vigentes[0].dateUnverified);
 // Fecha sin verificar: solo completa hasta MIN_DAILY (5)
 const conFecha = n => Array.from({ length: n }, (_, i) => ({ vacancy: { title: 'v' + i }, seniority: 'mid', score: 80 }));
 const sinFecha = n => Array.from({ length: n }, (_, i) => ({ vacancy: { title: 'u' + i, dateUnverified: true }, seniority: 'junior', score: 100 }));

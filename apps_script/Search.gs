@@ -97,7 +97,7 @@ function hostOf_(link) {
 /**
  * Para las vacantes sin fecha en Google Jobs, lee la página original (UrlFetchApp, sin créditos de SerpAPI) y toma
  * "datePosted"/"validThrough" de su JobPosting (JSON-LD, el formato que Google Jobs exige a los portales).
- * Devuelve solo las vacantes vigentes; marca dateUnverified en las que no se pudo verificar.
+ * Devuelve solo las vacantes vigentes (descarta las de enlace 404/410); marca dateUnverified en las que no se pudo verificar.
  */
 function verifyPostingDates_(vacancies) {
   const pending = vacancies.filter(v => !v.isPost && !v.postedAt);
@@ -110,6 +110,7 @@ function verifyPostingDates_(vacancies) {
     }
     pending.forEach((v, i) => {
       const r = responses[i];
+      if (r && (r.getResponseCode() === 404 || r.getResponseCode() === 410)) v.deadLink = true;  // La vacante ya no existe
       const dates = r && r.getResponseCode() === 200 ? extractJobPostingDates(r.getContentText()) : {};
       if (dates.posted) v.postedAt = dates.posted;
       if (dates.validThrough) v.validThrough = dates.validThrough;
@@ -118,8 +119,9 @@ function verifyPostingDates_(vacancies) {
   }
   const today = new Date();
   return vacancies.filter(v => {
-    const ok = isRecent(v.postedAt, CONFIG.MAX_POST_AGE_DAYS, today) && !isExpired(v.validThrough, today);
-    if (!ok) console.log('Descartada por antigüedad: ' + v.title + ' @ ' + v.company + ' (publicada ' + v.postedAt + ')');
+    const ok = !v.deadLink && isRecent(v.postedAt, CONFIG.MAX_POST_AGE_DAYS, today) && !isExpired(v.validThrough, today);
+    if (!ok) console.log('Descartada (' + (v.deadLink ? 'enlace ya no existe' : 'antigüedad, publicada ' + v.postedAt) + '): ' +
+                        v.title + ' @ ' + v.company);
     return ok;
   });
 }
