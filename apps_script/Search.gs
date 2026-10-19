@@ -8,7 +8,9 @@ function searchUxJobs_() {
   if (!apiKey) throw new Error('Falta la propiedad SERPAPI_API_KEY en Propiedades del script.');
 
   const byKey = {};   // Misma vacante en ambas búsquedas -> una sola
-  CONFIG.SEARCH_QUERIES.forEach(q => {
+  const queries = pickDailyItems(CONFIG.SEARCH_QUERY_POOL, CONFIG.QUERIES_PER_DAY, new Date());
+  console.log('Búsquedas de hoy: ' + queries.join(' | '));
+  queries.forEach(q => {
     const params = { engine: 'google_jobs', q: q, location: CONFIG.SEARCH_LOCATION, hl: 'es', gl: 'co', api_key: apiKey };
     const query = Object.keys(params).map(k => k + '=' + encodeURIComponent(params[k])).join('&');
     const response = UrlFetchApp.fetch('https://serpapi.com/search.json?' + query, { muteHttpExceptions: true });
@@ -21,22 +23,47 @@ function searchUxJobs_() {
       .filter(v => v.link && isRecent(v.postedAt, CONFIG.MAX_POST_AGE_DAYS))
       .forEach(v => { byKey[vacancyKey(v)] = byKey[vacancyKey(v)] || v; });
   });
-  if (CONFIG.LINKEDIN_POSTS_QUERY) {
+  if (CONFIG.LINKEDIN_POST_ROLE_POOL.length) {
     searchLinkedInPosts_(apiKey).forEach(v => { byKey[v.link] = byKey[v.link] || v; });
   }
   return Object.keys(byKey).map(k => byKey[k]);
 }
 
-/** Posts de reclutadores en LinkedIn (últimas 2 semanas) vía Google Dorking. */
+/** Posts de reclutadores en LinkedIn (últimas 2 semanas) vía Google Dorking, con el rol del día. */
 function searchLinkedInPosts_(apiKey) {
-  const params = { engine: 'google', q: CONFIG.LINKEDIN_POSTS_QUERY, tbs: 'qdr:w2', hl: 'es', gl: 'co', num: 20, api_key: apiKey };
+  const q = buildLinkedInPostsQuery(pickDailyItems(CONFIG.LINKEDIN_POST_ROLE_POOL, 1, new Date())[0]);
+  console.log('Publicaciones de LinkedIn de hoy: ' + q);
+  const params = { engine: 'google', q: q, tbs: 'qdr:w2', hl: 'es', gl: 'co', num: 20, api_key: apiKey };
   const query = Object.keys(params).map(k => k + '=' + encodeURIComponent(params[k])).join('&');
   const response = UrlFetchApp.fetch('https://serpapi.com/search.json?' + query, { muteHttpExceptions: true });
   if (response.getResponseCode() !== 200) {
     console.warn('SerpAPI respondió ' + response.getResponseCode() + ' para publicaciones de LinkedIn.');
     return [];
   }
-  return (JSON.parse(response.getContentText()).organic_results || []).map(parseLinkedInPost).filter(v => v.link);
+  return (JSON.parse(response.getContentText()).organic_results || []).map(parseLinkedInPost)
+    .filter(v => v.link && isRecent(v.postedAt, CONFIG.MAX_POST_AGE_DAYS) && isReachablePost(v));
+}
+
+function buildLinkedInPostsQuery(roles) {
+  return 'site:linkedin.com/posts (' + roles + ') ' + CONFIG.LINKEDIN_POST_HIRING_TERMS + ' ' + CONFIG.LINKEDIN_POST_LOCATION_TERMS;
+}
+
+/** Solo publicaciones a las que se puede aplicar desde Colombia: mencionan Colombia, LATAM o trabajo remoto. */
+function isReachablePost(post) {
+  return CONFIG.LINKEDIN_POST_LOCATION_PATTERN.test(post.description || '');
+}
+
+/** n elementos consecutivos del pool que cambian cada día (mismo día = mismas búsquedas; rota sin repetir). */
+function pickDailyItems(pool, n, date) {
+  const day = Math.floor(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 86400000);
+  const start = (day * n) % pool.length;
+  return Array.from({ length: Math.min(n, pool.length) }, (_, i) => pool[(start + i) % pool.length]);
+}
+
+/** Fecha (YYYY-MM-DD) de una publicación de LinkedIn: el id de "activity-<id>" lleva los milisegundos en sus bits altos. */
+function linkedInPostDate(link) {
+  const m = String(link || '').match(/activity[-:](\d{19})/);
+  return m ? new Date(Math.floor(Number(m[1]) / 4194304)).toISOString().slice(0, 10) : '';
 }
 
 /** "Ana Gómez en LinkedIn: Buscamos diseñador UX..." -> vacante tipo publicación. */
@@ -51,7 +78,7 @@ function parseLinkedInPost(item) {
     description: [rawTitle, item.snippet || ''].join('\n'),
     snippet: '',
     link: item.link || '',
-    postedAt: item.date || '',
+    postedAt: linkedInPostDate(item.link) || item.date || '',
     source: 'Publicación LinkedIn (solo fragmento visible)',
     isPost: true,   // Sin texto completo: proceso manual del usuario, no pasa por la IA
   };

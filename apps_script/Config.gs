@@ -6,8 +6,15 @@
 const CONFIG = {
   DAILY_LIMIT: 10,
   MIN_JUNIOR: 5,             // Al menos 5 de las 10 vacantes diarias serán Junior (si existen)
-  // 1 crédito de SerpAPI por búsqueda. La 2.ª prioriza fintech; la 1.ª cubre cualquier sector.
-  SEARCH_QUERIES: ['diseñador ux ui junior', 'diseñador ux ui fintech'],
+  // Rotación diaria (decisión del usuario 2026-10-19): cada día se usan QUERIES_PER_DAY búsquedas consecutivas del
+  // pool (1 crédito de SerpAPI cada una), así Google Jobs devuelve vacantes distintas. Van en pares: perfil + sector.
+  SEARCH_QUERY_POOL: [
+    'diseñador ux ui junior', 'diseñador ux ui fintech',
+    'product designer junior', 'diseñador ux banca seguros',
+    'diseñador ui junior', 'ux researcher',
+    'diseñador de producto digital', 'ux designer remoto',
+  ],
+  QUERIES_PER_DAY: 2,
   // Orden de preferencia del enlace de cada vacante (Google Jobs lista todos los sitios donde está publicada).
   // Cualquier otro sitio (portal de la empresa u otro) va después. Más alto = más prioridad al elegir las 10 del día.
   SOURCE_PRIORITY: [
@@ -16,15 +23,25 @@ const CONFIG = {
     { name: 'Computrabajo', pattern: /computrabajo\./i, bonus: 3 },
   ],
   // Agregadores que llevan a páginas de pago: nunca se usa su enlace. Si una vacante solo está en ellos, se descarta.
-  BLOCKED_SOURCES: /trabajo\.org|jooble\.|jobleads\./i,
+  BLOCKED_SOURCES: /trabajo\.org|jooble\.|jobleads\.|bebee\./i,
   // Sector preferido (no excluyente): suma puntos al elegir las 10 del día.
   FINTECH_PATTERN: /fintech|banc[oa]|bancari|financier|pagos|payments|cr[eé]dito|neobanco|seguros|insurtech|wallet|billetera|nequi|daviplata|nubank|rappipay/i,
   FINTECH_BONUS: 10,
   SEARCH_LOCATION: 'Colombia',
   // Publicaciones de reclutadores en LinkedIn (contratan sin publicar vacante formal). 1 crédito más por día.
   // Solo trae el fragmento visible del post (LinkedIn no permite leer el post completo sin sesión).
-  LINKEDIN_POSTS_QUERY: 'site:linkedin.com/posts ("diseñador ux" OR "diseñador ui" OR "ux/ui" OR "ux designer" OR "product designer") ' +
-                        '("estamos contratando" OR "buscamos" OR "vacante" OR "hiring" OR "estamos buscando")',
+  // El rol rota a diario (LINKEDIN_POST_ROLE_POOL); solo se aceptan publicaciones accesibles desde Colombia
+  // (Colombia, LATAM o remoto: LINKEDIN_POST_LOCATION_PATTERN).
+  LINKEDIN_POST_ROLE_POOL: [
+    '"diseñador ux" OR "diseñador ui" OR "ux/ui"',
+    '"product designer" OR "diseñador de producto"',
+    '"ux designer" OR "ui designer" OR "ux/ui designer"',
+    '"junior ux" OR "ux junior" OR "junior product designer"',
+    '"ux researcher" OR "investigador ux" OR "design system"',
+  ],
+  LINKEDIN_POST_HIRING_TERMS: '("hiring" OR "contratando" OR "buscamos" OR "vacante" OR "estamos buscando")',
+  LINKEDIN_POST_LOCATION_TERMS: '("remoto" OR "remote" OR "LATAM" OR "Colombia")',
+  LINKEDIN_POST_LOCATION_PATTERN: /remot|remote|latam|latinoam|am[eé]rica latina|colombia|bogot|medell|anywhere|work from home|home office/i,
   MAX_POST_AGE_DAYS: 14,
   // Si Google Jobs no trae la fecha, se lee "datePosted" de la página original (gratis, sin SerpAPI). Las que siguen
   // sin fecha solo entran (marcadas "SIN VERIFICAR") si con las verificadas no se llega a MIN_DAILY.
