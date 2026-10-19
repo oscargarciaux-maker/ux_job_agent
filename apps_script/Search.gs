@@ -18,10 +18,11 @@ function searchUxJobs_() {
       console.warn('SerpAPI respondió ' + response.getResponseCode() + ' para "' + q + '": ' + response.getContentText().slice(0, 200));
       return;
     }
-    (JSON.parse(response.getContentText()).jobs_results || [])
-      .map(parseGoogleJob)
-      .filter(v => v.link && isRecent(v.postedAt, CONFIG.MAX_POST_AGE_DAYS))
-      .forEach(v => { byKey[vacancyKey(v)] = byKey[vacancyKey(v)] || v; });
+    const jobs = (JSON.parse(response.getContentText()).jobs_results || []).map(parseGoogleJob);
+    const usable = jobs.filter(v => v.link && isRecent(v.postedAt, CONFIG.MAX_POST_AGE_DAYS));
+    console.log('"' + q + '": ' + jobs.length + ' resultados, ' + jobs.filter(v => !v.link).length +
+                ' solo en sitios bloqueados, ' + (jobs.length - usable.length - jobs.filter(v => !v.link).length) + ' viejas');
+    usable.forEach(v => { byKey[vacancyKey(v)] = byKey[vacancyKey(v)] || v; });
   });
   if (CONFIG.LINKEDIN_POST_ROLE_POOL.length) {
     searchLinkedInPosts_(apiKey).forEach(v => { byKey[v.link] = byKey[v.link] || v; });
@@ -40,17 +41,20 @@ function searchLinkedInPosts_(apiKey) {
     console.warn('SerpAPI respondió ' + response.getResponseCode() + ' para publicaciones de LinkedIn.');
     return [];
   }
-  return (JSON.parse(response.getContentText()).organic_results || []).map(parseLinkedInPost)
-    .filter(v => v.link && isRecent(v.postedAt, CONFIG.MAX_POST_AGE_DAYS) && isReachablePost(v));
+  const posts = (JSON.parse(response.getContentText()).organic_results || []).map(parseLinkedInPost);
+  const kept = posts.filter(v => v.link && isRecent(v.postedAt, CONFIG.MAX_POST_AGE_DAYS) && isReachablePost(v));
+  console.log('Publicaciones: ' + posts.length + ' resultados, ' + kept.length + ' de diseño y accesibles desde Colombia');
+  return kept;
 }
 
 function buildLinkedInPostsQuery(roles) {
   return 'site:linkedin.com/posts (' + roles + ') ' + CONFIG.LINKEDIN_POST_HIRING_TERMS + ' ' + CONFIG.LINKEDIN_POST_LOCATION_TERMS;
 }
 
-/** Solo publicaciones a las que se puede aplicar desde Colombia: mencionan Colombia, LATAM o trabajo remoto. */
+/** Solo publicaciones a las que se puede aplicar desde Colombia (Colombia, LATAM o remoto) y de un rol de diseño. */
 function isReachablePost(post) {
-  return CONFIG.LINKEDIN_POST_LOCATION_PATTERN.test(post.description || '');
+  const text = post.description || '';
+  return CONFIG.LINKEDIN_POST_LOCATION_PATTERN.test(text) && CONFIG.LINKEDIN_POST_ROLE_PATTERN.test(text);
 }
 
 /** n elementos consecutivos del pool que cambian cada día (mismo día = mismas búsquedas; rota sin repetir). */
