@@ -123,8 +123,9 @@ function selectDailyVacancies(scored, limit, minJunior) {
 function selectWithDateRule(scored, limit, minJunior, minDaily) {
   const picked = selectDailyVacancies(scored.filter(x => !x.vacancy.dateUnverified), limit, minJunior);
   const rank = x => (x.priority !== undefined ? x.priority : x.score);
+  let formal = picked.filter(x => !x.vacancy.isPost).length;  // Las publicaciones (manuales) no cuentan para el mínimo
   scored.filter(x => x.vacancy.dateUnverified).sort((a, b) => rank(b) - rank(a))
-    .forEach(x => { if (picked.length < minDaily) picked.push(x); });
+    .forEach(x => { if (formal < minDaily && picked.length < limit) { picked.push(x); formal++; } });
   return picked;
 }
 
