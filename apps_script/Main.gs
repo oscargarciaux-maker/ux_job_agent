@@ -63,7 +63,11 @@ function runPipeline_(opts) {
     } catch (e) {
       console.warn('No se pudo leer la hoja ' + CONFIG.APPLIED_SHEET_NAME + ': ' + e.message);
     }
-    fresh = raw.filter(v => v.link && !existing[v.link] && !existing[vacancyKey(v)] && !isAppliedCompany(v.company, applied));
+    const known = raw.filter(v => existing[v.link] || existing[vacancyKey(v)]);
+    const appliedHits = raw.filter(v => !known.includes(v) && isAppliedCompany(v.company, applied));
+    fresh = raw.filter(v => v.link && !known.includes(v) && !appliedHits.includes(v));
+    console.log('   Ya registradas: ' + known.length + '; de empresas donde ya aplicaste: ' + appliedHits.length +
+                (appliedHits.length ? ' (' + appliedHits.map(v => v.company).join(', ') + ')' : ''));
   }
   if (!opts.useSample) fresh = verifyPostingDates_(fresh);
   console.log('2. Vacantes nuevas y con <= ' + CONFIG.MAX_POST_AGE_DAYS + ' días: ' + fresh.length +

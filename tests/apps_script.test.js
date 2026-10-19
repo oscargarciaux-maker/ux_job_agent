@@ -127,6 +127,8 @@ assert.strictEqual(context.exclusionReason({ title: 'Diseñador Web', descriptio
 assert.strictEqual(context.exclusionReason({ title: 'UX', description: 'blah #J-18808-Ljbffr' }), 'copia de JobLeads');
 assert.strictEqual(context.exclusionReason({ title: 'UI/UX Designer', description: '12-month contract, 100% remote' }), null);
 assert.strictEqual(context.exclusionReason({ title: 'UX Designer', description: 'Experiencia freelance o en agencia es un plus' }), null);
+assert.strictEqual(context.exclusionReason({ title: 'UX Designer', description: 'Contrato indefinido. Trabajarás por proyectos con el equipo de producto' }), null);
+assert.strictEqual(context.exclusionReason({ title: 'UI Designer', description: 'Contratación por proyecto, 3 meses' }), 'por proyecto / freelance');
 assert.strictEqual(context.exclusionReason({ title: 'Diseñador Web UI/UX — Remoto (Freelance)', description: '' }), 'por proyecto / freelance');
 assert.strictEqual(links(['https://www.upwork.com/freelance-jobs/apply/x']).link, '');
 assert.strictEqual(context.requiredYears({ description: '6+ years of UI/UX or web design experience' }), 6);
@@ -153,6 +155,9 @@ assert.strictEqual(gob.company, 'Acme');
 assert.ok(/Remote LATAM Colombia/.test(gob.location) && /^\d{4}-\d{2}-\d{2}$/.test(gob.postedAt));
 assert.ok(context.isDesignRole({ title: 'Diseñador UX/UI' }) && !context.isDesignRole({ title: 'Graphic Designer' }));
 assert.ok(!context.isDesignRole({ title: 'Senior SEO & UX Copywriter' }) && !context.isDesignRole({ title: 'UX Writer' }));
+assert.ok(context.isDesignRole({ title: 'Diseñador Digital' }) && context.isDesignRole({ title: 'Visual Designer' }));
+const loc = run('CONFIG.REACHABLE_REMOTE_LOCATION');
+assert.ok(loc.test('Americas') && loc.test('UTC-5') && loc.test('GMT -3') && !loc.test('North America') && !loc.test('USA') && !loc.test('UTC+8'));
 // Vacantes ya aplicadas: estado por color de carpeta, nombre de carpeta y empresa ya aplicada
 assert.strictEqual(context.colorToStatus('#f83a22'), 'Rechazada');
 assert.strictEqual(context.colorToStatus('#d06b64'), 'Rechazada');
@@ -177,6 +182,9 @@ const relleno = context.selectWithDateRule(conFecha(2).concat(sinFecha(6)), 10, 
 assert.strictEqual(relleno.length, 5);
 assert.strictEqual(relleno.filter(x => x.vacancy.dateUnverified).length, 3);
 assert.strictEqual(context.selectWithDateRule(sinFecha(2), 10, 5, 5).length, 2);
+// Las publicaciones no cuentan para el mínimo de 5: no desplazan a las formales sin fecha verificada
+const posts = n => Array.from({ length: n }, (_, i) => ({ vacancy: { title: 'p' + i, isPost: true }, seniority: 'mid', score: 80 }));
+assert.strictEqual(context.selectWithDateRule(posts(8).concat(conFecha(1), sinFecha(6)), 15, 5, 5).filter(x => x.vacancy.dateUnverified).length, 4);
 // Nombre del archivo del CV (guía Adaptia: HV_Nombre_Apellido_Cargo)
 assert.strictEqual(context.buildCvFileName({ _nombre_archivo: 'HV_Ana_Pérez_Diseñador(a) UX/UI' }, {}, 'x'), 'HV_Ana_Pérez_Diseñador(a)_UX_UI');
 assert.strictEqual(context.buildCvFileName({}, { title: 'UX Designer' }, 'x'), 'HV_UX_Designer');

@@ -33,7 +33,7 @@ const CONFIG = {
     { reason: 'copia de JobLeads', pattern: /J-18808-Ljbffr/ },
     { reason: 'pasantía no remunerada', pattern: /unpaid|no remunerad|sin remuneraci|ad[- ]honorem/i },
     { reason: 'por proyecto / freelance',
-      pattern: /modalidad freelance|freelance (role|position|contract|basis|job)|contrato por proyecto|pago por proyecto|por proyecto|project[- ]based|per project|\(freelance\)|- freelance\b/i },
+      pattern: /modalidad freelance|freelance (role|position|contract|basis|job)|(contrato|contrataci[oó]n|pago|vinculaci[oó]n|modalidad) por proyecto|project[- ]based (contract|role|position|work)|paid per project|per project basis|\(freelance\)|- freelance\b/i },
   ],
   // Piden 5 o más años: no se descartan, pero bajan de prioridad. Con menos de 5 años cuenta como mid aunque diga Senior.
   EXPERIENCE_YEARS_LIMIT: 5,
@@ -47,7 +47,7 @@ const CONFIG = {
                 queries: ['ux', 'ui', 'product designer', 'diseñador', 'figma', 'experiencia de usuario', 'diseño de producto'] },
   },
   // Ubicaciones de vacantes remotas a las que se puede aplicar desde Colombia
-  REACHABLE_REMOTE_LOCATION: /worldwide|anywhere|latam|latin|am[eé]rica|south america|colombia|global|international/i,
+  REACHABLE_REMOTE_LOCATION: /worldwide|anywhere|latam|latin|(?<!north )am[eé]ricas?\b|south america|colombia|global|international|(utc|gmt)\s*[-−]\s*0?[3-6]\b/i,
   // Sector preferido (no excluyente): suma puntos al elegir las 10 del día.
   FINTECH_PATTERN: /fintech|banc[oa]|bancari|financier|pagos|payments|cr[eé]dito|neobanco|seguros|insurtech|wallet|billetera|nequi|daviplata|nubank|rappipay/i,
   FINTECH_BONUS: 10,
