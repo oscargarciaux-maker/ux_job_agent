@@ -144,19 +144,36 @@ function validateCvJson(cv, contextText, placeholders) {
     if (/EMPRESA|COMPANY/.test(key) && contextLower.indexOf(value.trim().toLowerCase()) === -1) {
       errors.push(key + ': la empresa "' + value.trim() + '" no está en ' + CONFIG.CONTEXT_DOC_NAME);
     }
+    const forbidden = forbiddenCvWords(value);
+    if (forbidden.length) errors.push(key + ': palabra prohibida en la HV (' + forbidden.join(', ') + ')');
   });
+  // Guía 2026-10-22: el perfil es un párrafo en prosa, sin construcciones "X: Y"
+  if (/:/.test(String(cv.PERFIL_PERSONALIZADO || ''))) errors.push('PERFIL_PERSONALIZADO: va en prosa, sin dos puntos');
   return { errors: errors.filter((e, i, all) => all.indexOf(e) === i), warnings: warnings };
 }
 
+/** Palabras prohibidas en la HV (aprendiz, voluntario, practicante, junior, intern, volunteer, DIN'T), sin repetir. */
+function forbiddenCvWords(text) {
+  return (String(text || '').match(CONFIG.CV_FORBIDDEN_WORDS) || []).map(w => w.toLowerCase())
+    .filter((w, i, all) => all.indexOf(w) === i);
+}
+
 /**
- * Nombre del CV: HV_Nombre_Apellido_Cargo (guía Adaptia). La IA lo propone en _nombre_archivo con el cargo tal como
- * lo pide la vacante; si falta o no empieza por HV_, se usa HV_ + cargo de la vacante (o el nombre de la carpeta).
+ * Nombre del CV: HV_Oscar_Garcia_<Cargo> (guía 2026-10-22). La IA lo propone en _nombre_archivo; si falta o no empieza
+ * por HV_, se usa HV_ + cargo de la vacante. Nunca lleva el nombre de la empresa, palabras prohibidas (junior, etc.)
+ * ni sufijos como "(3)" (arruinan el adjunto); si el cargo queda vacío se usa CONFIG.CV_DEFAULT_ROLE.
  */
 function buildCvFileName(cv, vacancy, label) {
-  const clean = t => String(t || '').normalize('NFC').replace(/[\\/:*?"<>|#%]+/g, ' ').trim().replace(/\s+/g, '_');
-  const proposed = clean(cv._nombre_archivo);
+  const clean = t => String(t || '').normalize('NFC').replace(/\(\d+\)/g, ' ').replace(CONFIG.CV_FORBIDDEN_WORDS, ' ')
+    .replace(/[\\/:*?"<>|#%]+/g, ' ').trim().replace(/[\s_]+/g, '_').replace(/^_+|_+$/g, '');
+  const company = String((vacancy && vacancy.company) || '').trim();
+  const withoutCompany = t => company.length >= 3
+    ? String(t || '').replace(new RegExp('[\\s_-]*' + escapeRegex_(company).replace(/\s+/g, '[\\s_]+') + '[\\s_-]*', 'gi'), ' ')
+    : String(t || '');
+  const proposed = clean(withoutCompany(cv._nombre_archivo));
   if (proposed.indexOf(CONFIG.CV_FILE_PREFIX) === 0 && proposed.length > CONFIG.CV_FILE_PREFIX.length) return proposed;
-  return CONFIG.CV_FILE_PREFIX + clean((vacancy && vacancy.title) || label);
+  const role = clean(withoutCompany((vacancy && vacancy.title) || label)) || clean(CONFIG.CV_DEFAULT_ROLE);
+  return CONFIG.CV_FILE_PREFIX + role;
 }
 
 /** Un párrafo se elimina si todos sus marcadores quedan vacíos (p. ej. una 4.ª experiencia que no aplica). */

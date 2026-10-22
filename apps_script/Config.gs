@@ -34,7 +34,15 @@ const CONFIG = {
     { reason: 'pasantía no remunerada', pattern: /unpaid|no remunerad|sin remuneraci|ad[- ]honorem/i },
     { reason: 'por proyecto / freelance',
       pattern: /modalidad freelance|freelance (role|position|contract|basis|job)|(contrato|contrataci[oó]n|pago|vinculaci[oó]n|modalidad) por proyecto|project[- ]based (contract|role|position|work)|paid per project|per project basis|\(freelance\)|- freelance\b/i },
+    // Guía de búsqueda (2026-10-22): el inglés del usuario es intermedio; no le aplican vacantes exclusivas para
+    // personas con discapacidad (no se descartan las que solo invitan a postularse en su declaración de igualdad).
+    { reason: 'exige inglés avanzado/fluido',
+      pattern: /\b(ingl[eé]s|english)\s*[:\-–(]?\s*(nivel\s+|level\s+)?(avanzado|fluid[oa]|nativo|c1|c2|advanced|fluent|native|proficient)\b|\bnivel\s+(de\s+)?ingl[eé]s\s*[:\-]?\s*(avanzado|fluido|nativo|alto|c1|c2)\b|\bingl[eé]s\s+(a\s+)?nivel\s+(avanzado|fluido|nativo|alto)\b|\b(advanced|fluent|native|proficient)\s+(level\s+(of\s+)?)?(in\s+)?english\b|\benglish\s+(fluency|proficiency)\b|\b(fluency|proficiency)\s+in\s+english\b|\bbiling[uü]e\b|\bbilingual\b/i },
+    { reason: 'exclusiva para personas con discapacidad',
+      pattern: /(exclusiv[oa]|dirigid[oa]|solo|[uú]nicamente)\s+(para|a)\s+personas\s+con\s+discapacidad|vacante\s+(para|de)\s+personas\s+con\s+discapacidad|certificado\s+de\s+discapacidad|exclusively\s+for\s+(people|persons|candidates)\s+with\s+disabilit/i },
   ],
+  // Texto de la página original que indica que la vacante ya no recibe postulaciones (se lee gratis con UrlFetchApp)
+  CLOSED_POSTING_PATTERN: /no longer accepting applications|this job (is no longer available|has expired)|job (has been )?closed|ya no (acepta|recibe) (solicitudes|postulaciones|aplicaciones)|(oferta|vacante) (cerrada|caducada|finalizada|vencida)|esta oferta (ha caducado|ya no est[aá] disponible)|proceso (de selecci[oó]n )?cerrado/i,
   EXCLUDED_TITLE_PATTERN: /\b(staff|principal|head|director|directora|vp|manager|gerente)\b/i,
   // Piden 5 o más años: no se descartan, pero bajan de prioridad. Con menos de 5 años cuenta como mid aunque diga Senior.
   EXPERIENCE_YEARS_LIMIT: 5,
@@ -92,6 +100,10 @@ const CONFIG = {
   // Vacantes ya aplicadas por el usuario (carpetas coloreadas: rojo rechazada, verde en proceso, amarillo sin respuesta)
   APPLIED_FOLDER_NAME: 'CV',
   APPLIED_SHEET_NAME: 'Aplicadas',
+  COLD_EMAIL_SHEET_NAME: 'Correos en frío',   // Empresas ya contactadas (columna A): no se proponen de nuevo
+  // Palabras que nunca van en una HV ni en su nombre de archivo (guía 2026-10-22). Ojo: "internacional" no cuenta.
+  CV_FORBIDDEN_WORDS: /\b(aprendiz\w*|voluntari\w*|practicante\w*|junior|jr|interns?|internships?|volunteer\w*|din'?t)\b/gi,
+  CV_DEFAULT_ROLE: 'Product Designer',  // Cargo del nombre de archivo si la vacante no deja uno usable
   APPLIED_SHEET_HEADERS: ['Grupo (carpeta)', 'Empresa', 'Cargo', 'Estado', 'Color', 'Carpeta', 'Creada'],
 };
 

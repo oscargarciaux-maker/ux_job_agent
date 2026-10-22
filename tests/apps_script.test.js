@@ -242,6 +242,29 @@ const detalle = context.parseVacancyDetail(['Diseñador UX/UI Junior', 'Empresa:
 assert.deepStrictEqual(JSON.parse(JSON.stringify(detalle)),
   { title: 'Diseñador UX/UI Junior', company: 'Acme', link: 'https://x.co/1', email: null, language: 'en' });
 
+// Guía de búsqueda y HV (2026-10-22): filtros nuevos, avisos cerrados y reglas de la HV
+const ex = d => context.exclusionReason({ title: 'UX Designer', description: d });
+assert.strictEqual(ex('Inglés intermedio y Figma avanzado'), null);
+assert.strictEqual(ex('English: B2'), null);
+assert.strictEqual(ex('Requisito: inglés avanzado (C1)'), 'exige inglés avanzado/fluido');
+assert.strictEqual(ex('Fluent English required'), 'exige inglés avanzado/fluido');
+assert.strictEqual(ex('Bilingual (Spanish/English)'), 'exige inglés avanzado/fluido');
+assert.strictEqual(ex('We encourage people with disabilities to apply'), null);
+assert.strictEqual(ex('Vacante exclusiva para personas con discapacidad'), 'exclusiva para personas con discapacidad');
+assert.ok(context.isClosedPosting('<span>No longer accepting applications</span>'));
+assert.ok(context.isClosedPosting('Esta oferta ha caducado'));
+assert.ok(!context.isClosedPosting('Apply now'));
+assert.strictEqual(context.forbiddenCvWords('Aprendiz Universitario (Voluntariado), experiencia internacional').join(','), 'aprendiz,voluntariado');
+assert.strictEqual(context.forbiddenCvWords('Product Designer UX/UI (Fintech)').length, 0);
+assert.strictEqual(context.buildCvFileName({ _nombre_archivo: 'HV_Oscar_Garcia_Diseñador UX/UI Junior (3)' }, { company: 'Acme Bank' }, ''),
+  'HV_Oscar_Garcia_Diseñador_UX_UI');
+assert.strictEqual(context.buildCvFileName({ _nombre_archivo: 'HV_Oscar_Garcia_Product_Designer_Acme_Bank' }, { company: 'Acme Bank' }, ''),
+  'HV_Oscar_Garcia_Product_Designer');
+assert.strictEqual(context.buildCvFileName({}, { company: 'Acme', title: 'Junior' }, ''), 'HV_Product_Designer');
+const cvGuia = Object.assign({}, cvOk, { CARGO_EXP_1: 'Aprendiz Universitario', PERFIL_PERSONALIZADO: 'Enfoque: diseño' });
+const erroresGuia = context.validateCvJson(cvGuia, contexto, marcadores).errors.join('\n');
+assert.ok(/CARGO_EXP_1: palabra prohibida/.test(erroresGuia) && /sin dos puntos/.test(erroresGuia), erroresGuia);
+
 // HITL: ninguna llamada de envío de correo en el código
 const allCode = fs.readdirSync(dir).map(f => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n');
 assert.ok(!/\.send\(|Messages\.send|sendEmail|GmailApp/.test(allCode), 'El agente no debe poder enviar correos');
