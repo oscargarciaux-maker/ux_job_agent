@@ -92,6 +92,7 @@ function runPipeline_(opts) {
   // Primero las vacantes formales (pasan a la IA), luego las publicaciones (proceso manual)
   selected.sort((a, b) => (a.vacancy.isPost ? 1 : 0) - (b.vacancy.isPost ? 1 : 0));
   const startedAt = Date.now();
+  const folderNames = vacancyFolderNames(selected.map(x => x.vacancy));
   selected.some((item, i) => {
     if (Date.now() - startedAt > CONFIG.TIME_BUDGET_MS) {
       console.warn('Se acaba el tiempo de Apps Script: quedan ' + (selected.length - i) +
@@ -110,7 +111,7 @@ function runPipeline_(opts) {
     }
 
     try {
-      const folder = setupVacancyFolder_(v);
+      const folder = setupVacancyFolder_(v, folderNames[i]);
       if (v.isPost) {
         createPostLinkDoc_(folder, v);
         setFolderColor_(folder, CONFIG.MANUAL_FOLDER_COLOR);

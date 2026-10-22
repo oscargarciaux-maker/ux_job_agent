@@ -25,7 +25,7 @@ function appendVacancyRow_(sheet, vacancy, score, status) {
   sheet.appendRow([today, vacancy.company || 'N/D', vacancy.title, vacancy.link, score, status]);
 }
 
-// ---------- Google Drive (/Vacantes con IA/YYYY-MM-DD/[Empresa]_[Cargo]) ----------
+// ---------- Google Drive (/Vacantes con IA/YYYY-MM-DD/[Empresa] o [Empresa]_[detalle del cargo]) ----------
 
 function tz_() {
   return Session.getScriptTimeZone() || 'America/Bogota';
@@ -36,12 +36,61 @@ function getOrCreateSubfolder_(parent, name) {
   return existing.hasNext() ? existing.next() : parent.createFolder(name);
 }
 
-function setupVacancyFolder_(vacancy) {
+/**
+ * Carpeta de la vacante dentro de la fecha de hoy. `name` viene de vacancyFolderNames (solo la empresa, o empresa +
+ * detalle del cargo si ese día hay dos vacantes de la misma empresa). Si ya existe (otra corrida del mismo día),
+ * se le agrega el detalle del cargo y, si aún choca, un número.
+ */
+function setupVacancyFolder_(vacancy, name) {
   const root = DriveApp.getFolderById(getProp_(PROPS.ROOT_FOLDER_ID));
   const today = Utilities.formatDate(new Date(), tz_(), 'yyyy-MM-dd');
   const dateFolder = getOrCreateSubfolder_(root, today);
-  const name = ((vacancy.company || 'Empresa') + '_' + (vacancy.title || 'Vacante')).replace(/\//g, '_');
-  return dateFolder.createFolder(name);
+  const taken = n => dateFolder.getFoldersByName(n).hasNext();
+  let finalName = name || vacancyFolderNames([vacancy])[0];
+  if (taken(finalName) && finalName.indexOf('_') === -1) {
+    finalName = finalName + '_' + shortRoleDetail(vacancy.title, vacancy.company);
+  }
+  for (let i = 2; taken(finalName); i++) finalName = finalName.replace(/ \d+$/, '') + ' ' + i;
+  return dateFolder.createFolder(finalName);
+}
+
+// ---------- Lógica pura de nombres de carpeta (probada en tests/apps_script.test.js) ----------
+
+function cleanFolderText_(text) {
+  return String(text || '').replace(/\//g, '-').replace(/[\\:*?"<>|#%_]+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Detalle corto del cargo para distinguir dos vacantes de la misma empresa (decisión del usuario 2026-10-22):
+ * sin la empresa, el nivel (junior/senior...), la modalidad ni la ubicación; máximo 4 palabras.
+ */
+function shortRoleDetail(title, company) {
+  const strip = part => {
+    let t = part.replace(/\(.*?\)|\(.*$/g, ' ');
+    if (company && String(company).trim().length >= 3) t = t.replace(new RegExp(escapeRegex_(String(company).trim()), 'gi'), ' ');
+    t = t.replace(/\b(junior|jr|semi[- ]?senior|ssr|senior|sr|mid|remoto|remote|h[ií]brido|hybrid|latam)\b\.?/gi, ' ');
+    return cleanFolderText_(t).split(' ').filter(Boolean).slice(0, 4).join(' ');
+  };
+  return String(title || '').split(/\s+[-–|]\s+/).map(strip).filter(Boolean)[0] || 'Vacante';
+}
+
+/**
+ * Nombres de carpeta del día (uno por vacante): solo el nombre de la empresa; si la misma empresa tiene varias
+ * vacantes ese día, "Empresa_<detalle del cargo>" en cada una (y un número si aun así coinciden).
+ */
+function vacancyFolderNames(vacancies) {
+  const company = v => cleanFolderText_(v.company) || 'Empresa';
+  const key = v => company(v).toLowerCase();
+  const count = {};
+  vacancies.forEach(v => { count[key(v)] = (count[key(v)] || 0) + 1; });
+  const used = {};
+  return vacancies.map(v => {
+    let name = count[key(v)] > 1 ? company(v) + '_' + shortRoleDetail(v.title, v.company) : company(v);
+    const base = name;
+    for (let i = 2; used[name.toLowerCase()]; i++) name = base + ' ' + i;
+    used[name.toLowerCase()] = true;
+    return name;
+  });
 }
 
 /** Guarda la vacante completa: es la entrada del paso de IA (análisis de keywords según GUIA_CV). */

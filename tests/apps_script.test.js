@@ -278,6 +278,16 @@ const cvGuia = Object.assign({}, cvOk, { CARGO_EXP_1: 'Aprendiz Universitario', 
 const erroresGuia = context.validateCvJson(cvGuia, contexto, marcadores).errors.join('\n');
 assert.ok(/CARGO_EXP_1: palabra prohibida/.test(erroresGuia) && /sin dos puntos/.test(erroresGuia), erroresGuia);
 
+// Carpetas: solo la empresa; con el detalle del cargo si ese día hay dos vacantes de la misma empresa
+assert.strictEqual(context.shortRoleDetail('Product Designer Senior - Remoto LATAM', 'Acme'), 'Product Designer');
+assert.strictEqual(context.shortRoleDetail('Acme | UX/UI Designer Junior (Bogotá)', 'Acme'), 'UX-UI Designer');
+assert.strictEqual(context.shortRoleDetail('Acme', 'Acme'), 'Vacante');
+assert.strictEqual(context.shortRoleDetail('UX/UI Designer Junior (Bogotá)', 'Acme'), 'UX-UI Designer');
+assert.strictEqual(context.vacancyFolderNames([
+  { company: 'Acme', title: 'Product Designer' }, { company: 'Globex', title: 'UX Designer' },
+  { company: 'acme', title: 'Product Owner' }, { company: 'Acme', title: 'Product Designer Sr' },
+]).join(' | '), 'Acme_Product Designer | Globex | acme_Product Owner | Acme_Product Designer 2');
+
 // HITL: ninguna llamada de envío de correo en el código
 const allCode = fs.readdirSync(dir).map(f => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n');
 assert.ok(!/\.send\(|Messages\.send|sendEmail|GmailApp/.test(allCode), 'El agente no debe poder enviar correos');

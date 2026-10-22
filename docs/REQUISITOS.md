@@ -44,6 +44,7 @@ Estados: ✅ hecho y probado · 🟡 parcial · ⏳ pendiente · ❓ falta una d
 | Regla | Estado | Dónde / cómo se comprueba |
 |---|---|---|
 | Carpeta por vacante con el texto del aviso y el enlace | ✅ | `setupVacancyFolder_`, `createVacancyDetailDoc_` |
+| La carpeta lleva solo el nombre de la empresa; si ese día la empresa tiene dos vacantes, cada carpeta suma un detalle corto del cargo (decisión del usuario 2026-10-22) | ✅ | `vacancyFolderNames`, `shortRoleDetail` |
 | Doc del aviso llamado "Vacante" | ❓ | hoy se llama `Detalle_Vacante` |
 | HV en Google Doc + PDF | ❓ | Doc ✅; PDF en pausa (`CV_EXPORT_PDF` = false, decisión del 2026-10-19) |
 | Colores: rojo rechazada, verde en proceso, amarillo aplicada sin respuesta | 🟡 | `colorToStatus` lee los colores; las publicaciones de LinkedIn se pintan de amarillo (`MANUAL_FOLDER_COLOR`), que choca con la leyenda |
