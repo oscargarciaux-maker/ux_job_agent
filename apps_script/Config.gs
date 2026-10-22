@@ -27,7 +27,8 @@ const CONFIG = {
   ],
   // Agregadores que llevan a páginas de pago: nunca se usa su enlace. Si una vacante solo está en ellos, se descarta.
   // También plataformas de trabajo por proyecto (decisión del usuario 2026-10-19: no quiere vacantes por proyecto).
-  BLOCKED_SOURCES: /trabajo\.org|jooble\.|jobleads\.|bebee\.|upwork\.|freelancer\.|workana\.|fiverr\./i,
+  // vacantes.com: no permite aplicar fácil (guía 2026-10-22)
+  BLOCKED_SOURCES: /trabajo\.org|jooble\.|jobleads\.|bebee\.|upwork\.|freelancer\.|workana\.|fiverr\.|vacantes\.com/i,
   // Vacantes que se descartan por su texto (decisiones del usuario 2026-10-19).
   EXCLUDED_VACANCY_RULES: [
     { reason: 'copia de JobLeads', pattern: /J-18808-Ljbffr/ },
