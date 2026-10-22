@@ -261,7 +261,19 @@ assert.strictEqual(context.buildCvFileName({ _nombre_archivo: 'HV_Oscar_Garcia_D
   'HV_Oscar_Garcia_Diseñador_UX_UI');
 assert.strictEqual(context.buildCvFileName({ _nombre_archivo: 'HV_Oscar_Garcia_Product_Designer_Acme_Bank' }, { company: 'Acme Bank' }, ''),
   'HV_Oscar_Garcia_Product_Designer');
-assert.strictEqual(context.buildCvFileName({}, { company: 'Acme', title: 'Junior' }, ''), 'HV_Product_Designer');
+assert.strictEqual(context.buildCvFileName({}, { company: 'Acme', title: 'Acme (2)' }, ''), 'HV_Product_Designer');
+assert.strictEqual(context.buildCvFileName({ _nombre_archivo: 'HV_Oscar_Garcia_Diseñador UX/UI Junior' }, { company: 'Acme', title: 'Diseñador UX/UI Junior' }, ''),
+  'HV_Oscar_Garcia_Diseñador_UX_UI_Junior');
+assert.strictEqual(context.forbiddenCvWords('UX Designer Junior', true).length, 0);
+assert.strictEqual(context.forbiddenCvWords('Aprendiz junior', true).join(','), 'aprendiz');
+// Cargos: adaptados con lógica, no todos iguales ni todos copiando el de la vacante
+const vacPD = { title: 'Product Designer' };
+assert.strictEqual(context.cargoErrors({ CARGO_EXP_1: 'Product Designer', CARGO_EXP_2: 'UX/UI Design Lead', CARGO_EXP_3: '' }, vacPD).length, 0);
+assert.ok(/mismo cargo/.test(context.cargoErrors({ CARGO_EXP_1: 'UX Designer', CARGO_EXP_2: 'ux  designer' }, vacPD).join()));
+assert.ok(/copian el cargo/.test(context.cargoErrors({ CARGO_EXP_1: 'Product Designer', CARGO_EXP_2: 'Product designer ' , CARGO_EXP_3: 'x' }, vacPD).join()));
+const cvJunior = Object.assign({}, cvOk, { PERFIL_PERSONALIZADO: 'Diseñador junior enfocado en research' });
+assert.strictEqual(context.validateCvJson(cvJunior, contexto, marcadores, { title: 'UX Designer Junior' }).errors.length, 0);
+assert.ok(context.validateCvJson(cvJunior, contexto, marcadores, { title: 'UX Designer' }).errors.length > 0);
 const cvGuia = Object.assign({}, cvOk, { CARGO_EXP_1: 'Aprendiz Universitario', PERFIL_PERSONALIZADO: 'Enfoque: diseño' });
 const erroresGuia = context.validateCvJson(cvGuia, contexto, marcadores).errors.join('\n');
 assert.ok(/CARGO_EXP_1: palabra prohibida/.test(erroresGuia) && /sin dos puntos/.test(erroresGuia), erroresGuia);

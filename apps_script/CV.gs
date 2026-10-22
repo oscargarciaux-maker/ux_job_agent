@@ -61,7 +61,7 @@ function buildCvsInFolder_(dateFolder, sheet) {
       let check;
       try {
         cv = parseCvJson(readTextFile_(jsonFile));
-        check = validateCvJson(cv, contextText, placeholders);
+        check = validateCvJson(cv, contextText, placeholders, vacancy);
       } catch (e) {
         check = { errors: [e.message], warnings: [] };
       }
@@ -116,7 +116,8 @@ function extractNumbers_(text) {
  * Valida el contrato y la regla anti-alucinación: toda cifra y toda empresa del CV/correo
  * debe aparecer en CONTEXTO_CV. Devuelve { errors, warnings }.
  */
-function validateCvJson(cv, contextText, placeholders) {
+function validateCvJson(cv, contextText, placeholders, vacancy) {
+  const allowJunior = vacancyAllowsJunior(vacancy);
   const errors = [];
   const warnings = [];
   if (cv._idioma !== 'es' && cv._idioma !== 'en') errors.push('_idioma debe ser "es" o "en"');
@@ -144,27 +145,60 @@ function validateCvJson(cv, contextText, placeholders) {
     if (/EMPRESA|COMPANY/.test(key) && contextLower.indexOf(value.trim().toLowerCase()) === -1) {
       errors.push(key + ': la empresa "' + value.trim() + '" no está en ' + CONFIG.CONTEXT_DOC_NAME);
     }
-    const forbidden = forbiddenCvWords(value);
+    const forbidden = forbiddenCvWords(value, allowJunior);
     if (forbidden.length) errors.push(key + ': palabra prohibida en la HV (' + forbidden.join(', ') + ')');
   });
   // Guía 2026-10-22: el perfil es un párrafo en prosa, sin construcciones "X: Y"
   if (/:/.test(String(cv.PERFIL_PERSONALIZADO || ''))) errors.push('PERFIL_PERSONALIZADO: va en prosa, sin dos puntos');
+  cargoErrors(cv, vacancy).forEach(e => errors.push(e));
   return { errors: errors.filter((e, i, all) => all.indexOf(e) === i), warnings: warnings };
 }
 
-/** Palabras prohibidas en la HV (aprendiz, voluntario, practicante, junior, intern, volunteer, DIN'T), sin repetir. */
-function forbiddenCvWords(text) {
+/** La vacante pide explícitamente Junior en su cargo: entonces "junior" sí puede ir en la HV y en el archivo. */
+function vacancyAllowsJunior(vacancy) {
+  return /\b(junior|jr)\b/i.test(String((vacancy && vacancy.title) || ''));
+}
+
+/**
+ * Palabras prohibidas en la HV (aprendiz, voluntario, practicante, junior, intern, volunteer, DIN'T), sin repetir.
+ * Con allowJunior (la vacante dice Junior) "junior"/"jr" sí se permiten.
+ */
+function forbiddenCvWords(text, allowJunior) {
   return (String(text || '').match(CONFIG.CV_FORBIDDEN_WORDS) || []).map(w => w.toLowerCase())
+    .filter(w => !(allowJunior && /^(junior|jr)$/.test(w)))
     .filter((w, i, all) => all.indexOf(w) === i);
 }
 
 /**
+ * Cargos de la HV (decisión del usuario 2026-10-22): se adaptan a la vacante partiendo del título de LinkedIn, pero no
+ * todos iguales. Error si dos experiencias llevan el mismo cargo o si más de una copia literalmente el cargo de la vacante.
+ */
+function cargoErrors(cv, vacancy) {
+  const norm = t => String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+  const cargos = Object.keys(cv).filter(k => /^CARGO_EXP_\d+$/.test(k) && norm(cv[k])).map(k => ({ key: k, value: norm(cv[k]) }));
+  const errors = [];
+  cargos.forEach((c, i) => {
+    const twin = cargos.slice(0, i).filter(o => o.value === c.value)[0];
+    if (twin) errors.push(c.key + ': mismo cargo que ' + twin.key + ' (adapta cada cargo con lógica, no los repitas)');
+  });
+  const target = norm(vacancy && vacancy.title);
+  const copies = target ? cargos.filter(c => c.value === target) : [];
+  if (copies.length > 1) {
+    errors.push(copies.map(c => c.key).join(', ') + ': copian el cargo de la vacante; solo uno puede llevarlo tal cual');
+  }
+  return errors;
+}
+
+/**
  * Nombre del CV: HV_Oscar_Garcia_<Cargo> (guía 2026-10-22). La IA lo propone en _nombre_archivo; si falta o no empieza
- * por HV_, se usa HV_ + cargo de la vacante. Nunca lleva el nombre de la empresa, palabras prohibidas (junior, etc.)
+ * por HV_, se usa HV_ + cargo de la vacante. Nunca lleva el nombre de la empresa, palabras prohibidas (junior solo si la
+ * vacante lo pide)
  * ni sufijos como "(3)" (arruinan el adjunto); si el cargo queda vacío se usa CONFIG.CV_DEFAULT_ROLE.
  */
 function buildCvFileName(cv, vacancy, label) {
-  const clean = t => String(t || '').normalize('NFC').replace(/\(\d+\)/g, ' ').replace(CONFIG.CV_FORBIDDEN_WORDS, ' ')
+  const allowJunior = vacancyAllowsJunior(vacancy);
+  const clean = t => String(t || '').normalize('NFC').replace(/\(\d+\)/g, ' ')
+    .replace(CONFIG.CV_FORBIDDEN_WORDS, w => (allowJunior && /^(junior|jr)$/i.test(w) ? w : ' '))
     .replace(/[\\/:*?"<>|#%]+/g, ' ').trim().replace(/[\s_]+/g, '_').replace(/^_+|_+$/g, '');
   const company = String((vacancy && vacancy.company) || '').trim();
   const withoutCompany = t => company.length >= 3
