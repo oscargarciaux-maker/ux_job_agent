@@ -24,7 +24,7 @@ Estados: ✅ hecho y probado · 🟡 parcial · ⏳ pendiente · ❓ falta una d
 | Fuentes: LinkedIn > Indeed > Computrabajo > portal; agregadores nunca como fuente final | ✅ | `SOURCE_PRIORITY`, `BLOCKED_SOURCES` (incluye vacantes.com), `pickApplyOption` |
 | Posts de LinkedIn "estamos contratando" | 🟡 | `searchLinkedInPosts_` (solo el fragmento público; sin sesión de LinkedIn) |
 | Búsqueda con la sesión de LinkedIn del usuario | 🚫 | Apps Script no puede usar su sesión; Google Jobs ya trae los avisos de LinkedIn |
-| Búsqueda diaria a las 7 a. m. | ❓ | hoy `PIPELINE_HOUR` = 8 |
+| Búsqueda diaria a las 7 a. m. | ✅ | `PIPELINE_HOUR` = 7 (el activador se mueve al re-ejecutar `configurarAgente`) |
 | Meta de 10 diarias, sin rellenar; reporte honesto | ✅ | `DAILY_LIMIT`, `MIN_DAILY`, registro de ejecución |
 
 ## Verificación y deduplicación (guía §4, §8)

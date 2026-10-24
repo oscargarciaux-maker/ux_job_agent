@@ -84,7 +84,7 @@ const CONFIG = {
   // Si Google Jobs no trae la fecha, se lee "datePosted" de la página original (gratis, sin SerpAPI). Las que siguen
   // sin fecha solo entran (marcadas "SIN VERIFICAR") si con las verificadas no se llega a MIN_DAILY.
   MIN_DAILY: 5,              // Pueden ser menos de DAILY_LIMIT, pero no menos de 5 (decisión del usuario)
-  PIPELINE_HOUR: 8,          // 8:00 AM hora de Bogotá
+  PIPELINE_HOUR: 7,          // 7:00 AM hora de Bogotá (guía 2026-10-22; antes 8). Corre entre 7:00 y 8:00
   ROOT_FOLDER_NAME: 'Vacantes con IA',
   SHEET_TITLE: 'Vacantes UX - Registro',
   TEMPLATE_TITLE: 'Plantilla CV Maestra',
