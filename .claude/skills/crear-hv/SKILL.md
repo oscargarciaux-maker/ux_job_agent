@@ -161,7 +161,8 @@ antes la skill `google-workspace` si está disponible):
      lo tiene, aplícalo con `updateParagraphStyle` `keepWithNext` a títulos, cargos y descripciones).
 7. Modo vacante: en `Vacantes UX - Registro` (`Hoja 1`), pon `Pendiente` en la celda Estado de esa vacante (busca la fila
    por el enlace); si no está, agrega la fila. Modo frío: no toques el registro (lo hará la skill `correo-en-frio`).
-8. El PDF lo exporta el usuario después de revisar el Google Doc. No crees borradores de correo desde aquí.
+8. Aplica la skill `revisar-hv` a la HV terminada (deja su `Revision.txt`).
+9. El PDF lo exporta el usuario después de revisar el Google Doc. No crees borradores de correo desde aquí.
 
 ## Resultado para el usuario
 
