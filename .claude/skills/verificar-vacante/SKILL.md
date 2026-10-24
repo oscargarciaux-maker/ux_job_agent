@@ -72,10 +72,18 @@ Primero lo barato y sin red (paso 4, repetidas; paso 3 con el texto de `Detalle_
   aviso en el portal de empleo de la empresa o su sistema de postulación (Greenhouse, Lever, Ashby, Workable,
   Teamtailor…). Si las copias se contradicen (ubicación, tipo de contrato, salario), repórtalo y decide con el original;
   si el original no aparece, es DUDOSA con la contradicción como motivo.
+- **Cómo encontrar el original** (prueba del 24 oct): consulta directa al sistema de postulación de la empresa, sin
+  búsqueda web. `https://api.lever.co/v0/postings/<empresa>?mode=json` (trae `createdAt`, la fecha real),
+  `https://api.ashbyhq.com/posting-api/job-board/<empresa>`, `https://boards-api.greenhouse.io/v1/boards/<empresa>/jobs`
+  y la página de empleos de la empresa. Un 404 solo significa que la empresa no usa ese sistema.
+- **Cerrada por evidencia indirecta:** si el aviso no está en el portal o sistema de postulación oficial de la empresa
+  (y ese portal sí lista otras vacantes) y alguna copia dice "removed", "closed" o "no longer available", es ❌ Cerrada,
+  no Dudosa.
 - **Cualquier otro agregador** que no esté en estas listas (buscojobs, Talent.com, subdominios raros como
   `hirefinity.p3d.66ghz.com`): trátalo como espejo y rastrea el original.
 - La fecha de un espejo (p. ej. "Publicada" de Jobicy) es cuándo lo copió, **no** la fecha de publicación: búscala en el
-  original o en otra copia que la traiga.
+  original o en otra copia que la traiga. Jobicy también cambia el `datePosted` de sus datos internos al volver a
+  publicar, así que tampoco sirve.
 - **Si la página no abre** desde tu entorno (según el acceso a la red del entorno, algunas sesiones no llegan a ciertos portales), intenta una búsqueda
   web del cargo + empresa para encontrar el original y sus datos; lo que no puedas abrir queda "sin verificar" y la
   verificación final se hace en el navegador del usuario (app de escritorio o Claude en Chrome). Nunca lo des por
@@ -112,7 +120,7 @@ la de sus roles, entra; si el título suena a diseño pero la función principal
 | Criterio | Entra | Menor prioridad (entra, marcado) | Se descarta |
 |---|---|---|---|
 | Rol (por funciones) | UX/UI, diseño de producto, design systems, UX research, diseño digital/web, visual o de servicios; CX o gestión de producto si la función principal es diseño | — | Copywriter/redactor, SEO, desarrollador/programador, diseño gráfico puro; núcleo del cargo = programar |
-| Nivel y años | Junior; senior que pide menos de 5 años | Mid de 3 a 5 años (señalar siempre la diferencia con la experiencia real; la HV nunca infla años); 5 o más años; senior sin años explícitos (buscar los años en otras versiones del aviso y decirlo) | Staff, principal, head, director, VP, manager, gerente |
+| Nivel y años (los años mandan sobre el título) | Junior, o pide menos de 3 años aunque el título diga Senior | Pide 3 años o más (señalar siempre la diferencia con la experiencia real; la HV nunca infla años); senior sin años explícitos (buscar los años en otras versiones del aviso y decirlo) | Staff, principal, head, director, VP, manager, gerente |
 | Antigüedad | Hasta 21 días | De 22 a 28 días, solo si sigue abierta | Más de 28 días |
 | Ubicación | Colombia; remoto LATAM/mundial UTC-3 a -6 | Presencial en Medellín o Cali | Ver chequeo 2 |
 | Inglés (nivel real: intermedio) | Sin requisito, o intermedio/B1–B2. Aviso en inglés sin nivel explícito: entra, pero **avisar** | — | Avanzado, fluido, nativo, excelente ("excellent English", "nivel avanzado de inglés"), C1/C2 o bilingüe obligatorio |
@@ -132,6 +140,8 @@ criterios leyendo el aviso completo, que es lo que el código no puede juzgar bi
 
 - Compara por **enlace y por empresa + cargo** contra la hoja `Vacantes UX - Registro`, pestaña `Hoja 1` (columnas
   B Empresa, C Cargo, D Link). La misma vacante aparece con enlaces distintos (LinkedIn, Indeed, portal).
+- **El mismo aviso genérico por ciudad** (p. ej. BairesDev publica "Diseñador UI/UX - Trabajo Remoto (Barranquilla)",
+  "(Medellín)"…): misma empresa y mismo cargo base con otra ciudad = repetida.
 - **Empresa "confidential"**: saca la empresa real del texto ("En BairesDev® llevamos…") antes de comparar. El agente
   ya lo hace al buscar (`isHiddenCompanyRepeat`), pero solo cuando el cargo coincide.
 - Si `Hoja 1` dice `Aplicada` (o `Enviada`) pero no hay carpeta en `CV/`, cuenta como **aplicada** (repetida) y avisa
