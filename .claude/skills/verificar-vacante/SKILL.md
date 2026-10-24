@@ -178,7 +178,7 @@ explicar; dos o más = DESCARTAR.
 
 ```
 Verificación <fecha>: <N> revisadas — ✅ <a> listas · 🟡 <b> menor prioridad · 🔶 <d> dudosas · ❌ <c> descartadas
-Meta diaria: <a + b> de 10 (si no se llega, decirlo; no rellenar)
+Meta diaria: <a + b> de 10 (si no se llega, decirlo; no rellenar). Si pasan más de 10, las sobrantes quedan de RESERVA (sin HV)
 | Empresa | Cargo | Veredicto | Motivo / qué la baja | Cómo aplicar |
 ```
 

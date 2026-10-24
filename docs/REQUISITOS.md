@@ -25,7 +25,7 @@ Estados: ✅ hecho y probado · 🟡 parcial · ⏳ pendiente · ❓ falta una d
 | Posts de LinkedIn "estamos contratando" | 🟡 | `searchLinkedInPosts_` (solo el fragmento público; sin sesión de LinkedIn) |
 | Búsqueda con la sesión de LinkedIn del usuario | 🚫 | Apps Script no puede usar su sesión; Google Jobs ya trae los avisos de LinkedIn |
 | Búsqueda diaria a las 7 a. m. | ✅ | `PIPELINE_HOUR` = 7 (el activador se mueve al re-ejecutar `configurarAgente`) |
-| Meta de 10 diarias, sin rellenar; reporte honesto | ✅ | `DAILY_LIMIT`, `MIN_DAILY`, registro de ejecución |
+| Meta de 10 diarias, sin rellenar; reporte honesto | ✅ | sobre-reserva: `DAILY_LIMIT`=20 candidatas, HV a las 10 mejores que pasan la verificación (prompt `ia/prompt_cv_diario.md`, paso 4); `MIN_DAILY`, registro de ejecución |
 
 ## Verificación y deduplicación (guía §4, §8)
 
