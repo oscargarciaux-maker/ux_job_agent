@@ -36,7 +36,7 @@ Eres el paso de IA (Fase 3) del agente de búsqueda de empleo UX/UI. Trabajas co
       - Tono profesional, estratégico y orientado a resultados; la hoja de vida completa NUNCA supera 2 páginas (cada logro ≤ 35 palabras; para recortar quita primero la cuarta experiencia, luego un cuarto logro).
    e. Escribe un objeto JSON con:
       - Una clave por CADA marcador de MASTER_TEMPLATE, sin llaves (p. ej. "PERFIL_PERSONALIZADO", "LOGRO_1_2"), valor de texto plano sin markdown.
-      - "_idioma": "es" o "en" (el idioma de la vacante; todo el contenido, incluidos los HEADER_*, en ese idioma). En inglés usa frases simples y honestas: el nivel real de inglés es intermedio; IDIOMAS debe decirlo tal cual.
+      - "_idioma": "es" o "en" (el idioma de la vacante; todo el contenido, incluidos los HEADER_*, en ese idioma). En inglés usa frases simples y honestas: el nivel real de inglés es B2 (intermedio alto); IDIOMAS lo dice así: "Español (nativo), Inglés (B2, intermedio alto)." o "Spanish (Native), English (B2, Upper Intermediate)."
       - "_keywords": lista de las 10 keywords; "_gaps": lista de gaps con la respuesta del Paso 2.1.
       - "_nombre_archivo": según GUIA_CV (Exportación) y REGLAS_CV: "HV_Nombre_Apellido_Cargo" con el nombre del candidato y el cargo tal como lo pide la vacante, palabras separadas por "_", sin extensión. Siempre empieza por "HV_", también en inglés.
       - "_correo_cuerpo": correo de postulación breve (3-4 párrafos, saludo y firma con el nombre de CONTEXTO_CV) si Detalle_Vacante trae correo de contacto; si no, "".

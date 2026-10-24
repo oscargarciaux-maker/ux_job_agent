@@ -65,6 +65,7 @@ Estados: ✅ hecho y probado · 🟡 parcial · ⏳ pendiente · ❓ falta una d
 | Perfil propio de cada vacante, en prosa, sin "X: Y" | ✅ | `validateCvJson` rechaza dos puntos en el perfil; el prompt pide un perfil escrito para cada vacante |
 | Archivo `HV_<Nombre>_<Cargo>`, sin empresa ni sufijos "(3)" | ✅ | `buildCvFileName` |
 | Idioma de la HV = idioma de la vacante | ✅ | `_idioma`, `TEMPLATE_LABELS_EN_` |
+| Nivel de inglés en la HV: B2 (intermedio alto), no "intermedio" (decisión del usuario 2026-10-24) | ✅ | `CONTEXTO_CV` y `CRITERIOS_BUSQUEDA` actualizados; skills `crear-hv` y `revisar-hv`, prompt `ia/prompt_cv_diario.md` |
 | Cargos: título de LinkedIn ajustado con criterio a la vacante, nunca repetidos ni todos copiando el de la vacante (decisión del usuario 2026-10-22) | ✅ | prompt `ia/prompt_cv_diario.md`; `cargoErrors` en `validateCvJson` |
 | Experiencias base Seguros Bolívar, Meevent y Central Xpress, ampliadas; Trezo o Creditop solo si aportan mucho (Creditop solo con research explícito); máximo 4 (decisión del usuario 2026-10-24) | ✅ | skill `crear-hv`, prompt `ia/prompt_cv_diario.md`, `REGLAS_CV` actualizado |
 | Cada experiencia con 1–2 líneas de descripción y 3 logros (hasta 4); los logros pesan más que una cuarta experiencia | ✅ | `MASTER_TEMPLATE` (`DESC_EXP_n`, `LOGRO_n_4`); skill `crear-hv` |

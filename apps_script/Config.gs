@@ -37,7 +37,7 @@ const CONFIG = {
     { reason: 'pasantía no remunerada', pattern: /unpaid|no remunerad|sin remuneraci|ad[- ]honorem/i },
     { reason: 'por proyecto / freelance',
       pattern: /modalidad freelance|freelance (role|position|contract|basis|job)|(contrato|contrataci[oó]n|pago|vinculaci[oó]n|modalidad) por proyecto|project[- ]based (contract|role|position|work)|paid per project|per project basis|\(freelance\)|- freelance\b/i },
-    // Guía de búsqueda (2026-10-22): el inglés del usuario es intermedio; no le aplican vacantes exclusivas para
+    // Guía de búsqueda (2026-10-22): el inglés del usuario es B2 (intermedio alto, 2026-10-24); no le aplican vacantes exclusivas para
     // personas con discapacidad (no se descartan las que solo invitan a postularse en su declaración de igualdad).
     { reason: 'exige inglés avanzado/fluido',
       pattern: /\b(ingl[eé]s|english)\s*[:\-–(]?\s*(nivel\s+|level\s+)?(avanzado|fluid[oa]|nativo|excelente|c1|c2|advanced|fluent|native|proficient|excellent)\b|\bnivel\s+(de\s+)?ingl[eé]s\s*[:\-]?\s*(avanzado|fluido|nativo|alto|c1|c2)\b|\bnivel\s+(avanzado|alto|fluido|nativo)\s+(de|en)\s+(ingl[eé]s|english)\b|\b(excellent|excelente)\s+(command\s+of\s+|level\s+of\s+)?(english|ingl[eé]s)\b|\bingl[eé]s\s+(a\s+)?nivel\s+(avanzado|fluido|nativo|alto)\b|\b(advanced|fluent|native|proficient)\s+(level\s+(of\s+)?)?(in\s+)?english\b|\benglish\s+(fluency|proficiency)\b|\b(fluency|proficiency)\s+in\s+english\b|\bbiling[uü]e\b|\bbilingual\b/i },

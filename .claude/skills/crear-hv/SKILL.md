@@ -104,11 +104,11 @@ Education / Additional Training / Skills & Tools).
 **Habilidades:** 5 categorías (`CATEGORIA_SKILL_1..5` + `DETALLE_SKILL_1..5`) elegidas **según la vacante**, más
 Idiomas. Ejemplo de la plantilla: Diseño Estratégico & UX, Entregables, Herramientas, Tecnología & IA, Competencias
 Blandas; cámbialas, ordénalas o deja una en `""` si la vacante pide otra cosa. Solo lo que respalde `CONTEXTO_CV`.
-`IDIOMAS` dice el nivel real de inglés tal cual.
+`IDIOMAS` dice el nivel real de inglés: **B2** (decisión del usuario, 24 oct 2026): `Español (nativo), Inglés (B2, intermedio alto).` / `Spanish (Native), English (B2, Upper Intermediate).`
 
 **Educación y formación (`EDU_n`, `CERT_n`):** de `CONTEXTO_CV`, las más relevantes primero.
 
-**Idioma:** el de la vacante (`_idioma` = `es` o `en`). En inglés, frases simples y honestas (el inglés real es intermedio).
+**Idioma:** el de la vacante (`_idioma` = `es` o `en`). En inglés, frases simples y honestas (el inglés real es B2, intermedio alto).
 
 **Extensión:** nunca más de 2 páginas (Arial 11, márgenes de la plantilla). Para recortar: primero la cuarta experiencia,
 luego un cuarto logro, luego palabras de los logros; nunca la ubicación ni el perfil.
