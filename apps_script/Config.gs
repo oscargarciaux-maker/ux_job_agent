@@ -4,7 +4,9 @@
  * (Configuración del proyecto > Propiedades del script).
  */
 const CONFIG = {
-  DAILY_LIMIT: 15,           // Meta del usuario: ~50 postulaciones por semana
+  // Candidatas por día (sobre-reserva, decisión del usuario 2026-10-24): la IA las verifica y escribe HV solo a las 10
+  // mejores que pasan; las demás que pasan quedan de reserva. Meta del usuario: ~50 postulaciones por semana.
+  DAILY_LIMIT: 20,
   MIN_JUNIOR: 5,             // Al menos 5 de las 10 vacantes diarias serán Junior (si existen)
   // Rotación diaria (decisiones del usuario 2026-10-19). Cada día: 1 búsqueda de SEARCH_QUERY_POOL en Colombia y 1 de
   // REMOTE_QUERY_POOL (remoto para LATAM, sin limitar a Colombia), 1 crédito de SerpAPI cada una.
