@@ -418,6 +418,19 @@ assert.ok(cold.warnings.some(w => /no menciona a Empresa/.test(w)));
 assert.strictEqual(run('emailPlainText')('Ver [LinkedIn](https://l.in/x).'), 'Ver LinkedIn (https://l.in/x).');
 assert.ok(run('emailHtml')('Ver [LinkedIn](https://l.in/x) y https://p.app').includes('<a href="https://l.in/x">LinkedIn</a> y <a href="https://p.app">https://p.app</a>'));
 
+// Empresas objetivo: nombres reales de la pestaña frente al "empresa" corto de Correos.json (2026-10-24)
+const tcm = run('targetCompanyMatches');
+assert.ok(tcm('ADL Digital Lab (Aval Digital Labs)', 'ADL Digital Lab'));
+assert.ok(tcm('Widetech Group', 'Widetech'));
+assert.ok(tcm('AMD Agencia Digital', 'AMD'));
+assert.ok(tcm('IAS Software', 'IAS Software'));
+assert.ok(tcm('SUBE Agencia Digital', 'Sube agencia digital'));
+assert.ok(!tcm('Treinta', 'Tangelo'));
+assert.ok(!tcm('Panda Creativos', 'AMD'));
+assert.ok(!tcm('', 'X'));
+// Los encabezados que usa markTargetCompany_ existen en la pestaña
+assert.ok(run("CONFIG.TARGET_COMPANIES_HEADERS.indexOf('Empresa') === 1 && CONFIG.TARGET_COMPANIES_HEADERS.indexOf('Estado') === 10"));
+
 // HITL: ninguna llamada de envío de correo en el código
 const allCode = fs.readdirSync(dir).map(f => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n');
 assert.ok(!/\.send\(|Messages\.send|sendEmail|GmailApp/.test(allCode), 'El agente no debe poder enviar correos');

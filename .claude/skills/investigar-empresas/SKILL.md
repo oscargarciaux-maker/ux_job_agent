@@ -33,13 +33,20 @@ UTC-6, entidad o pagador en la región). "US only", Europa o India no.
 **No entran:**
 - Empresas ya contactadas (pestaña `Correos en frío`, también las que tienen solo borrador), con postulación (pestaña
   `Aplicadas`, carpetas de `Vacantes con IA/CV`) o ya listadas en `Empresas objetivo`.
+- **Nombre parecido a una fila de `Aplicadas`** (p. ej. "AXA Colpatria" frente a "Colpatria"): no adivines. Abre esa
+  carpeta (enlace "Abrir" de la fila o búscala por nombre en Drive) y compara el aviso (`Vacante` o `Detalle_Vacante`) y
+  la HV que hay dentro con la empresa candidata. Misma empresa = no entra. El 24 oct así se comprobó que la carpeta
+  "Colpatria" era la vacante de AXA Colpatria de elempleo (mismo número de aviso).
 - Empresas de reclutamiento o headhunting, plataformas de freelance (Upwork, Workana, Fiverr…) y sitios que cobran por
   postular.
 - Empresas sin actividad verificable en los últimos 12 meses (sitio caído, sin publicaciones, cerradas o absorbidas:
   en ese caso, la empresa compradora).
 
-**Tamaño de la tanda:** 10 empresas por ejecución, salvo que el usuario pida otra cantidad. Si no se llega, se dice
-cuántas se encontraron; no se rellena.
+**Tamaño de la búsqueda:** unas **30 empresas** por ejecución (decisión del usuario, 24 oct 2026), salvo que pida otra
+cantidad. Se empieza por Bogotá y se amplía a otras ciudades (y luego al exterior) cuando Bogotá ya no da empresas nuevas
+o cuando el usuario pida más. Si no se llega a 30, se dice cuántas se encontraron; no se rellena. Es una búsqueda larga:
+guarda las filas en `Empresas objetivo` cada 5 o 10 empresas verificadas (no al final), así un corte de la sesión no
+pierde trabajo y la siguiente ejecución sigue desde ahí.
 
 ## Paso 1. Leer lo que ya existe
 
@@ -63,6 +70,24 @@ por ámbito o por sector); si no, haz las búsquedas web directamente, varias en
   luego su página de empleo propia.
 
 Pocas consultas a LinkedIn y con calma; si aparece un límite o un captcha, para y dilo.
+
+**Lo que funcionó y lo que no (primera búsqueda, 24 oct 2026):**
+- Abrir directamente el sitio de cada empresa y sus páginas habituales (`/contacto`, `/contactanos`, `/trabaja-con-nosotros`,
+  `/careers`, `/empleo`, `/politica-de-privacidad`, `/terminos-y-condiciones`) y buscar correos en el texto encontró los
+  buzones de talento (ADL Digital Lab, Widetech, IAS). Si WebFetch no resuelve un dominio, `curl -sL` desde la terminal sí
+  suele funcionar.
+- En elempleo, cada aviso trae su JSON-LD `JobPosting` (empresa, `datePosted`, `validThrough`, descripción): sirve como
+  evidencia con fecha. Los listados por ciudad (`/co/ofertas-empleo/bogota/trabajo-disenador-ux-ui`) dan las empresas que
+  contratan diseño ahora.
+- Los bancos y fintechs grandes (Nu, Lulo, Davivienda, Banco de Bogotá) y algunas fábricas (Sophos, Gorilla Logic) no
+  publican correos de talento: contratan por su portal y por LinkedIn. Regístralas con Estado `Sin correo` y su página
+  de empleo; **su ruta es LinkedIn con la sesión del usuario**, que queda pendiente hasta que él instale Claude en su PC
+  y diga que quiere conectar LinkedIn (decisión del usuario, 24 oct 2026). Sin esa sesión, el contenido de LinkedIn
+  (correos en publicaciones, personas de diseño o talento) no se ve: no lo des por revisado.
+- Hunter.io y servicios parecidos no se usan (el usuario no los va a pagar y el plan gratuito no alcanza para 30
+  empresas).
+- Los buscadores web resumen y no muestran los correos de las páginas; DuckDuckGo y Bing por `curl` no sirven (bloqueo o
+  resultados genéricos). Usa la búsqueda para encontrar empresas y el sitio de la empresa para los correos.
 
 ## Paso 3. Verificar cada empresa
 
@@ -107,5 +132,5 @@ Empresas nuevas: <n> (Bogotá <n>, Colombia <n>, exterior <n>) — sin correo: <
 - <Empresa> (<ámbito>, <tipo>, <sector>): <evidencia de que contrata diseño, fecha> — <n> correos (<tipos>)
 Descartadas en la verificación: <empresa: motivo>
 Límites de esta búsqueda: <qué fuentes no abrieron, ámbitos no cubiertos>
-¿Armo el lote de correos en frío con las 3 primeras?
+Cuando digas "crea los correos", los preparo en tandas de 3 (skill correo-en-frio, modo tandas).
 ```

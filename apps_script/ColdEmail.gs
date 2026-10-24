@@ -66,9 +66,8 @@ function markTargetCompany_(ss, company, status) {
   if (!sheet || sheet.getLastRow() < 2) return;
   const headers = CONFIG.TARGET_COMPANIES_HEADERS;
   const names = sheet.getRange(2, headers.indexOf('Empresa') + 1, sheet.getLastRow() - 1, 1).getValues();
-  const key = companyKey_(company);
   names.forEach((row, i) => {
-    if (companyKey_(row[0]) === key) sheet.getRange(i + 2, headers.indexOf('Estado') + 1).setValue(status);
+    if (targetCompanyMatches(row[0], company)) sheet.getRange(i + 2, headers.indexOf('Estado') + 1).setValue(status);
   });
 }
 
@@ -94,6 +93,19 @@ function findColdHv_(folder, name) {
 }
 
 // ---------- Lógica pura (probada en tests/apps_script.test.js) ----------
+
+/**
+ * Misma empresa entre la fila de "Empresas objetivo" y el "empresa" de Correos.json, que suele ser más corto:
+ * "ADL Digital Lab (Aval Digital Labs)" = "ADL Digital Lab", "Widetech Group" = "Widetech" (sin paréntesis, sin
+ * tildes ni signos, y uno empieza por el otro).
+ */
+function targetCompanyMatches(rowName, company) {
+  const key = s => companyKey_(String(s || '').replace(/\(.*?\)/g, ' '));
+  const a = key(rowName);
+  const b = key(company);
+  if (a.length < 3 || b.length < 3) return false;
+  return a === b || a.indexOf(b) === 0 || b.indexOf(a) === 0;
+}
 
 /**
  * Direcciones ya usadas en la pestaña "Correos en frío" (columna B, varias separadas por ";", con "(BCC)"):
