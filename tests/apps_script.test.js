@@ -242,6 +242,59 @@ const detalle = context.parseVacancyDetail(['Diseñador UX/UI Junior', 'Empresa:
 assert.deepStrictEqual(JSON.parse(JSON.stringify(detalle)),
   { title: 'Diseñador UX/UI Junior', company: 'Acme', link: 'https://x.co/1', email: null, language: 'en' });
 
+// Guía de búsqueda y HV (2026-10-22): filtros nuevos, avisos cerrados y reglas de la HV
+const ex = d => context.exclusionReason({ title: 'UX Designer', description: d });
+assert.strictEqual(ex('Inglés intermedio y Figma avanzado'), null);
+assert.strictEqual(ex('English: B2'), null);
+assert.strictEqual(ex('Requisito: inglés avanzado (C1)'), 'exige inglés avanzado/fluido');
+assert.strictEqual(ex('Fluent English required'), 'exige inglés avanzado/fluido');
+assert.strictEqual(ex('Bilingual (Spanish/English)'), 'exige inglés avanzado/fluido');
+assert.strictEqual(ex('We encourage people with disabilities to apply'), null);
+assert.strictEqual(ex('Vacante exclusiva para personas con discapacidad'), 'exclusiva para personas con discapacidad');
+assert.ok(vm.runInContext("CONFIG.BLOCKED_SOURCES.test('https://www.vacantes.com/oferta/1')", context));
+assert.ok(context.isClosedPosting('<span>No longer accepting applications</span>'));
+assert.ok(context.isClosedPosting('Esta oferta ha caducado'));
+assert.ok(!context.isClosedPosting('Apply now'));
+assert.strictEqual(context.forbiddenCvWords('Aprendiz Universitario (Voluntariado), experiencia internacional').join(','), 'aprendiz,voluntariado');
+assert.strictEqual(context.forbiddenCvWords('Product Designer UX/UI (Fintech)').length, 0);
+assert.strictEqual(context.buildCvFileName({ _nombre_archivo: 'HV_Oscar_Garcia_Diseñador UX/UI Junior (3)' }, { company: 'Acme Bank' }, ''),
+  'HV_Oscar_Garcia_Diseñador_UX_UI');
+assert.strictEqual(context.buildCvFileName({ _nombre_archivo: 'HV_Oscar_Garcia_Product_Designer_Acme_Bank' }, { company: 'Acme Bank' }, ''),
+  'HV_Oscar_Garcia_Product_Designer');
+assert.strictEqual(context.buildCvFileName({}, { company: 'Acme', title: 'Acme (2)' }, ''), 'HV_Product_Designer');
+assert.strictEqual(context.buildCvFileName({ _nombre_archivo: 'HV_Oscar_Garcia_Diseñador UX/UI Junior' }, { company: 'Acme', title: 'Diseñador UX/UI Junior' }, ''),
+  'HV_Oscar_Garcia_Diseñador_UX_UI_Junior');
+assert.strictEqual(context.forbiddenCvWords('UX Designer Junior', true).length, 0);
+assert.strictEqual(context.forbiddenCvWords('Aprendiz junior', true).join(','), 'aprendiz');
+// Cargos: adaptados con lógica, no todos iguales ni todos copiando el de la vacante
+const vacPD = { title: 'Product Designer' };
+assert.strictEqual(context.cargoErrors({ CARGO_EXP_1: 'Product Designer', CARGO_EXP_2: 'UX/UI Design Lead', CARGO_EXP_3: '' }, vacPD).length, 0);
+assert.ok(/mismo cargo/.test(context.cargoErrors({ CARGO_EXP_1: 'UX Designer', CARGO_EXP_2: 'ux  designer' }, vacPD).join()));
+assert.ok(/copian el cargo/.test(context.cargoErrors({ CARGO_EXP_1: 'Product Designer', CARGO_EXP_2: 'Product designer ' , CARGO_EXP_3: 'x' }, vacPD).join()));
+const cvJunior = Object.assign({}, cvOk, { PERFIL_PERSONALIZADO: 'Diseñador junior enfocado en research' });
+assert.strictEqual(context.validateCvJson(cvJunior, contexto, marcadores, { title: 'UX Designer Junior' }).errors.length, 0);
+assert.ok(context.validateCvJson(cvJunior, contexto, marcadores, { title: 'UX Designer' }).errors.length > 0);
+const cvGuia = Object.assign({}, cvOk, { CARGO_EXP_1: 'Aprendiz Universitario', PERFIL_PERSONALIZADO: 'Enfoque: diseño' });
+const erroresGuia = context.validateCvJson(cvGuia, contexto, marcadores).errors.join('\n');
+assert.ok(/CARGO_EXP_1: palabra prohibida/.test(erroresGuia) && /sin dos puntos/.test(erroresGuia), erroresGuia);
+
+// Carpetas: solo la empresa; con el detalle del cargo si ese día hay dos vacantes de la misma empresa
+assert.strictEqual(context.shortRoleDetail('Product Designer Senior - Remoto LATAM', 'Acme'), 'Product Designer');
+assert.strictEqual(context.shortRoleDetail('Acme | UX/UI Designer Junior (Bogotá)', 'Acme'), 'UX-UI Designer');
+assert.strictEqual(context.shortRoleDetail('Acme', 'Acme'), 'Vacante');
+assert.strictEqual(context.shortRoleDetail('UX/UI Designer Junior (Bogotá)', 'Acme'), 'UX-UI Designer');
+assert.strictEqual(context.vacancyFolderNames([
+  { company: 'Acme', title: 'Product Designer' }, { company: 'Globex', title: 'UX Designer' },
+  { company: 'acme', title: 'Product Owner' }, { company: 'Acme', title: 'Product Designer Sr' },
+]).join(' | '), 'Acme_Product Designer | Globex | acme_Product Owner | Acme_Product Designer 2');
+
+// Publicaciones: un solo documento "Posts" del día con título, autor, fecha, enlace y fragmento
+const entry = context.postEntry(context.parseLinkedInPost({ title: 'Ana Gómez en LinkedIn: Buscamos diseñador UX/UI | LinkedIn',
+  snippet: 'Envía tu HV a ana@example.com', link: 'https://www.linkedin.com/posts/ana_1', date: '2026-10-20' }));
+assert.strictEqual(entry.heading, 'Buscamos diseñador UX/UI · Ana Gómez · 2026-10-20');
+assert.strictEqual(entry.link, 'https://www.linkedin.com/posts/ana_1');
+assert.strictEqual(entry.snippet, 'Envía tu HV a ana@example.com');
+
 // HITL: ninguna llamada de envío de correo en el código
 const allCode = fs.readdirSync(dir).map(f => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n');
 assert.ok(!/\.send\(|Messages\.send|sendEmail|GmailApp/.test(allCode), 'El agente no debe poder enviar correos');

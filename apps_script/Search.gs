@@ -244,7 +244,9 @@ function hostOf_(link) {
  * Devuelve solo las vacantes vigentes (descarta las de enlace 404/410); marca dateUnverified en las que no se pudo verificar.
  */
 function verifyPostingDates_(vacancies) {
-  const pending = vacancies.filter(v => !v.isPost && !v.postedAt);
+  // Se abre la página original de todas las vacantes formales (gratis): da la fecha si Google Jobs no la trajo y
+  // permite descartar las que ya no reciben postulaciones (guía 2026-10-22: solo vacantes abiertas y verificadas).
+  const pending = vacancies.filter(v => !v.isPost);
   if (pending.length) {
     let responses = [];
     try {
@@ -255,7 +257,10 @@ function verifyPostingDates_(vacancies) {
     pending.forEach((v, i) => {
       const r = responses[i];
       if (r && (r.getResponseCode() === 404 || r.getResponseCode() === 410)) v.deadLink = true;  // La vacante ya no existe
-      const dates = r && r.getResponseCode() === 200 ? extractJobPostingDates(r.getContentText()) : {};
+      const html = r && r.getResponseCode() === 200 ? r.getContentText() : '';
+      if (isClosedPosting(html)) v.closed = true;
+      if (v.postedAt) return;
+      const dates = extractJobPostingDates(html);
       if (dates.posted) v.postedAt = dates.posted;
       if (dates.validThrough) v.validThrough = dates.validThrough;
       if (!dates.posted) v.dateUnverified = true;
@@ -263,11 +268,16 @@ function verifyPostingDates_(vacancies) {
   }
   const today = new Date();
   return vacancies.filter(v => {
-    const ok = !v.deadLink && isRecent(v.postedAt, CONFIG.MAX_POST_AGE_DAYS, today) && !isExpired(v.validThrough, today);
-    if (!ok) console.log('Descartada (' + (v.deadLink ? 'enlace ya no existe' : 'antigüedad, publicada ' + v.postedAt) + '): ' +
-                        v.title + ' @ ' + v.company);
+    const ok = !v.deadLink && !v.closed && isRecent(v.postedAt, CONFIG.MAX_POST_AGE_DAYS, today) && !isExpired(v.validThrough, today);
+    if (!ok) console.log('Descartada (' + (v.deadLink ? 'enlace ya no existe' : v.closed ? 'ya no recibe postulaciones' :
+                        'antigüedad, publicada ' + v.postedAt) + '): ' + v.title + ' @ ' + v.company);
     return ok;
   });
+}
+
+/** true si la página de la vacante dice que ya no recibe postulaciones. */
+function isClosedPosting(html) {
+  return CONFIG.CLOSED_POSTING_PATTERN.test(String(html || ''));
 }
 
 /** Fechas del JobPosting (JSON-LD) de la página de una vacante: { posted, validThrough } en YYYY-MM-DD o null. */

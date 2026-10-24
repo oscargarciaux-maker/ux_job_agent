@@ -70,6 +70,13 @@ function getAppliedCompanies_() {
   return sheet.getRange(2, 2, sheet.getLastRow() - 1, 1).getValues().map(r => r[0]).filter(Boolean);
 }
 
+/** Empresas de la pestaña "Correos en frío" (columna A): ya contactadas, no se proponen de nuevo. */
+function getColdEmailCompanies_() {
+  const sheet = SpreadsheetApp.openById(getProp_(PROPS.SHEET_ID)).getSheetByName(CONFIG.COLD_EMAIL_SHEET_NAME);
+  if (!sheet || sheet.getLastRow() < 2) return [];
+  return sheet.getRange(2, 1, sheet.getLastRow() - 1, 1).getValues().map(r => r[0]).filter(Boolean);
+}
+
 // ---------- Lógica pura (probada en tests/apps_script.test.js) ----------
 
 /** Estado según el color de la carpeta (por tono, así sirve con cualquier rojo/verde/amarillo de Drive). */
