@@ -26,13 +26,32 @@ mensaje de LinkedIn, ni formulario): solo borradores. Trabajo a pedido y por lot
   `investigar-empresas`, ya verificadas y con sus correos; en orden: Bogotá, resto de Colombia, exterior). Si no quedan,
   ejecuta primero `investigar-empresas`. Las empresas de "Empresas Tech en Bogotá" también sirven (el candidato ya las
   aprobó); cualquier otra que no venga de esas dos fuentes la aprueba él antes.
-- Lotes de 3. Sube a 5 o 6 solo si el lote anterior salió sin correcciones. Calidad primero: si el ritmo baja la calidad,
-  para y dilo.
+- **"Crea los correos"** (modo tandas, decisión del usuario, 24 oct 2026): todas las empresas con Estado `Nueva` de
+  `Empresas objetivo` (o las que nombre), en ese orden, **de 3 en 3**. Ver "Modo tandas" más abajo.
 - **Antes de empezar, lee el Sheet** `Vacantes UX - Registro` (siempre, aunque la empresa venga de `Empresas objetivo`:
   pudo recibir correo después) y descarta: empresas ya contactadas (pestaña `Correos en frío`, también las que tienen
   solo el borrador preparado), empresas con postulación en curso
   (pestaña `Aplicadas`, carpetas de `Vacantes con IA/CV`) y empresas con vacante abierta de diseño (en ese caso es mejor
   postular a la vacante: avísalo).
+
+## Modo tandas ("crea los correos")
+
+Para cuando hay muchas empresas listas (p. ej. 30 en `Empresas objetivo`). **Regla principal del usuario: la calidad no
+baja ni un poco** por hacer muchas.
+
+1. Toma las 3 primeras empresas `Nueva` (Bogotá primero) y cambia su Estado a `En lote`.
+2. Haz con cada una los Pasos 1 a 5 completos, sin saltar ninguno: investigación con gancho verificado, HV con
+   `crear-hv` (modo B) y **`revisar-hv` con la revisión visual del PDF**, direcciones con fuente y `Correos.json`
+   revisado contra el control de calidad de la guía (≤35 palabras sin contar la empresa, gancho específico, métrica de
+   `CONTEXTO_CV`, saludo por el nombre, asunto sin la empresa). Si hay una herramienta de subagentes, puedes darle a cada
+   empresa de la tanda su propio subagente (contexto limpio = misma calidad para la tercera que para la primera); tú
+   revisas cada resultado con esta misma lista antes de aceptarlo.
+3. Solo cuando las 3 estén completas y revisadas, informa la tanda en 3 líneas y empieza la siguiente.
+4. Empresas con Estado `Sin correo`: no entran (no hay a quién escribir).
+5. **Si la sesión se alarga** (muchas tandas seguidas), termina la tanda en curso y para: di cuántas faltan. El estado
+   vive en el Sheet (`Nueva` / `En lote` / `Borradores creados`), así que la siguiente sesión sigue donde quedó, con
+   contexto limpio. Nunca acortes un paso para terminar más rápido.
+6. Una empresa que quedó en `En lote` sin `Correos.json` en su carpeta (sesión cortada) se retoma primero.
 
 ## Paso 1. Investigar la empresa (web)
 
@@ -140,6 +159,10 @@ de borradores que no existen). En `Empresas objetivo` solo cambia la celda Estad
 `Correos.json` (Apps Script la pasa a `Borradores creados`).
 
 ## Resultado para el usuario
+
+En modo tandas, después de cada tanda: `Tanda <n>: <Empresa> (<n> correos), … — faltan <n> empresas`. Al final, el
+resumen completo de abajo con todas las tandas.
+
 
 ```
 Lote: <n> empresas — <n> borradores en camino (aparecen en Gmail en máximo una hora)
