@@ -22,12 +22,15 @@ mensaje de LinkedIn, ni formulario): solo borradores. Trabajo a pedido y por lot
 ## Paso 0. Qué empresas
 
 - **"Escríbele a X"** (o una lista): esas.
-- **"Siguiente lote"**: 3 empresas de "Empresas Tech en Bogotá" que no estén en la pestaña `Correos en frío`. Si ya no
-  quedan, propón 3 empresas nuevas parecidas (fintech, banca, seguros, fábricas de software o startups de producto en
-  Bogotá o remotas para LATAM) y **espera el OK** del candidato: las empresas fuera de la lista las aprueba él.
+- **"Siguiente lote"**: las 3 primeras empresas con Estado `Nueva` de la pestaña `Empresas objetivo` (las deja la skill
+  `investigar-empresas`, ya verificadas y con sus correos; en orden: Bogotá, resto de Colombia, exterior). Si no quedan,
+  ejecuta primero `investigar-empresas`. Las empresas de "Empresas Tech en Bogotá" también sirven (el candidato ya las
+  aprobó); cualquier otra que no venga de esas dos fuentes la aprueba él antes.
 - Lotes de 3. Sube a 5 o 6 solo si el lote anterior salió sin correcciones. Calidad primero: si el ritmo baja la calidad,
   para y dilo.
-- Antes de empezar, descarta: empresas ya contactadas (pestaña `Correos en frío`), empresas con postulación en curso
+- **Antes de empezar, lee el Sheet** `Vacantes UX - Registro` (siempre, aunque la empresa venga de `Empresas objetivo`:
+  pudo recibir correo después) y descarta: empresas ya contactadas (pestaña `Correos en frío`, también las que tienen
+  solo el borrador preparado), empresas con postulación en curso
   (pestaña `Aplicadas`, carpetas de `Vacantes con IA/CV`) y empresas con vacante abierta de diseño (en ese caso es mejor
   postular a la vacante: avísalo).
 
@@ -48,6 +51,10 @@ empresa (no una por correo). Debe quedar un solo Google Doc `HV_...` en la carpe
 
 ## Paso 3. Direcciones (al menos 3 por empresa, cada una con fuente)
 
+Si la empresa viene de `Empresas objetivo`, sus correos ya están verificados en la columna "Correos (fuente, fecha)":
+úsalos y vuelve a abrir la fuente solo si tiene más de 3 meses. Si no, búscalos con estas reglas (las mismas de
+`investigar-empresas`):
+
 - Solo direcciones **publicadas** (sitio oficial, página de empleo o de contacto, publicaciones de la empresa o de su
   equipo de talento en LinkedIn, portales oficiales de empleo). **Nunca** inventes ni armes direcciones por patrón
   (nombre.apellido@): una dirección sin fuente no se usa.
@@ -64,16 +71,19 @@ empresa (no una por correo). Debe quedar un solo Google Doc `HV_...` en la carpe
 Estructura: **[Gancho con dato real investigado] + [Métrica del CV que responde a ese hecho] + [CTA: llamada de 10
 minutos] + [Adjuntos: HV, LinkedIn y Portafolio]**.
 
-- **Máximo 35 palabras** contando saludo y cierre (los enlaces cuentan como su palabra; la firma no cuenta). Apps Script
-  rechaza un cuerpo más largo.
+- **Máximo 35 palabras** contando saludo y cierre (los enlaces cuentan como su palabra; la firma y **el nombre de la
+  empresa no cuentan**). Apps Script rechaza un cuerpo más largo.
 - **Prohibidos los clichés:** "admiro su innovación", "me encanta su cultura", "espero que estés bien", saludos formales
   largos, autobiografía.
 - **La métrica** sale de `CONTEXTO_CV` (o de las cifras aclaradas por el usuario: Trezo, cerca de 90 personas = 50
   encuestas y 42 entrevistas; Seguros Bolívar, equipo de 6, lideraba a 5) y responde al reto del gancho. Toda cifra del
   correo, también el "10" de los 10 minutos, debe existir en `CONTEXTO_CV`; si no, escribe "una llamada corta" o
   "diez minutos" en letras.
-- **Saludo:** por el nombre si la dirección es de una persona ("Hola Ana,"); si es un buzón general, "Hola," o "Hola,
-  equipo de <área>,".
+- **Personalizado (decisión del usuario, 24 oct 2026):** si la dirección es de una persona y se sabe su nombre
+  (`nombre` en `Correos.json`), el correo la saluda directamente ("Hola Ana,"; Apps Script lo exige). Si es un buzón
+  general, "Hola," o "Hola, equipo de <área>,".
+- **El nombre de la empresa va en el texto, con discreción** (una vez, como parte del gancho: "vi que en Bold lanzaron…"),
+  nunca en el asunto. No cuenta en las 35 palabras.
 - **Tono por tipo de empresa** ("Empresas Tech en Bogotá"): fábrica de software → sistemas de diseño, documentación y
   handoff sin fricción, metodologías ágiles; agencia → conversión y criterio visual (puede incluir una observación breve
   sobre una página de un cliente); incubadora o aceleradora → ofrecer valor a las startups de su portafolio y pedir que
@@ -81,14 +91,16 @@ minutos] + [Adjuntos: HV, LinkedIn y Portafolio]**.
 - **Idioma:** el de las comunicaciones de la empresa. En inglés, frases simples (nivel real B2).
 - **Enlaces:** `[LinkedIn](<url>)` y `[Portafolio](<url>)` (en inglés `[Portfolio](<url>)`) con las URL exactas del
   encabezado de `MASTER_TEMPLATE`, https y sin espacios. Apps Script los convierte en enlaces clicables.
-- **Asunto:** la especialidad y el foco para esa empresa más el nombre de la empresa, sin "Postulación" (ej.
-  "Diseñador UX/UI - Pagos y comercios - Bold"). El candidato quita el nombre de la empresa al enviar si quiere.
+- **Asunto:** la especialidad y el foco para esa empresa, **sin el nombre de la empresa** y sin "Postulación" (ej.
+  "Diseñador UX/UI - Pagos y comercios"). Apps Script rechaza un asunto con el nombre de la empresa. En el borrador
+  aparece como "[Bold] Diseñador UX/UI - Pagos y comercios" solo para identificarlo: **el candidato borra "[Bold] " antes
+  de enviar** (decisión del usuario, 24 oct 2026).
 - Palabras prohibidas también aquí (aprendiz, practicante, voluntario, intern, volunteer, junior).
 - **Control de calidad de la guía** antes de guardar: ¿≤35 palabras?, ¿el dato es específico de esta empresa?, ¿hay una
   métrica?, ¿enlaces correctos?
 
-Ejemplo de forma (no de contenido; cada empresa lleva su propio gancho y su propia métrica): "Hola Ana, vi que lanzaron
-<hecho verificado>. En <experiencia> logré <métrica de CONTEXTO_CV>. ¿Conversamos diez minutos esta semana? Adjunto mi
+Ejemplo de forma (no de contenido; cada empresa lleva su propio gancho y su propia métrica): "Hola Ana, vi que en
+<Empresa> lanzaron <hecho verificado>. En <experiencia> logré <métrica de CONTEXTO_CV>. ¿Conversamos diez minutos esta semana? Adjunto mi
 HV, [LinkedIn](...) y [Portafolio](...)."
 
 ## Paso 5. Salida: `Correos.json`
@@ -117,13 +129,15 @@ contenido). Si ya hay `Borradores.txt`, esos borradores ya existen: para agregar
 
 **Qué hace Apps Script** (`crearBorradoresEnFrio`, cada hora dentro de `sincronizarAplicadas`; el candidato también
 puede ejecutarlo a mano): valida `Correos.json` (≤35 palabras, fuente en cada dirección, cifras de `CONTEXTO_CV`,
-palabras prohibidas, direcciones ya usadas o rebotadas se omiten), exporta la HV a PDF, crea un borrador por
-destinatario con el PDF adjunto, agrega una fila por destinatario a `Correos en frío` (Estado "Borrador preparado, no
-enviado", Notas con la fuente) y deja `Borradores.txt`. Si algo falla deja `Correos_ERRORES.txt`: corrige y reemplaza
+palabras prohibidas, asunto sin la empresa, saludo por el nombre; direcciones ya usadas o rebotadas se omiten), exporta
+la HV a PDF, crea un borrador por destinatario con el PDF adjunto y el asunto "[Empresa] …", agrega una fila por
+destinatario a `Correos en frío` (Estado "Borrador preparado, no enviado", Notas con la fuente), marca la empresa como
+"Borradores creados" en `Empresas objetivo` y deja `Borradores.txt`. Si algo falla deja `Correos_ERRORES.txt`: corrige y reemplaza
 `Correos.json`; Apps Script vuelve a intentarlo en la hora siguiente y quita `Correos_ERRORES.txt` cuando pasa.
 
 **No escribas en la pestaña `Correos en frío`**: Apps Script agrega las filas al crear los borradores (así no hay filas
-de borradores que no existen).
+de borradores que no existen). En `Empresas objetivo` solo cambia la celda Estado de la empresa a `En lote` al dejar su
+`Correos.json` (Apps Script la pasa a `Borradores creados`).
 
 ## Resultado para el usuario
 
