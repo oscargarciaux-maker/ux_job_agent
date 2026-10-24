@@ -285,6 +285,15 @@ assert.strictEqual(ex('English: Excellent oral and written skills'), 'exige ingl
 assert.strictEqual(ex('Excellent English communication'), 'exige inglés avanzado/fluido');
 assert.strictEqual(ex('Nivel alto de inglés'), 'exige inglés avanzado/fluido');
 assert.strictEqual(ex('Excelente manejo de Figma; inglés intermedio'), null);
+// Inglés B2 (decisión del usuario 2026-10-24): un B1/B2 explícito pasa aunque lo llamen avanzado; fluido/nativo/bilingüe no
+assert.strictEqual(ex('Requisitos: inglés avanzado (B2)'), null);
+assert.strictEqual(ex('Advanced English (B2 level or higher)'), null);
+assert.strictEqual(ex('Nivel de inglés: B2 o C1'), null);
+assert.strictEqual(ex('Inglés C1'), 'exige inglés avanzado/fluido');
+assert.strictEqual(ex('English level: C1 or above'), 'exige inglés avanzado/fluido');
+assert.strictEqual(ex('Inglés fluido (B2)'), 'exige inglés avanzado/fluido');
+assert.strictEqual(ex('Bilingüe español-inglés, mínimo B2'), 'exige inglés avanzado/fluido');
+assert.strictEqual(ex('Upper intermediate English'), null);
 const hidden = { 'bairesdev|disenador ui ux trabajo remoto': true, 'google|ux designer': true, 'https://x.co/1': true };
 assert.ok(context.isHiddenCompanyRepeat({ company: 'confidential', title: 'Diseñador Ui/Ux Trabajo Remoto (Barranquilla)',
   description: 'En BairesDev® llevamos 15 años con clientes como Google' }, hidden));

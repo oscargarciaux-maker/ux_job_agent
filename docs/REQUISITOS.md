@@ -16,7 +16,7 @@ Estados: ✅ hecho y probado · 🟡 parcial · ⏳ pendiente · ❓ falta una d
 | Junior primero; < 5 años sirve; ≥ 5 años baja prioridad | ✅ | `MIN_JUNIOR`, `requiredYears`, `EXPERIENCE_PENALTY` |
 | Ubicación: Colombia o remoto LATAM/mundo/UTC-3 a -6; nunca solo EE. UU., Europa, India | ✅ | `REACHABLE_REMOTE_LOCATION`, `isReachableRemoteJob` |
 | Antigüedad ≤ 21 días | ✅ | `MAX_POST_AGE_DAYS`, `isRecent`, `verifyPostingDates_` (`extractJobPostingDates` acepta fechas de un dígito como las de elempleo desde 2026-10-24); la fecha de Jobicy/Remotive es la de la copia: la verifica `verificar-vacante` |
-| Descartar inglés avanzado/fluido/bilingüe | ✅ | regla "exige inglés avanzado/fluido" en `EXCLUDED_VACANCY_RULES` (desde 2026-10-24 también "nivel avanzado de inglés" y "excellent English") |
+| Descartar inglés avanzado/fluido/bilingüe | ✅ | regla "exige inglés avanzado/fluido" en `EXCLUDED_VACANCY_RULES` (desde 2026-10-24 también "nivel avanzado de inglés" y "excellent English"). Nivel real B2: fluido, nativo o bilingüe siempre descartan; avanzado, alto, excelente o C1/C2 no descartan si el aviso pide B1/B2 explícito (`unless` de la regla; decisión del usuario 2026-10-24) |
 | Avisar cuando el aviso está en inglés | ✅ | línea `Idioma` de `Detalle_Vacante` |
 | Descartar freelance por proyecto y pasantías no remuneradas | ✅ | `EXCLUDED_VACANCY_RULES` |
 | Descartar vacantes exclusivas para personas con discapacidad | ✅ | regla "exclusiva para personas con discapacidad" (no descarta las declaraciones de igualdad) |
@@ -65,6 +65,7 @@ Estados: ✅ hecho y probado · 🟡 parcial · ⏳ pendiente · ❓ falta una d
 | Perfil propio de cada vacante, en prosa, sin "X: Y" | ✅ | `validateCvJson` rechaza dos puntos en el perfil; el prompt pide un perfil escrito para cada vacante |
 | Archivo `HV_<Nombre>_<Cargo>`, sin empresa ni sufijos "(3)" | ✅ | `buildCvFileName` |
 | Idioma de la HV = idioma de la vacante | ✅ | `_idioma`, `TEMPLATE_LABELS_EN_` |
+| Nivel de inglés en la HV: B2 (intermedio alto), no "intermedio" (decisión del usuario 2026-10-24) | ✅ | `CONTEXTO_CV` y `CRITERIOS_BUSQUEDA` actualizados; skills `crear-hv` y `revisar-hv`, prompt `ia/prompt_cv_diario.md` |
 | Cargos: título de LinkedIn ajustado con criterio a la vacante, nunca repetidos ni todos copiando el de la vacante (decisión del usuario 2026-10-22) | ✅ | prompt `ia/prompt_cv_diario.md`; `cargoErrors` en `validateCvJson` |
 | Experiencias base Seguros Bolívar, Meevent y Central Xpress, ampliadas; Trezo o Creditop solo si aportan mucho (Creditop solo con research explícito); máximo 4 (decisión del usuario 2026-10-24) | ✅ | skill `crear-hv`, prompt `ia/prompt_cv_diario.md`, `REGLAS_CV` actualizado |
 | Cada experiencia con 1–2 líneas de descripción y 3 logros (hasta 4); los logros pesan más que una cuarta experiencia | ✅ | `MASTER_TEMPLATE` (`DESC_EXP_n`, `LOGRO_n_4`); skill `crear-hv` |
