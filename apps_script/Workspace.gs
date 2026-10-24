@@ -204,12 +204,25 @@ function escapeHtml_(text) {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+/** Texto plano del correo: los enlaces "[LinkedIn](https://...)" quedan como "LinkedIn (https://...)". */
+function emailPlainText(bodyText) {
+  return bodyText.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '$1 ($2)');
+}
+
+/** HTML del correo: párrafos, "[texto](url)" como enlace y URLs sueltas clicables. */
+function emailHtml(bodyText) {
+  const linkify = p => escapeHtml_(p)
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)|(https?:\/\/[^\s<]+)/g,
+             (m, label, url, bare) => '<a href="' + (url || bare) + '">' + (label || bare) + '</a>')
+    .replace(/\n/g, '<br>');
+  return '<div style="font-family: Arial, Helvetica, sans-serif;">' +
+    bodyText.split('\n\n').map(p => '<p>' + linkify(p) + '</p>').join('') + '</div>';
+}
+
 function buildMimeMessage(to, subject, bodyText, pdfBlob) {
   const mixed = 'mixed_' + Utilities.getUuid();
   const alt = 'alt_' + Utilities.getUuid();
-  const html = '<div style="font-family: Arial, Helvetica, sans-serif;">' +
-    bodyText.split('\n\n').map(p => '<p>' + escapeHtml_(p).replace(/\n/g, '<br>') + '</p>').join('') +
-    '</div>';
+  const html = emailHtml(bodyText);
 
   const lines = [
     'To: ' + to,
@@ -224,7 +237,7 @@ function buildMimeMessage(to, subject, bodyText, pdfBlob) {
     'Content-Type: text/plain; charset="UTF-8"',
     'Content-Transfer-Encoding: base64',
     '',
-    wrapBase64_(Utilities.base64Encode(bodyText, Utilities.Charset.UTF_8)),
+    wrapBase64_(Utilities.base64Encode(emailPlainText(bodyText), Utilities.Charset.UTF_8)),
     '--' + alt,
     'Content-Type: text/html; charset="UTF-8"',
     'Content-Transfer-Encoding: base64',

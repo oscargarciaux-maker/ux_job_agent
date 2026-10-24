@@ -82,7 +82,8 @@ Estados: ✅ hecho y probado · 🟡 parcial · ⏳ pendiente · ❓ falta una d
 | Regla | Estado | Dónde / cómo se comprueba |
 |---|---|---|
 | Nunca enviar; solo borradores | ✅ | prueba "El agente no debe poder enviar correos" |
-| Correos en frío (35–40 palabras, gancho verificado, un borrador por destinatario, PDF adjunto, lotes de 3) | ⏳ | requiere investigación web por empresa (paso de IA) |
+| Correos en frío (gancho verificado, un borrador por destinatario, PDF adjunto, lotes de 3, al menos 3 direcciones con fuente) | ✅ | skill `.claude/skills/correo-en-frio` (a pedido, por lotes) + `crearBorradoresEnFrio` (`ColdEmail.gs`, cada hora dentro de `sincronizarAplicadas`): valida `Correos.json`, omite direcciones ya usadas o rebotadas, crea los borradores con la HV en PDF y agrega las filas a `Correos en frío` |
+| Correos de máximo 35 palabras según la Guía Maestra de Cover Letters (la guía principal de correos; manda sobre los 35–40 de la guía de búsqueda; decisión del usuario 2026-10-24) | ✅ | `COLD_EMAIL_MAX_WORDS`, `countEmailWords`: error en `Correos.json`, aviso en `_correo_cuerpo` de las vacantes; skills `correo-en-frio` y `crear-hv`, prompt diario |
 | Resumen diario corto en español | ⏳ | |
 
 ## Documento "Cómo filtro tus vacantes" (2026-10-24): reglas que el código aún no aplica
