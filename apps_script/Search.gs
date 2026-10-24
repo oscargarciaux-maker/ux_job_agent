@@ -307,11 +307,14 @@ function isClosedPosting(html) {
   return CONFIG.CLOSED_POSTING_PATTERN.test(String(html || ''));
 }
 
-/** Fechas del JobPosting (JSON-LD) de la página de una vacante: { posted, validThrough } en YYYY-MM-DD o null. */
+/**
+ * Fechas del JobPosting (JSON-LD) de la página de una vacante: { posted, validThrough } en YYYY-MM-DD o null.
+ * Acepta mes y día de un dígito (elempleo publica "2026-9-7": así entró una vacante de 47 días el 2026-10-24).
+ */
 function extractJobPostingDates(html) {
   const find = key => {
-    const m = String(html || '').match(new RegExp('"' + key + '"\\s*:\\s*"(\\d{4}-\\d{2}-\\d{2})'));
-    return m ? m[1] : null;
+    const m = String(html || '').match(new RegExp('"' + key + '"\\s*:\\s*"(\\d{4})-(\\d{1,2})-(\\d{1,2})'));
+    return m ? m[1] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[3]).slice(-2) : null;
   };
   return { posted: find('datePosted'), validThrough: find('validThrough') };
 }

@@ -82,6 +82,7 @@ const fechas = context.extractJobPostingDates('<script type="application/ld+json
 assert.strictEqual(fechas.posted, '2026-08-24');
 assert.strictEqual(fechas.validThrough, '2026-12-01');
 assert.strictEqual(context.extractJobPostingDates('<html>sin datos</html>').posted, null);
+assert.strictEqual(context.extractJobPostingDates('{"datePosted": "2026-9-7","validThrough":"2026-11-06"}').posted, '2026-09-07');  // elempleo
 assert.ok(!context.isRecent('2026-08-24', 14, hoy) && context.isRecent('2026-10-10', 14, hoy));
 assert.ok(context.isExpired('2026-10-17', hoy) && !context.isExpired('2026-10-18', hoy) && !context.isExpired(null, hoy));
 // Verificación por la página original: vieja, vencida, enlace muerto (404) o sin fecha
