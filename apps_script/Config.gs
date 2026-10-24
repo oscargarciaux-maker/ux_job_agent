@@ -38,7 +38,7 @@ const CONFIG = {
     // Guía de búsqueda (2026-10-22): el inglés del usuario es intermedio; no le aplican vacantes exclusivas para
     // personas con discapacidad (no se descartan las que solo invitan a postularse en su declaración de igualdad).
     { reason: 'exige inglés avanzado/fluido',
-      pattern: /\b(ingl[eé]s|english)\s*[:\-–(]?\s*(nivel\s+|level\s+)?(avanzado|fluid[oa]|nativo|c1|c2|advanced|fluent|native|proficient)\b|\bnivel\s+(de\s+)?ingl[eé]s\s*[:\-]?\s*(avanzado|fluido|nativo|alto|c1|c2)\b|\bingl[eé]s\s+(a\s+)?nivel\s+(avanzado|fluido|nativo|alto)\b|\b(advanced|fluent|native|proficient)\s+(level\s+(of\s+)?)?(in\s+)?english\b|\benglish\s+(fluency|proficiency)\b|\b(fluency|proficiency)\s+in\s+english\b|\bbiling[uü]e\b|\bbilingual\b/i },
+      pattern: /\b(ingl[eé]s|english)\s*[:\-–(]?\s*(nivel\s+|level\s+)?(avanzado|fluid[oa]|nativo|excelente|c1|c2|advanced|fluent|native|proficient|excellent)\b|\bnivel\s+(de\s+)?ingl[eé]s\s*[:\-]?\s*(avanzado|fluido|nativo|alto|c1|c2)\b|\bnivel\s+(avanzado|alto|fluido|nativo)\s+(de|en)\s+(ingl[eé]s|english)\b|\b(excellent|excelente)\s+(command\s+of\s+|level\s+of\s+)?(english|ingl[eé]s)\b|\bingl[eé]s\s+(a\s+)?nivel\s+(avanzado|fluido|nativo|alto)\b|\b(advanced|fluent|native|proficient)\s+(level\s+(of\s+)?)?(in\s+)?english\b|\benglish\s+(fluency|proficiency)\b|\b(fluency|proficiency)\s+in\s+english\b|\bbiling[uü]e\b|\bbilingual\b/i },
     { reason: 'exclusiva para personas con discapacidad',
       pattern: /(exclusiv[oa]|dirigid[oa]|solo|[uú]nicamente)\s+(para|a)\s+personas\s+con\s+discapacidad|vacante\s+(para|de)\s+personas\s+con\s+discapacidad|certificado\s+de\s+discapacidad|exclusively\s+for\s+(people|persons|candidates)\s+with\s+disabilit/i },
   ],

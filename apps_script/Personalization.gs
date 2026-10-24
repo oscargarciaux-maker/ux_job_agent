@@ -126,6 +126,23 @@ function hvRoleFromFileName(name) {
   return /^(hv|cv)$/i.test(parts[0]) && parts.length >= 4 ? parts.slice(3).join(' ') : '';
 }
 
+/**
+ * Empresa oculta (2026-10-24): un aviso "confidential" cuyo texto nombra una empresa del registro con el mismo cargo es
+ * la misma vacante (BairesDev entró así dos veces). Solo cuenta si el cargo coincide, para no confundir a la empresa con
+ * sus clientes ("clientes como Google…"). existing = claves de getExistingUrls_ ("empresa|cargo" normalizados).
+ */
+function isHiddenCompanyRepeat(vacancy, existing) {
+  const norm = t => String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+  const company = norm(vacancy.company);
+  if (company && !/^(confidential|confidencial|confidencial empresa|empresa confidencial|n d|nd)$/.test(company)) return false;
+  const text = ' ' + norm(vacancy.title + ' ' + (vacancy.description || '')) + ' ';
+  return Object.keys(existing || {}).some(key => {
+    const parts = key.split('|');
+    if (parts.length !== 2 || parts[0].length < 4 || /^confiden/.test(parts[0])) return false;
+    return text.indexOf(' ' + parts[0] + ' ') !== -1 && sameRole(parts[1], vacancy.title);
+  });
+}
+
 /** Clave para reconocer la misma vacante publicada con enlaces distintos: empresa|cargo normalizados. */
 function vacancyKey(vacancy) {
   const norm = t => String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();

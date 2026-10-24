@@ -69,7 +69,7 @@ function runPipeline_(opts) {
     } catch (e) {
       console.warn('No se pudo leer la hoja ' + CONFIG.COLD_EMAIL_SHEET_NAME + ': ' + e.message);
     }
-    const known = raw.filter(v => existing[v.link] || existing[vacancyKey(v)]);
+    const known = raw.filter(v => existing[v.link] || existing[vacancyKey(v)] || isHiddenCompanyRepeat(v, existing));
     // Empresa con carpeta en CV/ (decisión del usuario 2026-10-24): se abre la carpeta y solo es repetida si es el
     // mismo cargo (o la misma vacante); con otro cargo entra, con una nota para que el usuario lo tenga en cuenta.
     const appliedHits = [];

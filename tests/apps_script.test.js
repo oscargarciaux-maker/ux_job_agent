@@ -264,6 +264,19 @@ assert.strictEqual(ex('English: B2'), null);
 assert.strictEqual(ex('Requisito: inglés avanzado (C1)'), 'exige inglés avanzado/fluido');
 assert.strictEqual(ex('Fluent English required'), 'exige inglés avanzado/fluido');
 assert.strictEqual(ex('Bilingual (Spanish/English)'), 'exige inglés avanzado/fluido');
+// Prueba de la skill (2026-10-24): BairesDev y Hireloom entraron con estas frases
+assert.strictEqual(ex('Requisitos: Nivel avanzado de inglés'), 'exige inglés avanzado/fluido');
+assert.strictEqual(ex('English: Excellent oral and written skills'), 'exige inglés avanzado/fluido');
+assert.strictEqual(ex('Excellent English communication'), 'exige inglés avanzado/fluido');
+assert.strictEqual(ex('Nivel alto de inglés'), 'exige inglés avanzado/fluido');
+assert.strictEqual(ex('Excelente manejo de Figma; inglés intermedio'), null);
+const hidden = { 'bairesdev|disenador ui ux trabajo remoto': true, 'google|ux designer': true, 'https://x.co/1': true };
+assert.ok(context.isHiddenCompanyRepeat({ company: 'confidential', title: 'Diseñador Ui/Ux Trabajo Remoto (Barranquilla)',
+  description: 'En BairesDev® llevamos 15 años con clientes como Google' }, hidden));
+assert.ok(!context.isHiddenCompanyRepeat({ company: 'confidential', title: 'Diseñador de Interfaz de Usuario Senior',
+  description: 'En BairesDev® llevamos 15 años con clientes como Google' }, hidden));  // otro cargo
+assert.ok(!context.isHiddenCompanyRepeat({ company: 'Acme', title: 'UX Designer', description: 'Trabajamos con Google' }, hidden));
+
 assert.strictEqual(ex('We encourage people with disabilities to apply'), null);
 assert.strictEqual(ex('Vacante exclusiva para personas con discapacidad'), 'exclusiva para personas con discapacidad');
 assert.ok(vm.runInContext("CONFIG.BLOCKED_SOURCES.test('https://www.vacantes.com/oferta/1')", context));
