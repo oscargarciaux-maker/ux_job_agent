@@ -220,7 +220,22 @@ function validateCvJson(cv, contextText, placeholders, vacancy) {
   // Guía 2026-10-22: el perfil es un párrafo en prosa, sin construcciones "X: Y"
   if (/:/.test(String(cv.PERFIL_PERSONALIZADO || ''))) errors.push('PERFIL_PERSONALIZADO: va en prosa, sin dos puntos');
   cargoErrors(cv, vacancy).forEach(e => errors.push(e));
+  targetCompanyErrors(cv, vacancy).forEach(e => errors.push(e));
   return { errors: errors.filter((e, i, all) => all.indexOf(e) === i), warnings: warnings };
+}
+
+/**
+ * La HV nunca nombra a la empresa de la vacante (2026-10-24: "helping PadSplit grow" se leía como si ya trabajara
+ * allí). Solo el correo de postulación puede nombrarla. No aplica si esa empresa es una experiencia real del candidato.
+ */
+function targetCompanyErrors(cv, vacancy) {
+  const company = String((vacancy && vacancy.company) || '').trim();
+  if (company.length < 3 || /^confiden/i.test(company)) return [];
+  const pattern = new RegExp('(^|[^\\p{L}\\p{N}])' + escapeRegex_(company) + '($|[^\\p{L}\\p{N}])', 'u');
+  const keys = Object.keys(cv).filter(k => CV_META_KEYS_.indexOf(k) === -1 && typeof cv[k] === 'string');
+  if (keys.some(k => /^EMPRESA_EXP_/.test(k) && pattern.test(cv[k]))) return [];
+  return keys.filter(k => pattern.test(cv[k]))
+    .map(k => k + ': nombra a ' + company + ' (la empresa de la vacante); la HV no puede sugerir que ya trabajas allí');
 }
 
 /** La vacante pide explícitamente Junior en su cargo: entonces "junior" sí puede ir en la HV y en el archivo. */

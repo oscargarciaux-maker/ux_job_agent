@@ -91,7 +91,10 @@ keyword que de verdad corresponda a lo que se hizo. Nunca dos experiencias con e
 
 **Perfil (`PERFIL_PERSONALIZADO`):** escrito para esta vacante y su empresa. La primera frase responde a lo que la vacante
 más necesita con la evidencia real más fuerte; deja claro cómo ayuda a la empresa a escalar; máximo 5 líneas
-(≈ 70 palabras); en prosa, **sin dos puntos**. Prohibido abrir con una fórmula fija ("Diseñador UX/UI con formación
+(≈ 70 palabras); en prosa, **sin dos puntos**. **Nunca nombres a la empresa de la vacante** en la HV (perfil,
+descripciones, logros): "helping PadSplit grow" se lee como si ya trabajaras allí (error grave, 24 oct 2026). Di cómo
+ayudas a escalar a ese *tipo* de producto o equipo ("a two-sided housing marketplace", "un equipo de producto fintech").
+Solo el correo de postulación puede nombrar a la empresa. Prohibido abrir con una fórmula fija ("Diseñador UX/UI con formación
 en Diseño Industrial y Sistemas…") o repetir la apertura de otra HV del mismo día.
 
 **Secciones (`HEADER_*`):** en el idioma de la vacante (Resumen Profesional / Experiencia Profesional / Educación /
@@ -117,6 +120,8 @@ luego un cuarto logro, luego palabras de los logros; nunca la ubicación ni el p
 - Nunca en la HV ni en el nombre: aprendiz, voluntario/voluntariado, practicante, intern, volunteer, ni el semillero
   DIN'T. Ojo: "Servicio Nacional de **Aprendiz**aje" también cuenta; escribe solo "SENA". "Junior" solo si el cargo de la vacante lo dice (entonces sí en el título y en el nombre del archivo).
 - Perfil sin dos puntos. Dos experiencias nunca con el mismo cargo, ni más de una copiando el cargo de la vacante.
+- El nombre de la empresa de la vacante no aparece en ninguna parte de la HV (`targetCompanyErrors`), salvo que sea una
+  empresa donde el candidato ya trabajó.
 - `UBICACION`, `TITULO_SUBTITULO_PROFESIONAL` y `PERFIL_PERSONALIZADO` nunca vacíos.
 - Nombre del archivo: `HV_Oscar_Garcia_<Cargo>` con el cargo tal como lo pide la vacante, palabras separadas por `_`,
   siempre `HV_` (también en inglés), **sin el nombre de la empresa ni sufijos** como `(3)`, `_3`, `copia` o fechas.

@@ -237,6 +237,14 @@ assert.throws(() => context.parseCvJson('[]'), /objeto/);
 assert.strictEqual(context.shouldRemoveParagraph('{{LOGRO_1_2}}', cvOk), true);
 assert.strictEqual(context.shouldRemoveParagraph('{{EMPRESA_EXP_1}} | {{LOGRO_1_2}}', cvOk), false);
 assert.strictEqual(context.shouldRemoveParagraph('Idiomas: Español', cvOk), false);
+// La HV nunca nombra a la empresa de la vacante (2026-10-24)
+const target = { company: 'PadSplit', title: 'Senior Product Designer' };
+assert.strictEqual(context.targetCompanyErrors({ PERFIL_PERSONALIZADO: 'Ready to help PadSplit grow.' }, target).length, 1);
+assert.strictEqual(context.targetCompanyErrors({ PERFIL_PERSONALIZADO: 'Ready to help a housing marketplace grow.', _correo_cuerpo: 'Hi PadSplit team' }, target).length, 0);
+assert.strictEqual(context.targetCompanyErrors({ EMPRESA_EXP_1: 'Seguros Bolívar S.A.', LOGRO_1_1: 'At Seguros Bolívar S.A. I led…' },
+  { company: 'Seguros Bolívar S.A.' }).length, 0);  // vacante en una empresa donde ya trabajó
+assert.strictEqual(context.targetCompanyErrors({ PERFIL_PERSONALIZADO: 'Confidential work' }, { company: 'CONFIDENTIAL' }).length, 0);
+
 // Plantilla nueva (2026-10-24): un marcador vacío no borra una línea con texto fijo
 assert.strictEqual(context.shouldRemoveParagraph('(+57) 300 | correo | {{UBICACION}} | LinkedIn', { UBICACION: '' }), false);
 assert.strictEqual(context.shouldRemoveParagraph('{{CATEGORIA_SKILL_5}}: {{DETALLE_SKILL_5}}', { CATEGORIA_SKILL_5: '', DETALLE_SKILL_5: '' }), true);
