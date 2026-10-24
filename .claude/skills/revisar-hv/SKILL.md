@@ -58,7 +58,7 @@ entrevistas; nunca "entrevisté a más de 90"); Seguros Bolívar, equipo de 6 co
 | 4 | **Sin restos de plantilla** | queda un `{{…}}`, una viñeta vacía, un rótulo sin contenido o dos líneas en blanco seguidas | Corrige: borra el párrafo vacío o el blanco sobrante |
 | 5 | **Idioma** | algo en el otro idioma (títulos de sección, `Idiomas:`/`Languages:`, `Portafolio`/`Portfolio`, meses, "Presente"/"Present", ubicación) o la HV no está en el idioma de la vacante | Corrige los rótulos y palabras sueltas. Si toda la HV está en el idioma equivocado, propón rehacerla con `crear-hv` |
 | 6 | **Ortografía y gramática** | errores de tildes, concordancia, mayúsculas, puntuación; en inglés, frases que un hablante intermedio no podría defender | Corrige |
-| 7 | **Encabezado** | el título profesional no se adapta al cargo o le atribuye un nivel sin respaldo; `UBICACION` no sigue la regla (Bogotá → nada; otra ciudad de Colombia → relocalización; remoto o exterior → Remoto); un enlace no es `https://`, tiene espacios o no coincide con el de `MASTER_TEMPLATE` | Corrige la ubicación y los enlaces (texto y URL). El título, propuesta salvo un nivel inflado (corrige quitándolo) |
+| 7 | **Encabezado** | el título profesional no se adapta al cargo o le atribuye un nivel sin respaldo; `UBICACION` no sigue la regla (Bogotá → nada; otra ciudad de Colombia → relocalización; remoto o exterior → Remoto); un enlace no es `https://`, tiene espacios o no coincide con el de `MASTER_TEMPLATE` | Corrige la ubicación y los enlaces (texto y URL). Si el error viene de `MASTER_TEMPLATE` (el 24 oct su WhatsApp era `http://`), corrígelo también en la plantilla y dilo en el resumen: si no, sale en todas las HV. El título, propuesta salvo un nivel inflado (corrige quitándolo) |
 | 8 | **Perfil** | tiene dos puntos ("X: Y"), pasa de 5 líneas, abre con una fórmula fija, es igual o casi igual (misma primera frase o mismo cierre) al de otra HV de hoy, o no responde a lo que la vacante más pide | Dos puntos y largo: corrige (coma o punto; acorta). Lo demás: propón un perfil nuevo |
 | 9 | **Experiencias y cargos** | dos experiencias con el mismo cargo; más de una copia el cargo de la vacante; un cargo infla el nivel del título de LinkedIn; una experiencia con menos de 3 logros mientras hay una cuarta experiencia; el orden no sigue la relevancia para la vacante | Propón (cargo y logros son de criterio). Nivel inflado: corrige al título de LinkedIn |
 | 10 | **Logros** | sin cifra cuando `CONTEXTO_CV` tiene una para eso; más de 35 palabras; no usan ninguna keyword de la vacante | Largo: corrige acortando. Lo demás: propón |
@@ -75,8 +75,14 @@ Exporta el Doc a PDF (Drive `download_file_content` con `application/pdf`) y mí
   los logros más largos (adjetivos como "end-to-end", "centralized"), la cuarta experiencia (sus párrafos completos).
   Nunca la ubicación ni el perfil, ni los márgenes ni el tamaño de letra.
 - **Título profesional en una línea.** Si se parte, quita el término menos importante para la vacante.
-- **Sin huérfanas:** ningún perfil, descripción o logro termina con una línea de 1 a 3 palabras. Acorta la frase sin
-  cambiar los hechos hasta que la última línea tenga más palabras o desaparezca.
+- **Sin huérfanas:** ningún perfil, descripción, logro ni línea de habilidades termina con una línea de 1 a 3 palabras.
+  Acorta la frase sin cambiar los hechos hasta que la última línea tenga más palabras o desaparezca. En una lista
+  (habilidades, herramientas), quita el elemento menos relevante para la vacante (el 24 oct, "Adobe Creative Suite" en
+  una HV de producto). Para no adivinar, mide antes de editar: Liberation Sans tiene las mismas medidas que Arial
+  (`PIL.ImageFont.truetype(".../LiberationSans-Regular.ttf")`, `getlength` a 11 pt; las etiquetas en negrita con
+  `LiberationSans-Bold.ttf`); el ancho útil es 468 pt en párrafos y 432 pt en viñetas (márgenes de 72 pt, sangría
+  de 36 pt). Si al reordenar la frase la segunda línea sigue corta, es que el texto pasa apenas de un renglón: hay que
+  quitar, no reordenar.
 - **Ningún cargo, título de sección o descripción solo al final de una página.** Aplica `keepWithNext`
   (`updateParagraphStyle`) a títulos, cargos y descripciones si no lo tienen.
 - **Sin huecos:** ningún espacio grande entre viñetas o antes de un título de sección.
