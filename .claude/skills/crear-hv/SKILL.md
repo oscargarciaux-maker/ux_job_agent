@@ -107,7 +107,7 @@ luego un cuarto logro, luego palabras de los logros; nunca la ubicación ni el p
 - Toda cifra (números, %, $, años) debe aparecer en `CONTEXTO_CV`. Cada `EMPRESA_EXP_n`, escrita igual que en `CONTEXTO_CV`.
 - No inventes empresas, herramientas, tecnologías ni resultados.
 - Nunca en la HV ni en el nombre: aprendiz, voluntario/voluntariado, practicante, intern, volunteer, ni el semillero
-  DIN'T. "Junior" solo si el cargo de la vacante lo dice (entonces sí en el título y en el nombre del archivo).
+  DIN'T. Ojo: "Servicio Nacional de **Aprendiz**aje" también cuenta; escribe solo "SENA". "Junior" solo si el cargo de la vacante lo dice (entonces sí en el título y en el nombre del archivo).
 - Perfil sin dos puntos. Dos experiencias nunca con el mismo cargo, ni más de una copiando el cargo de la vacante.
 - `UBICACION`, `TITULO_SUBTITULO_PROFESIONAL` y `PERFIL_PERSONALIZADO` nunca vacíos.
 - Nombre del archivo: `HV_Oscar_Garcia_<Cargo>` con el cargo tal como lo pide la vacante, palabras separadas por `_`,
@@ -124,7 +124,10 @@ Apps Script lo valida y arma la HV a las 10:00.
 ### En una conversación (inmediato)
 Cuando el usuario la pide en el chat, arma la HV en ese momento (con los conectores de Google Drive y Google Docs; lee
 antes la skill `google-workspace` si está disponible):
-1. Escribe el mismo `CV_IA.json` en la carpeta (queda como registro de lo que se escribió).
+1. Escribe el mismo `CV_IA.json` en la carpeta (queda como registro de lo que se escribió). Drive `update_file` solo
+   cambia el nombre o la carpeta, **no el contenido**: si ya hay un `CV_IA.json` de un intento anterior, mándalo a la
+   papelera (`trash_file`) y crea el nuevo. Si en la carpeta ya existe una HV (`HV_…`), crea la nueva igual y pregunta al
+   usuario si la anterior va a la papelera; nunca borres una HV sin que lo diga.
 2. Revisa tú mismo las reglas duras (aquí no pasa por la validación de Apps Script): cada cifra contra `CONTEXTO_CV`,
    empresas, palabras prohibidas, perfil sin dos puntos, cargos.
 3. Copia `MASTER_TEMPLATE` a la carpeta con el nombre del archivo (Drive `copy_file`).
@@ -132,9 +135,17 @@ antes la skill `google-workspace` si está disponible):
    marcadores vayan todos en `""` y no tenga otro texto (más el párrafo en blanco que lo sigue), y los párrafos en blanco
    entre viñetas.
 5. Reemplaza cada marcador con su texto (`replaceAllText`, `matchCase`). En inglés, cambia también `Idiomas:` por
-   `Languages:`.
-6. Verifica: lee el documento y confirma que no queda ningún `{{` y que el texto es el esperado; si puedes, exporta a PDF
-   y comprueba que son **2 páginas o menos**. Si pasa de 2, recorta (ver Extensión) y vuelve a verificar.
+   `Languages:` y el texto del enlace `Portafolio` por `Portfolio` (el enlace se conserva).
+6. Verifica: lee el documento y confirma que no queda ningún `{{` y que el texto es el esperado. Exporta a PDF
+   (`download_file_content` con `application/pdf`; con la skill `google-workspace`, `render_export.py` lo convierte en
+   imágenes) y **mira las páginas**:
+   - **2 páginas o menos.** Si pasa de 2, recorta (ver Extensión) y vuelve a verificar.
+   - **El título profesional cabe en una línea.**
+   - **Sin palabras huérfanas:** ningún logro, descripción o perfil termina con una línea de 1 a 3 palabras. Acorta la
+     frase (quita adjetivos como "end-to-end", "centralized", "generative") hasta que la última línea tenga más palabras
+     o desaparezca.
+   - Ningún cargo queda solo al final de una página (la plantilla tiene "mantener con el siguiente"; si una HV antigua no
+     lo tiene, aplícalo con `updateParagraphStyle` `keepWithNext` a títulos, cargos y descripciones).
 7. Modo vacante: en `Vacantes UX - Registro` (`Hoja 1`), pon `Pendiente` en la celda Estado de esa vacante (busca la fila
    por el enlace); si no está, agrega la fila. Modo frío: no toques el registro (lo hará la skill `correo-en-frio`).
 8. El PDF lo exporta el usuario después de revisar el Google Doc. No crees borradores de correo desde aquí.

@@ -235,7 +235,7 @@ Registro:
   de Drive (recuperables 30 días), mueve las DUDOSA a `Sin revisar/<fecha>/Dudosas/` y deja en el registro
   (`Hoja 1`, columna F Estado) `Descartada: <motivo>` o `Dudosa: <motivo>`. Las de `Dudosas` cuyo veredicto cambie a
   LISTA vuelven al día; a DESCARTAR, a la papelera.
-- **Decisión del usuario sobre una dudosa:** "sí" → reemplaza su `Verificacion.txt` (`update_file`) para que empiece
+- **Decisión del usuario sobre una dudosa:** "sí" → reemplaza su `Verificacion.txt` (Drive `update_file` no cambia el contenido: `trash_file` del anterior y `create_file` del nuevo) para que empiece
   por `VEREDICTO: LISTA` y `MOTIVO: aprobada por el usuario`, y sigue con la hoja de vida; "no" → `VEREDICTO:
   DESCARTAR` y su motivo.
 - Otras carpetas (otro día, o después de las 10:00) o enlaces sueltos: con el conector de Google Sheets, busca la fila
