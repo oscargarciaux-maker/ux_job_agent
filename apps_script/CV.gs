@@ -6,13 +6,12 @@
  */
 
 const CV_META_KEYS_ = ['_idioma', '_keywords', '_gaps', '_correo_cuerpo', '_nombre_archivo'];
+const CV_REQUIRED_KEYS_ = ['UBICACION', 'TITULO_SUBTITULO_PROFESIONAL', 'PERFIL_PERSONALIZADO'];
 
 // Rótulos fijos de MASTER_TEMPLATE que se traducen cuando la vacante está en inglés.
+// Desde 2026-10-24 las categorías de habilidades y la ubicación son marcadores que la IA escribe en el idioma de la vacante.
 const TEMPLATE_LABELS_EN_ = {
-  'Herramientas:': 'Tools:',
-  'Competencias Blandas:': 'Soft Skills:',
   'Idiomas:': 'Languages:',
-  'Abierto a relocalización / Remoto': 'Open to relocation / Remote',
 };
 
 /** Para cada carpeta de hoy con CV_IA.json y sin CV generado: valida, llena la plantilla, PDF (si está activo), borrador y registro. */
@@ -190,6 +189,10 @@ function validateCvJson(cv, contextText, placeholders, vacancy) {
   placeholders.forEach(p => {
     if (!(p in cv)) errors.push('Falta el marcador ' + p + ' (usa "" para eliminarlo)');
   });
+  // Marcadores que nunca pueden ir vacíos (2026-10-24): la ubicación va dentro de la línea de contacto
+  CV_REQUIRED_KEYS_.forEach(key => {
+    if (placeholders.indexOf(key) !== -1 && typeof cv[key] === 'string' && !cv[key].trim()) errors.push(key + ' no puede ir vacío');
+  });
   Object.keys(cv).forEach(key => {
     if (CV_META_KEYS_.indexOf(key) !== -1) return;
     if (typeof cv[key] !== 'string') errors.push(key + ' debe ser texto');
@@ -277,8 +280,12 @@ function buildCvFileName(cv, vacancy, label) {
 
 /** Un párrafo se elimina si todos sus marcadores quedan vacíos (p. ej. una 4.ª experiencia que no aplica). */
 function shouldRemoveParagraph(paragraphText, cv) {
-  const markers = String(paragraphText).match(/\{\{[A-Z0-9_]+\}\}/g);
-  return !!markers && markers.every(m => cv[m.slice(2, -2)] === '');
+  const text = String(paragraphText);
+  const markers = text.match(/\{\{[A-Z0-9_]+\}\}/g);
+  // Solo si fuera de los marcadores no queda texto real ("{{CARGO}} | {{EMPRESA}}", "{{CATEGORIA}}: {{DETALLE}}"):
+  // un marcador vacío nunca borra una línea con contenido fijo, como la de contacto con {{UBICACION}}
+  const rest = text.replace(/\{\{[A-Z0-9_]+\}\}/g, '');
+  return !!markers && markers.every(m => cv[m.slice(2, -2)] === '') && !/[\p{L}\p{N}]/u.test(rest);
 }
 
 /** Lee los metadatos que createVacancyDetailDoc_ escribe en Detalle_Vacante. */

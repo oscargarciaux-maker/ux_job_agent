@@ -65,7 +65,12 @@ Estados: ✅ hecho y probado · 🟡 parcial · ⏳ pendiente · ❓ falta una d
 | Archivo `HV_<Nombre>_<Cargo>`, sin empresa ni sufijos "(3)" | ✅ | `buildCvFileName` |
 | Idioma de la HV = idioma de la vacante | ✅ | `_idioma`, `TEMPLATE_LABELS_EN_` |
 | Cargos: título de LinkedIn ajustado con criterio a la vacante, nunca repetidos ni todos copiando el de la vacante (decisión del usuario 2026-10-22) | ✅ | prompt `ia/prompt_cv_diario.md`; `cargoErrors` en `validateCvJson` |
-| 3 experiencias por defecto, elegidas según la empresa; Creditop solo si la vacante pide research y es de las mejores opciones (decisión del usuario 2026-10-24) | ✅ | prompt `ia/prompt_cv_diario.md` (manda sobre `REGLAS_CV`) |
+| Experiencias base Seguros Bolívar, Meevent y Central Xpress, ampliadas; Trezo o Creditop solo si aportan mucho (Creditop solo con research explícito); máximo 4 (decisión del usuario 2026-10-24) | ✅ | skill `crear-hv`, prompt `ia/prompt_cv_diario.md`, `REGLAS_CV` actualizado |
+| Cada experiencia con 1–2 líneas de descripción y 3 logros (hasta 4); los logros pesan más que una cuarta experiencia | ✅ | `MASTER_TEMPLATE` (`DESC_EXP_n`, `LOGRO_n_4`); skill `crear-hv` |
+| Ubicación según la vacante: Bogotá sin nota; otra ciudad "(Abierto a relocalización)"; remota o exterior "(Remoto)" | ✅ | `{{UBICACION}}` en `MASTER_TEMPLATE`, no puede ir vacía (`CV_REQUIRED_KEYS_`); skill `crear-hv` |
+| Categorías de habilidades según la vacante | ✅ | `CATEGORIA_SKILL_1..5` en `MASTER_TEMPLATE` |
+| HV para correo en frío (sin vacante): cargo deducido de la empresa, carpeta `Correos en frío/<Empresa>` | ✅ | skill `crear-hv` (modo B) |
+| HV pedida en una conversación se arma de inmediato | ✅ | skill `crear-hv` (copia `MASTER_TEMPLATE` y la llena con los conectores de Drive y Docs) |
 | 2 páginas, sin huérfanas, márgenes intactos | 🟡 | la plantilla quita los huecos (`removeGapsBetweenBullets_`); el conteo de páginas y las huérfanas los revisa el usuario |
 | Enlaces del encabezado con https | ❓ | están en `MASTER_TEMPLATE` (plantilla del usuario) |
 
