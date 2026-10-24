@@ -237,6 +237,12 @@ assert.throws(() => context.parseCvJson('[]'), /objeto/);
 assert.strictEqual(context.shouldRemoveParagraph('{{LOGRO_1_2}}', cvOk), true);
 assert.strictEqual(context.shouldRemoveParagraph('{{EMPRESA_EXP_1}} | {{LOGRO_1_2}}', cvOk), false);
 assert.strictEqual(context.shouldRemoveParagraph('Idiomas: Español', cvOk), false);
+// Plantilla nueva (2026-10-24): un marcador vacío no borra una línea con texto fijo
+assert.strictEqual(context.shouldRemoveParagraph('(+57) 300 | correo | {{UBICACION}} | LinkedIn', { UBICACION: '' }), false);
+assert.strictEqual(context.shouldRemoveParagraph('{{CATEGORIA_SKILL_5}}: {{DETALLE_SKILL_5}}', { CATEGORIA_SKILL_5: '', DETALLE_SKILL_5: '' }), true);
+assert.strictEqual(context.shouldRemoveParagraph('{{DESC_EXP_4}}', { DESC_EXP_4: '' }), true);
+assert.ok(context.validateCvJson(Object.assign({}, cvOk, { UBICACION: '' }), contexto, marcadores.concat(['UBICACION'])).errors
+  .some(e => /UBICACION no puede ir vacío/.test(e)));
 assert.strictEqual(context.escapeRegex_('{{A_1}}'), '\\{\\{A_1\\}\\}');
 const detalle = context.parseVacancyDetail(['Diseñador UX/UI Junior', 'Empresa: Acme', 'Link: https://x.co/1',
   'Idioma: EN', 'Correo de contacto: N/D', 'Descripción completa'].join('\n'));
