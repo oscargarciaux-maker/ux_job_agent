@@ -288,6 +288,13 @@ assert.strictEqual(context.vacancyFolderNames([
   { company: 'acme', title: 'Product Owner' }, { company: 'Acme', title: 'Product Designer Sr' },
 ]).join(' | '), 'Acme_Product Designer | Globex | acme_Product Owner | Acme_Product Designer 2');
 
+// Publicaciones: un solo documento "Posts" del día con título, autor, fecha, enlace y fragmento
+const entry = context.postEntry(context.parseLinkedInPost({ title: 'Ana Gómez en LinkedIn: Buscamos diseñador UX/UI | LinkedIn',
+  snippet: 'Envía tu HV a ana@example.com', link: 'https://www.linkedin.com/posts/ana_1', date: '2026-10-20' }));
+assert.strictEqual(entry.heading, 'Buscamos diseñador UX/UI · Ana Gómez · 2026-10-20');
+assert.strictEqual(entry.link, 'https://www.linkedin.com/posts/ana_1');
+assert.strictEqual(entry.snippet, 'Envía tu HV a ana@example.com');
+
 // HITL: ninguna llamada de envío de correo en el código
 const allCode = fs.readdirSync(dir).map(f => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n');
 assert.ok(!/\.send\(|Messages\.send|sendEmail|GmailApp/.test(allCode), 'El agente no debe poder enviar correos');

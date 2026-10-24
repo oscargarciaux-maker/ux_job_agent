@@ -47,8 +47,9 @@ Estados: ✅ hecho y probado · 🟡 parcial · ⏳ pendiente · ❓ falta una d
 | Vacantes nuevas en `Vacantes con IA/Sin revisar/<fecha>/`, fuera de las semanas; las enviadas las mueve el usuario a `CV/<semana>/<fecha>` (decisión del usuario 2026-10-22) | ✅ | `todayVacancyFolder_`, `CONFIG.PENDING_FOLDER_NAME`; `generarCVsDesdeIA` lee `Sin revisar/<hoy>` |
 | La carpeta lleva solo el nombre de la empresa; si ese día la empresa tiene dos vacantes, cada carpeta suma un detalle corto del cargo (decisión del usuario 2026-10-22) | ✅ | `vacancyFolderNames`, `shortRoleDetail` |
 | Doc del aviso llamado "Vacante" | ❓ | hoy se llama `Detalle_Vacante` |
-| HV en Google Doc + PDF | ❓ | Doc ✅; PDF en pausa (`CV_EXPORT_PDF` = false, decisión del 2026-10-19) |
-| Colores: rojo rechazada, verde en proceso, amarillo aplicada sin respuesta | 🟡 | `colorToStatus` lee los colores; las publicaciones de LinkedIn se pintan de amarillo (`MANUAL_FOLDER_COLOR`), que choca con la leyenda |
+| HV en Google Doc + PDF | ✅ | Doc automático; el PDF lo exporta el usuario tras ajustar el Doc (`CV_EXPORT_PDF` = false, decisión del usuario confirmada el 2026-10-24) |
+| Colores: rojo rechazada, verde en proceso, amarillo aplicada sin respuesta | ✅ | `colorToStatus` lee los colores; el agente ya no pinta carpetas |
+| Publicaciones de LinkedIn sin carpeta propia ni color: un documento "Posts" del día con todos los enlaces (decisión del usuario 2026-10-24) | ✅ | `addPostsToDailyDoc_`, `postEntry` |
 | Hoja 1, Aplicadas, Correos en frío | 🟡 | Hoja 1 y Aplicadas ✅; Correos en frío solo se lee |
 | Actualizar estados y colores con los correos de respuesta | ⏳ | requiere leer Gmail (nuevo permiso `gmail.readonly` en el manifiesto) |
 
@@ -62,7 +63,7 @@ Estados: ✅ hecho y probado · 🟡 parcial · ⏳ pendiente · ❓ falta una d
 | Archivo `HV_<Nombre>_<Cargo>`, sin empresa ni sufijos "(3)" | ✅ | `buildCvFileName` |
 | Idioma de la HV = idioma de la vacante | ✅ | `_idioma`, `TEMPLATE_LABELS_EN_` |
 | Cargos: título de LinkedIn ajustado con criterio a la vacante, nunca repetidos ni todos copiando el de la vacante (decisión del usuario 2026-10-22) | ✅ | prompt `ia/prompt_cv_diario.md`; `cargoErrors` en `validateCvJson` |
-| 3 experiencias por defecto, elegidas según la empresa | ❓ | `REGLAS_CV` define otra prioridad |
+| 3 experiencias por defecto, elegidas según la empresa; Creditop solo si la vacante pide research y es de las mejores opciones (decisión del usuario 2026-10-24) | ✅ | prompt `ia/prompt_cv_diario.md` (manda sobre `REGLAS_CV`) |
 | 2 páginas, sin huérfanas, márgenes intactos | 🟡 | la plantilla quita los huecos (`removeGapsBetweenBullets_`); el conteo de páginas y las huérfanas los revisa el usuario |
 | Enlaces del encabezado con https | ❓ | están en `MASTER_TEMPLATE` (plantilla del usuario) |
 

@@ -88,7 +88,10 @@ const CONFIG = {
   ROOT_FOLDER_NAME: 'Vacantes con IA',
   SHEET_TITLE: 'Vacantes UX - Registro',
   TEMPLATE_TITLE: 'Plantilla CV Maestra',
-  MANUAL_FOLDER_COLOR: '#fad165',   // Amarillo de Drive: carpetas de publicaciones para proceso manual
+  // Publicaciones de LinkedIn (decisión del usuario 2026-10-24): sin color (amarillo = "aplicada" en su leyenda) y
+  // todas en una sola carpeta del día con un documento de enlaces: Sin revisar/<fecha>/Posts/Posts
+  POSTS_FOLDER_NAME: 'Posts',
+  POSTS_DOC_NAME: 'Posts',
   MASTER_TEMPLATE_NAME: 'MASTER_TEMPLATE',   // Si existe en la carpeta raíz, tiene prioridad
   CONTEXT_DOC_NAME: 'CONTEXTO_CV',   // Google Doc privado con los datos reales (validación anti-alucinación)
   CV_JSON_NAME: 'CV_IA.json',        // Lo deja la IA en la carpeta de cada vacante

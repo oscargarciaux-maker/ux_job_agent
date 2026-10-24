@@ -93,6 +93,7 @@ function runPipeline_(opts) {
   selected.sort((a, b) => (a.vacancy.isPost ? 1 : 0) - (b.vacancy.isPost ? 1 : 0));
   const startedAt = Date.now();
   const folderNames = vacancyFolderNames(selected.map(x => x.vacancy));
+  const posts = [];
   selected.some((item, i) => {
     if (Date.now() - startedAt > CONFIG.TIME_BUDGET_MS) {
       console.warn('Se acaba el tiempo de Apps Script: quedan ' + (selected.length - i) +
@@ -110,15 +111,12 @@ function runPipeline_(opts) {
       return false;
     }
 
+    if (v.isPost) {  // Van todas juntas al documento "Posts" del día (abajo), sin carpeta propia ni color
+      posts.push(item);
+      return false;
+    }
     try {
       const folder = setupVacancyFolder_(v, folderNames[i]);
-      if (v.isPost) {
-        createPostLinkDoc_(folder, v);
-        setFolderColor_(folder, CONFIG.MANUAL_FOLDER_COLOR);
-        appendVacancyRow_(sheet, v, item.score, 'Manual (publicación)');
-        console.log(label + ' -> publicación: carpeta amarilla con el enlace (proceso manual)');
-        return false;
-      }
       createVacancyDetailDoc_(folder, v, item, language);
       // El CV personalizado y el borrador de Gmail los arma generarCVsDesdeIA (CV.gs) desde CV_IA.json.
       appendVacancyRow_(sheet, v, item.score, 'Esperando CV (IA)');
@@ -128,6 +126,19 @@ function runPipeline_(opts) {
     }
     return false;
   });
+
+  if (posts.length && !opts.dryRun) {
+    // Publicaciones de LinkedIn (decisión del usuario 2026-10-24): una sola carpeta "Posts" del día, sin color, con un
+    // documento "Posts" que reúne todos los enlaces. Se registran en Sheets solo si el documento se escribió.
+    try {
+      addPostsToDailyDoc_(posts.map(x => x.vacancy));
+      posts.forEach(x => appendVacancyRow_(sheet, x.vacancy, x.score, 'Manual (publicación)'));
+      console.log('Publicaciones: ' + posts.length + ' enlaces en ' + CONFIG.PENDING_FOLDER_NAME + '/<hoy>/' +
+                  CONFIG.POSTS_FOLDER_NAME + '/' + CONFIG.POSTS_DOC_NAME + ' (proceso manual)');
+    } catch (e) {
+      console.error('Publicaciones -> ERROR: ' + e.message);
+    }
+  }
 
   console.log('--- Pipeline Diario Finalizado ---');
 }

@@ -120,24 +120,37 @@ function createVacancyDetailDoc_(folder, vacancy, item, language) {
   DriveApp.getFileById(doc.getId()).moveTo(folder);
 }
 
-/** Publicaciones (sin texto completo): solo el enlace, para que el usuario haga el proceso a mano. */
-function createPostLinkDoc_(folder, vacancy) {
-  const doc = DocumentApp.create('Enlace_Publicacion');
+/** Publicaciones (sin texto completo): agrega sus enlaces al documento "Posts" del día, para el proceso manual. */
+function addPostsToDailyDoc_(posts) {
+  const folder = getOrCreateSubfolder_(todayVacancyFolder_(), CONFIG.POSTS_FOLDER_NAME);
+  const existing = folder.getFilesByName(CONFIG.POSTS_DOC_NAME);
+  let doc;
+  if (existing.hasNext()) {
+    doc = DocumentApp.openById(existing.next().getId());
+  } else {
+    doc = DocumentApp.create(CONFIG.POSTS_DOC_NAME);
+    DriveApp.getFileById(doc.getId()).moveTo(folder);
+    doc.getBody().appendParagraph('Proceso manual: abre cada publicación, revisa la oferta completa y adapta tu CV.');
+  }
   const body = doc.getBody();
-  body.appendParagraph('Proceso manual: abre la publicación, revisa la oferta completa y adapta tu CV.');
-  body.appendParagraph(vacancy.link).setLinkUrl(vacancy.link);
+  posts.forEach(v => {
+    const entry = postEntry(v);
+    body.appendParagraph(entry.heading).setHeading(DocumentApp.ParagraphHeading.HEADING3);
+    body.appendParagraph(entry.link).setLinkUrl(entry.link);
+    if (entry.snippet) body.appendParagraph(entry.snippet);
+  });
   doc.saveAndClose();
-  DriveApp.getFileById(doc.getId()).moveTo(folder);
 }
 
-/** Colorea la carpeta (requiere el servicio avanzado Drive del manifiesto). Si falla, solo avisa. */
-function setFolderColor_(folder, color) {
-  try {
-    if (typeof Drive === 'undefined') throw new Error('falta el servicio Drive en appsscript.json');
-    Drive.Files.update({ folderColorRgb: color }, folder.getId());
-  } catch (e) {
-    console.warn('No se pudo colorear la carpeta ' + folder.getName() + ': ' + e.message);
-  }
+/** Lo que va en el documento "Posts" por cada publicación: título con autor y fecha, enlace y fragmento visible. */
+function postEntry(vacancy) {
+  const author = String(vacancy.company || '').replace(/^Post\s+/, '');
+  const snippet = String(vacancy.description || '').split('\n').slice(1).join(' ').trim();
+  return {
+    heading: [vacancy.title || 'Publicación de LinkedIn', author, vacancy.postedAt].filter(Boolean).join(' · '),
+    link: vacancy.link,
+    snippet: snippet.slice(0, 400),
+  };
 }
 
 // ---------- Google Docs (clonado de plantilla + reemplazo de placeholders) ----------
