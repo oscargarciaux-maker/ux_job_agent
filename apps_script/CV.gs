@@ -12,6 +12,7 @@ const CV_REQUIRED_KEYS_ = ['UBICACION', 'TITULO_SUBTITULO_PROFESIONAL', 'PERFIL_
 // Desde 2026-10-24 las categorías de habilidades y la ubicación son marcadores que la IA escribe en el idioma de la vacante.
 const TEMPLATE_LABELS_EN_ = {
   'Idiomas:': 'Languages:',
+  'Portafolio': 'Portfolio',  // Texto del enlace del encabezado (prueba de crear-hv, 2026-10-24)
 };
 
 /** Para cada carpeta de hoy con CV_IA.json y sin CV generado: valida, llena la plantilla, PDF (si está activo), borrador y registro. */
@@ -219,7 +220,22 @@ function validateCvJson(cv, contextText, placeholders, vacancy) {
   // Guía 2026-10-22: el perfil es un párrafo en prosa, sin construcciones "X: Y"
   if (/:/.test(String(cv.PERFIL_PERSONALIZADO || ''))) errors.push('PERFIL_PERSONALIZADO: va en prosa, sin dos puntos');
   cargoErrors(cv, vacancy).forEach(e => errors.push(e));
+  targetCompanyErrors(cv, vacancy).forEach(e => errors.push(e));
   return { errors: errors.filter((e, i, all) => all.indexOf(e) === i), warnings: warnings };
+}
+
+/**
+ * La HV nunca nombra a la empresa de la vacante (2026-10-24: "helping PadSplit grow" se leía como si ya trabajara
+ * allí). Solo el correo de postulación puede nombrarla. No aplica si esa empresa es una experiencia real del candidato.
+ */
+function targetCompanyErrors(cv, vacancy) {
+  const company = String((vacancy && vacancy.company) || '').trim();
+  if (company.length < 3 || /^confiden/i.test(company)) return [];
+  const pattern = new RegExp('(^|[^\\p{L}\\p{N}])' + escapeRegex_(company) + '($|[^\\p{L}\\p{N}])', 'u');
+  const keys = Object.keys(cv).filter(k => CV_META_KEYS_.indexOf(k) === -1 && typeof cv[k] === 'string');
+  if (keys.some(k => /^EMPRESA_EXP_/.test(k) && pattern.test(cv[k]))) return [];
+  return keys.filter(k => pattern.test(cv[k]))
+    .map(k => k + ': nombra a ' + company + ' (la empresa de la vacante); la HV no puede sugerir que ya trabajas allí');
 }
 
 /** La vacante pide explícitamente Junior en su cargo: entonces "junior" sí puede ir en la HV y en el archivo. */
@@ -318,17 +334,15 @@ function fillCvDocument_(docId, cv) {
   sections.forEach(section => {
     section.getParagraphs().forEach(p => {
       if (!shouldRemoveParagraph(p.getText(), cv)) return;
-      // También el párrafo en blanco que lo separa del siguiente, para no dejar huecos en el CV
-      const next = p.getNextSibling();
-      if (next && next.getType() === DocumentApp.ElementType.PARAGRAPH && !next.asParagraph().getText().trim()) {
-        next.removeFromParent();
-      }
       try {
         p.removeFromParent();
       } catch (e) {
         p.setText('');  // Docs no permite borrar el último párrafo de una sección o celda
       }
     });
+    // Los separadores en blanco que quedan juntos se reducen a uno (antes se borraba el siguiente al párrafo eliminado y,
+    // al quitar la cuarta experiencia, desaparecía también el espacio antes de Educación)
+    collapseBlankParagraphs_(section);
     removeGapsBetweenBullets_(section);
     Object.keys(cv).forEach(key => {
       if (CV_META_KEYS_.indexOf(key) === -1 && typeof cv[key] === 'string') {
@@ -343,6 +357,13 @@ function fillCvDocument_(docId, cv) {
 }
 
 /** Viñetas seguidas: borra los párrafos en blanco entre dos viñetas (los separadores entre secciones se quedan). */
+function collapseBlankParagraphs_(section) {
+  const isBlank = el => el && el.getType() === DocumentApp.ElementType.PARAGRAPH && !el.asParagraph().getText().trim();
+  for (let i = section.getNumChildren() - 2; i > 0; i--) {
+    if (isBlank(section.getChild(i)) && isBlank(section.getChild(i - 1))) section.getChild(i).removeFromParent();
+  }
+}
+
 function removeGapsBetweenBullets_(section) {
   const isBullet = el => el && el.getType() === DocumentApp.ElementType.LIST_ITEM;
   for (let i = section.getNumChildren() - 2; i > 0; i--) {
