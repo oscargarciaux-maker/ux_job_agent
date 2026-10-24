@@ -26,7 +26,24 @@ Criterios tomados del documento del usuario "Cómo filtro tus vacantes" (24 oct 
 Una de estas:
 - Un enlace a la vacante.
 - Una carpeta de `Vacantes con IA/Sin revisar/<YYYY-MM-DD>/<Empresa>` con su Google Doc `Detalle_Vacante`
-  (trae cargo, empresa, link, fecha, idioma, correo de contacto y la descripción completa).
+  (trae cargo, empresa, link, fecha, idioma, correo de contacto y la descripción completa; puede traer
+  `Rol: VERIFICAR FUNCIONES` y `Aviso empresa: …`).
+- **"Verifica las de hoy"** (o de una fecha): todas las carpetas de `Vacantes con IA/Sin revisar/<fecha>/` más cada
+  enlace del documento `Posts/Posts` de ese día (publicaciones de LinkedIn, una por una). Ver "Modo lote".
+
+## Herramientas
+
+- **Drive:** buscar carpetas y archivos (`search_files`, `parentId = '<id>'`), leer Docs (`read_file_content`) y crear
+  `Verificacion.txt` (`create_file`, `text/plain`, sin convertir).
+- **Sheets:** leer `Hoja 1`, `Aplicadas` y `Correos en frío` (`get_values`); escribir solo la celda de Estado
+  (`update_values`) o agregar una fila (`append_values`).
+- **Web:** navegador con sesión si existe (Claude en Chrome, app de escritorio); si no, lectura de páginas y búsqueda
+  web. La red disponible depende del entorno: si un sitio no abre, se reporta "sin verificar", nunca se da por bueno.
+
+## Orden de trabajo
+
+Primero lo barato y sin red (paso 4, repetidas; paso 3 con el texto de `Detalle_Vacante`), después abrir enlaces
+(pasos 1, 2 y 6). Si una vacante ya cae por repetida o por no encajar, no hace falta abrir su enlace.
 
 ## Paso 1. Abrir el aviso original
 
@@ -42,7 +59,7 @@ Una de estas:
   Nomads, UI/UX Jobs Board, Built In y los tableros de fondos de inversión (General Catalyst, Techstars…). Busca el
   aviso en el portal de empleo de la empresa o su sistema de postulación (Greenhouse, Lever, Ashby, Workable,
   Teamtailor…). Si las copias se contradicen (ubicación, tipo de contrato, salario), repórtalo y decide con el original.
-- **Si la página no abre** desde tu entorno (las sesiones en la nube no llegan a muchos portales), intenta una búsqueda
+- **Si la página no abre** desde tu entorno (según el acceso a la red del entorno, algunas sesiones no llegan a ciertos portales), intenta una búsqueda
   web del cargo + empresa para encontrar el original y sus datos; lo que no puedas abrir queda "sin verificar" y la
   verificación final se hace en el navegador del usuario (app de escritorio o Claude en Chrome). Nunca lo des por
   cumplido.
@@ -110,6 +127,8 @@ criterios leyendo el aviso completo, que es lo que el código no puede juzgar bi
 - Las carpetas dentro de `Prueba` son HV **preparadas sin enviar**: cuentan como repetidas (no se propone de nuevo la
   misma vacante), pero no como aplicadas.
 - Si la empresa está en la pestaña `Correos en frío`, avisa que ya se le escribió (no la descarta).
+- Revisa también las otras carpetas de `Sin revisar` (días anteriores) y los `Posts` anteriores: la misma vacante o el
+  mismo reclutador pueden volver a aparecer días después con otro enlace.
 - Las vacantes que el agente marcó en `Detalle_Vacante` con `Aviso empresa:` ya pasaron por esta comparación
   automática (solo por cargo y enlace); confírmala con las funciones.
 
@@ -126,6 +145,21 @@ marcar y explicar.
 - Por correo: la dirección, **de dónde sale** (texto del aviso, página de la empresa) y si está confirmada para esta
   vacante. Nunca adivinar direcciones.
 - Requisitos del proceso: formulario, prueba técnica, portafolio, preguntas de filtro, fecha límite.
+
+## Modo lote ("verifica las de hoy")
+
+1. Lista las carpetas de `Sin revisar/<fecha>/` (sin contar `Posts`) y los enlaces del documento `Posts/Posts`.
+2. Salta las que ya tienen `Verificacion.txt` con veredicto, salvo que el usuario pida re-verificar.
+3. Verifica cada una con los pasos de arriba (en el orden de trabajo indicado).
+4. Termina con un resumen corto:
+
+```
+Verificación <fecha>: <N> revisadas — ✅ <a> listas · 🟡 <b> menor prioridad · ❌ <c> descartadas · ⏸️ <d> pendientes
+Meta diaria: <a + b> de 10 (si no se llega, decirlo; no rellenar)
+| Empresa | Cargo | Veredicto | Motivo / qué la baja | Cómo aplicar |
+```
+
+Ordena la tabla: primero ✅, luego 🟡, después ⏸️ y al final ❌.
 
 ## Resultado
 
