@@ -38,7 +38,7 @@ const CONFIG = {
     // Guía de búsqueda (2026-10-22): el inglés del usuario es intermedio; no le aplican vacantes exclusivas para
     // personas con discapacidad (no se descartan las que solo invitan a postularse en su declaración de igualdad).
     { reason: 'exige inglés avanzado/fluido',
-      pattern: /\b(ingl[eé]s|english)\s*[:\-–(]?\s*(nivel\s+|level\s+)?(avanzado|fluid[oa]|nativo|c1|c2|advanced|fluent|native|proficient)\b|\bnivel\s+(de\s+)?ingl[eé]s\s*[:\-]?\s*(avanzado|fluido|nativo|alto|c1|c2)\b|\bingl[eé]s\s+(a\s+)?nivel\s+(avanzado|fluido|nativo|alto)\b|\b(advanced|fluent|native|proficient)\s+(level\s+(of\s+)?)?(in\s+)?english\b|\benglish\s+(fluency|proficiency)\b|\b(fluency|proficiency)\s+in\s+english\b|\bbiling[uü]e\b|\bbilingual\b/i },
+      pattern: /\b(ingl[eé]s|english)\s*[:\-–(]?\s*(nivel\s+|level\s+)?(avanzado|fluid[oa]|nativo|excelente|c1|c2|advanced|fluent|native|proficient|excellent)\b|\bnivel\s+(de\s+)?ingl[eé]s\s*[:\-]?\s*(avanzado|fluido|nativo|alto|c1|c2)\b|\bnivel\s+(avanzado|alto|fluido|nativo)\s+(de|en)\s+(ingl[eé]s|english)\b|\b(excellent|excelente)\s+(command\s+of\s+|level\s+of\s+)?(english|ingl[eé]s)\b|\bingl[eé]s\s+(a\s+)?nivel\s+(avanzado|fluido|nativo|alto)\b|\b(advanced|fluent|native|proficient)\s+(level\s+(of\s+)?)?(in\s+)?english\b|\benglish\s+(fluency|proficiency)\b|\b(fluency|proficiency)\s+in\s+english\b|\bbiling[uü]e\b|\bbilingual\b/i },
     { reason: 'exclusiva para personas con discapacidad',
       pattern: /(exclusiv[oa]|dirigid[oa]|solo|[uú]nicamente)\s+(para|a)\s+personas\s+con\s+discapacidad|vacante\s+(para|de)\s+personas\s+con\s+discapacidad|certificado\s+de\s+discapacidad|exclusively\s+for\s+(people|persons|candidates)\s+with\s+disabilit/i },
   ],
@@ -48,6 +48,8 @@ const CONFIG = {
   // Piden 5 o más años: no se descartan, pero bajan de prioridad. Con menos de 5 años cuenta como mid aunque diga Senior.
   EXPERIENCE_YEARS_LIMIT: 5,
   EXPERIENCE_PENALTY: 30,
+  // Título dudoso (CX, contenido, producto digital…): entra con menor prioridad y "Rol: VERIFICAR FUNCIONES" (2026-10-24)
+  ROLE_VERIFY_PENALTY: 15,
   // Fuentes gratuitas (sin créditos de SerpAPI) con API pública. 1 llamada por día cada una.
   EXTRA_SOURCES: {
     remotive: { url: 'https://remotive.com/api/remote-jobs?category=design&limit=100' },
@@ -96,6 +98,10 @@ const CONFIG = {
   CONTEXT_DOC_NAME: 'CONTEXTO_CV',   // Google Doc privado con los datos reales (validación anti-alucinación)
   CV_JSON_NAME: 'CV_IA.json',        // Lo deja la IA en la carpeta de cada vacante
   CV_ERRORS_NAME: 'CV_IA_ERRORES.txt',
+  // Verificación de la IA antes de la HV (decisión del usuario 2026-10-24): Verificacion.txt con "VEREDICTO: ..." y
+  // "MOTIVO: ...". A las CV_HOUR, DESCARTAR -> carpeta a la papelera; DUDOSA -> Sin revisar/<fecha>/Dudosas (él decide)
+  VERIFICATION_FILE_NAME: 'Verificacion.txt',
+  DOUBTFUL_FOLDER_NAME: 'Dudosas',
   // Vacantes nuevas del agente, aún sin revisar ni enviar (decisión del usuario 2026-10-22): Vacantes con IA/Sin revisar/
   // <YYYY-MM-DD>/<Empresa>. Fuera de CV/<semana>: allá solo van, movidas por el usuario, las que ya envió.
   PENDING_FOLDER_NAME: 'Sin revisar',

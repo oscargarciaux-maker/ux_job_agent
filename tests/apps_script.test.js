@@ -242,6 +242,21 @@ const detalle = context.parseVacancyDetail(['Diseñador UX/UI Junior', 'Empresa:
 assert.deepStrictEqual(JSON.parse(JSON.stringify(detalle)),
   { title: 'Diseñador UX/UI Junior', company: 'Acme', link: 'https://x.co/1', email: null, language: 'en' });
 
+// Verificación antes de la HV (2026-10-24): veredicto de Verificacion.txt
+const verdict = t => JSON.parse(JSON.stringify(context.parseVerdict(t)));
+assert.deepStrictEqual(verdict('VEREDICTO: DESCARTAR\nMOTIVO: exige inglés fluido'), { verdict: 'DESCARTAR', reason: 'exige inglés fluido' });
+assert.deepStrictEqual(verdict('Empresa — Cargo\nVeredicto: ❌ Cerrada (ya no recibe postulaciones)'),
+  { verdict: 'DESCARTAR', reason: 'ya no recibe postulaciones' });
+assert.strictEqual(verdict('veredicto: dudosa\nmotivo: medio tiempo').verdict, 'DUDOSA');
+assert.strictEqual(verdict('Veredicto: ⏸️ Pendiente de decisión').verdict, 'DUDOSA');
+assert.strictEqual(verdict('VEREDICTO: MENOR_PRIORIDAD').verdict, 'MENOR_PRIORIDAD');
+assert.strictEqual(verdict('Veredicto: 🟡 Menor prioridad (pide 4+ años)').verdict, 'MENOR_PRIORIDAD');
+assert.deepStrictEqual(verdict('**VEREDICTO:** DUDOSA\n**MOTIVO:** no dice si acepta Colombia'),
+  { verdict: 'DUDOSA', reason: 'no dice si acepta Colombia' });
+assert.strictEqual(verdict('- VEREDICTO: LISTA').verdict, 'LISTA');
+assert.strictEqual(verdict('').verdict, null);
+assert.strictEqual(verdict('Sin veredicto, solo notas: descartar luego').verdict, null);
+
 // Guía de búsqueda y HV (2026-10-22): filtros nuevos, avisos cerrados y reglas de la HV
 const ex = d => context.exclusionReason({ title: 'UX Designer', description: d });
 assert.strictEqual(ex('Inglés intermedio y Figma avanzado'), null);
@@ -249,6 +264,19 @@ assert.strictEqual(ex('English: B2'), null);
 assert.strictEqual(ex('Requisito: inglés avanzado (C1)'), 'exige inglés avanzado/fluido');
 assert.strictEqual(ex('Fluent English required'), 'exige inglés avanzado/fluido');
 assert.strictEqual(ex('Bilingual (Spanish/English)'), 'exige inglés avanzado/fluido');
+// Prueba de la skill (2026-10-24): BairesDev y Hireloom entraron con estas frases
+assert.strictEqual(ex('Requisitos: Nivel avanzado de inglés'), 'exige inglés avanzado/fluido');
+assert.strictEqual(ex('English: Excellent oral and written skills'), 'exige inglés avanzado/fluido');
+assert.strictEqual(ex('Excellent English communication'), 'exige inglés avanzado/fluido');
+assert.strictEqual(ex('Nivel alto de inglés'), 'exige inglés avanzado/fluido');
+assert.strictEqual(ex('Excelente manejo de Figma; inglés intermedio'), null);
+const hidden = { 'bairesdev|disenador ui ux trabajo remoto': true, 'google|ux designer': true, 'https://x.co/1': true };
+assert.ok(context.isHiddenCompanyRepeat({ company: 'confidential', title: 'Diseñador Ui/Ux Trabajo Remoto (Barranquilla)',
+  description: 'En BairesDev® llevamos 15 años con clientes como Google' }, hidden));
+assert.ok(!context.isHiddenCompanyRepeat({ company: 'confidential', title: 'Diseñador de Interfaz de Usuario Senior',
+  description: 'En BairesDev® llevamos 15 años con clientes como Google' }, hidden));  // otro cargo
+assert.ok(!context.isHiddenCompanyRepeat({ company: 'Acme', title: 'UX Designer', description: 'Trabajamos con Google' }, hidden));
+
 assert.strictEqual(ex('We encourage people with disabilities to apply'), null);
 assert.strictEqual(ex('Vacante exclusiva para personas con discapacidad'), 'exclusiva para personas con discapacidad');
 assert.ok(vm.runInContext("CONFIG.BLOCKED_SOURCES.test('https://www.vacantes.com/oferta/1')", context));
@@ -294,6 +322,31 @@ const entry = context.postEntry(context.parseLinkedInPost({ title: 'Ana Gómez e
 assert.strictEqual(entry.heading, 'Buscamos diseñador UX/UI · Ana Gómez · 2026-10-20');
 assert.strictEqual(entry.link, 'https://www.linkedin.com/posts/ana_1');
 assert.strictEqual(entry.snippet, 'Envía tu HV a ana@example.com');
+
+// Cargo por funciones, no por título (2026-10-24): títulos dudosos entran marcados para revisar
+assert.strictEqual(context.roleTitleClass('Diseñador UX/UI Junior'), 'design');
+assert.strictEqual(context.roleTitleClass('Product & Content UX/UI Designer'), 'verify');
+assert.strictEqual(context.roleTitleClass('CX Designer'), 'verify');
+assert.strictEqual(context.roleTitleClass('Analista de Producto Digital'), 'verify');
+assert.strictEqual(context.roleTitleClass('SEO Copywriter'), 'excluded');
+assert.strictEqual(context.roleTitleClass('Design Engineer (React/TypeScript)'), 'excluded');
+assert.strictEqual(context.roleTitleClass('Linux Administrator'), 'other');
+const pv = { title: 'CX Designer', description: '' };
+assert.ok(vm.runInContext('acceptRoleTitle_', context)(pv) && pv.roleToVerify === true);
+assert.ok(context.computePriority({ title: 'CX Designer', roleToVerify: true }, 80) < context.computePriority({ title: 'CX Designer' }, 80));
+// Misma empresa: solo es repetida si es el mismo cargo
+assert.ok(context.sameRole('Diseñador UX/UI Junior', 'UX/UI Designer'));
+assert.ok(context.sameRole('Product Designer (Remoto)', 'product designer senior'));
+assert.ok(!context.sameRole('Product Designer', 'Product Owner'));
+assert.ok(!context.sameRole('UX Researcher', 'UI Designer'));
+assert.strictEqual(context.hvRoleFromFileName('HV_Nombre_Apellido_UI_UX_Designer.pdf'), 'UI UX Designer');
+assert.strictEqual(context.hvRoleFromFileName('Vacante'), '');
+assert.strictEqual(context.extractFolderId('=HYPERLINK("https://drive.google.com/drive/folders/1AbC-d_9","Abrir")'), '1AbC-d_9');
+assert.ok(context.mentionsVacancy('Product Designer\nEmpresa: Acme', { title: 'Diseñador de producto', link: '' }));
+assert.ok(context.mentionsVacancy('Ver https://co.linkedin.com/jobs/view/123?utm=x', { title: 'Otro', link: 'https://co.linkedin.com/jobs/view/123?utm_source=g' }));
+assert.ok(context.mentionsVacancy('https://co.computrabajo.com/oferta-1?fgoa=true\n\n  \n\nGestor de Producto y UX/UI\nCali', { title: 'Gestor de producto y UX/UI - Cali', link: '' }));
+assert.ok(context.sameRole('Gestor de Producto y UX/UI', context.hvRoleFromFileName('HV_Oscar_Garcia_Gestor_Producto_UX_UI.pdf')));
+assert.ok(!context.mentionsVacancy('UX Researcher\nEmpresa: Acme', { title: 'UI Designer', link: 'https://a.co/1' }));
 
 // HITL: ninguna llamada de envío de correo en el código
 const allCode = fs.readdirSync(dir).map(f => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n');

@@ -44,7 +44,14 @@ function searchUxJobs_() {
     searchLinkedInPosts_(apiKey).forEach(v => { byKey[v.link] = byKey[v.link] || v; });
   }
   return Object.keys(byKey).map(k => byKey[k]).filter(v => {
-    const reason = exclusionReason(v);
+    let reason = exclusionReason(v);
+    if (!reason && !v.isPost) {
+      // Google Jobs llega por búsquedas de diseño: solo se descarta redacción/SEO/programación; los demás títulos que no
+      // son de diseño entran marcados para revisar sus funciones
+      const cls = roleTitleClass(v.title);
+      if (cls === 'excluded') reason = 'no es diseño (redacción, SEO o programación)';
+      else if (cls !== 'design') v.roleToVerify = true;
+    }
     if (reason) console.log('Descartada (' + reason + '): ' + v.title + ' @ ' + v.company);
     return !reason;
   });
@@ -61,7 +68,7 @@ function fetchJson_(url) {
 /** Remotive: empleos remotos de diseño; solo los abiertos a LATAM/Colombia/mundo y de UX/UI/producto. */
 function searchRemotive_() {
   const jobs = (fetchJson_(CONFIG.EXTRA_SOURCES.remotive.url).jobs || []).map(parseRemotiveJob);
-  const kept = jobs.filter(v => isDesignRole(v) && CONFIG.REACHABLE_REMOTE_LOCATION.test(v.location) &&
+  const kept = jobs.filter(v => acceptRoleTitle_(v) && CONFIG.REACHABLE_REMOTE_LOCATION.test(v.location) &&
                                 isRecent(v.postedAt, CONFIG.MAX_POST_AGE_DAYS));
   console.log('Remotive: ' + jobs.length + ' de diseño remoto, ' + kept.length + ' de UX/UI recientes y abiertas a Colombia/LATAM');
   return kept;
@@ -79,7 +86,7 @@ function parseRemotiveJob(job) {
 function searchJobicy_() {
   const jobs = (fetchJson_(CONFIG.EXTRA_SOURCES.jobicy.url).jobs || [])
     .filter(j => !/freelance/i.test([].concat(j.jobType || []).join(' '))).map(parseJobicyJob);
-  const kept = jobs.filter(v => isDesignRole(v) && isRecent(v.postedAt, CONFIG.MAX_POST_AGE_DAYS));
+  const kept = jobs.filter(v => acceptRoleTitle_(v) && isRecent(v.postedAt, CONFIG.MAX_POST_AGE_DAYS));
   console.log('Jobicy: ' + jobs.length + ' remotas para LATAM, ' + kept.length + ' de UX/UI recientes');
   return kept;
 }
@@ -100,7 +107,7 @@ function searchGetOnBoard_() {
       .forEach(v => { if (v.link) byLink[v.link] = v; });
   });
   const jobs = Object.keys(byLink).map(k => byLink[k]);
-  const kept = jobs.filter(v => isDesignRole(v) && CONFIG.REACHABLE_REMOTE_LOCATION.test(v.location) &&
+  const kept = jobs.filter(v => acceptRoleTitle_(v) && CONFIG.REACHABLE_REMOTE_LOCATION.test(v.location) &&
                                 isRecent(v.postedAt, CONFIG.MAX_POST_AGE_DAYS));
   console.log('Get on Board: ' + jobs.length + ' resultados, ' + kept.length + ' de UX/UI recientes y abiertas a Colombia/LATAM');
   return kept;
@@ -121,11 +128,31 @@ function parseGetOnBoardJob(item) {
 }
 
 /** Rol de diseño UX/UI/producto (no diseño gráfico puro, no otros oficios). */
-function isDesignRole(vacancy) {
-  const title = vacancy.title || '';
+/**
+ * Clase del cargo según su título (decisión del usuario 2026-10-24: el cargo se juzga por funciones, no por título):
+ * 'design' = título de diseño; 'verify' = título dudoso (CX, contenido, producto digital, product owner/analyst):
+ * entra con menor prioridad y marcado para revisar sus funciones; 'excluded' = redacción, SEO o programación;
+ * 'other' = nada de lo anterior.
+ */
+function roleTitleClass(title) {
+  const t = String(title || '');
   // \bux\b: "Linux" contiene "ux" (el 2026-10-19 entraron 2 vacantes de infraestructura Linux)
-  return /\bux\b|\bui\b|user experience|experiencia de usuario|product design|dise[nñ]ador(a)? de producto|interaction|interfaz|interfaces|dise[nñ]o de (producto|experiencia|interacci)|dise[nñ]ador(a)? (digital|web)|web designer|visual designer|service design|design system/i.test(title) &&
-    !/copywrit|writer|redactor|\bseo\b|content|developer|desarrollador|programador|engineer|ingenier/i.test(title);  // Ni redacción ni programación
+  if (/copywrit|writer|redactor|\bseo\b|developer|desarrollador|programador|engineer|ingenier/i.test(t)) return 'excluded';
+  const design = /\bux\b|\bui\b|user experience|experiencia de usuario|product design|dise[nñ]ador(a)? de producto|interaction|interfaz|interfaces|dise[nñ]o de (producto|experiencia|interacci)|dise[nñ]ador(a)? (digital|web)|web designer|visual designer|service design|design system/i.test(t);
+  if (design && !/content|contenido/i.test(t)) return 'design';
+  if (design || /\bcx\b|customer experience|experiencia (del |de )?cliente|content design|producto digital|digital product|product (owner|analyst|specialist)|analista de producto/i.test(t)) return 'verify';
+  return 'other';
+}
+
+function isDesignRole(vacancy) {
+  return roleTitleClass(vacancy.title) === 'design';
+}
+
+/** Fuentes gratuitas: entran los títulos de diseño y los dudosos (estos marcados para revisar funciones). */
+function acceptRoleTitle_(vacancy) {
+  const cls = roleTitleClass(vacancy.title);
+  if (cls === 'verify') vacancy.roleToVerify = true;
+  return cls === 'design' || cls === 'verify';
 }
 
 function stripHtml_(html) {
