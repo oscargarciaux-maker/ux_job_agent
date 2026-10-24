@@ -25,7 +25,7 @@ function appendVacancyRow_(sheet, vacancy, score, status) {
   sheet.appendRow([today, vacancy.company || 'N/D', vacancy.title, vacancy.link, score, status]);
 }
 
-// ---------- Google Drive (/Vacantes con IA/YYYY-MM-DD/[Empresa] o [Empresa]_[detalle del cargo]) ----------
+// ---------- Google Drive (/Vacantes con IA/Sin revisar/YYYY-MM-DD/[Empresa] o [Empresa]_[detalle del cargo]) ----------
 
 function tz_() {
   return Session.getScriptTimeZone() || 'America/Bogota';
@@ -41,10 +41,15 @@ function getOrCreateSubfolder_(parent, name) {
  * detalle del cargo si ese día hay dos vacantes de la misma empresa). Si ya existe (otra corrida del mismo día),
  * se le agrega el detalle del cargo y, si aún choca, un número.
  */
-function setupVacancyFolder_(vacancy, name) {
+/** Carpeta del día para las vacantes nuevas: Vacantes con IA/Sin revisar/<YYYY-MM-DD> (la crea si falta). */
+function todayVacancyFolder_() {
   const root = DriveApp.getFolderById(getProp_(PROPS.ROOT_FOLDER_ID));
   const today = Utilities.formatDate(new Date(), tz_(), 'yyyy-MM-dd');
-  const dateFolder = getOrCreateSubfolder_(root, today);
+  return getOrCreateSubfolder_(getOrCreateSubfolder_(root, CONFIG.PENDING_FOLDER_NAME), today);
+}
+
+function setupVacancyFolder_(vacancy, name) {
+  const dateFolder = todayVacancyFolder_();
   const taken = n => dateFolder.getFoldersByName(n).hasNext();
   let finalName = name || vacancyFolderNames([vacancy])[0];
   if (taken(finalName) && finalName.indexOf('_') === -1) {

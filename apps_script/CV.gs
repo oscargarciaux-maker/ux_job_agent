@@ -19,12 +19,16 @@ const TEMPLATE_LABELS_EN_ = {
 function generarCVsDesdeIA() {
   const root = DriveApp.getFolderById(getProp_(PROPS.ROOT_FOLDER_ID));
   const today = Utilities.formatDate(new Date(), tz_(), 'yyyy-MM-dd');
-  const dateFolders = root.getFoldersByName(today);
-  if (!dateFolders.hasNext()) {
+  // Sin revisar/<hoy> desde 2026-10-22; <hoy> en la raíz por si alguna corrida anterior la dejó allí
+  const pending = root.getFoldersByName(CONFIG.PENDING_FOLDER_NAME);
+  const candidates = [pending.hasNext() ? pending.next().getFoldersByName(today) : null, root.getFoldersByName(today)];
+  const dateFolders = candidates.filter(it => it && it.hasNext()).map(it => it.next());
+  if (!dateFolders.length) {
     console.log('No hay carpeta de vacantes para ' + today + '.');
     return;
   }
-  buildCvsInFolder_(dateFolders.next(), getRegistrySheet_());
+  const sheet = getRegistrySheet_();
+  dateFolders.forEach(f => buildCvsInFolder_(f, sheet));
 }
 
 /** Prueba desde el editor: arma los CV de la carpeta PRUEBA_IA (en la carpeta raíz) sin tocar la hoja de registro. */
