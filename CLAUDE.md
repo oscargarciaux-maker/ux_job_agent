@@ -68,6 +68,9 @@ Reemplazar solo el "cerebro"; el resto del pipeline y el contrato `CV_IA.json` n
 4. Desactivar la tarea programada de Claude.
 - Advertencias para el usuario: en el nivel gratuito Google puede usar los datos enviados para mejorar sus productos (incluye su CV/contexto), y hay límites de solicitudes por minuto/día (10 CV/día caben).
 
+## 🧰 Skills (`.claude/skills/`, plan del usuario 2026-10-24)
+Procedimientos reutilizables en cualquier sesión (nube, escritorio, Cowork). Sin datos personales: apuntan a los Docs privados de Drive. Orden acordado: `verificar-vacante` ✅ (falta integrar los criterios del documento "Cómo filtro tus vacantes": `files.instinct.com` está bloqueado por la red de este entorno) → `crear-hv` → `revisar-hv` → `correo-en-frio` → `seguimiento`. Si cambias un filtro en `Config.gs`, revisa también la tabla de `verificar-vacante`.
+
 ## 🛠️ Comandos
 - Pruebas (obligatorias antes de push): `node tests/apps_script.test.js`
 - No hay ejecución local de Apps Script; los servicios de Google solo existen en script.google.com.
