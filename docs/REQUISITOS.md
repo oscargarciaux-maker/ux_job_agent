@@ -74,7 +74,7 @@ Estados: ✅ hecho y probado · 🟡 parcial · ⏳ pendiente · ❓ falta una d
 | HV pedida en una conversación se arma de inmediato | ✅ | skill `crear-hv` (copia `MASTER_TEMPLATE` y la llena con los conectores de Drive y Docs) |
 | 2 páginas, sin huérfanas, márgenes intactos | ✅ | la plantilla quita los huecos (`removeGapsBetweenBullets_`); la skill `revisar-hv` mira el PDF y corrige páginas, huérfanas y cargos sueltos (tarea diaria "Revisión HV diaria" después de las 10 y a pedido; decisión del usuario 2026-10-24) |
 | Lista de chequeo de la HV antes de entregar (guía A.6): datos reales, palabras prohibidas, títulos, idioma, nombre, perfil único, enlaces; corrige lo objetivo y propone lo de criterio (decisión del usuario 2026-10-24) | ✅ | skill `.claude/skills/revisar-hv`, prompt `ia/prompt_revision_diaria.md`; deja `Revision.txt` (`VEREDICTO: LISTA_PARA_ENVIAR\|REVISAR`) |
-| Enlaces del encabezado con https | 🟡 | están en `MASTER_TEMPLATE` (plantilla del usuario); `revisar-hv` comprueba en cada HV que sean `https://`, sin espacios e iguales a los de la plantilla |
+| Enlaces del encabezado con https | ✅ | están en `MASTER_TEMPLATE` (su WhatsApp era `http://`; corregido el 2026-10-24); `revisar-hv` comprueba en cada HV que sean `https://`, sin espacios e iguales a los de la plantilla |
 
 ## Correos y permisos (guía §9, §10)
 
