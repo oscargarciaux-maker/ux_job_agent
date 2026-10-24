@@ -55,6 +55,14 @@ Lee completos `GUIA_CV`, `REGLAS_CV`, `CONTEXTO_CV`, los marcadores de `MASTER_T
 
 ## Paso 3. Redacción (GUIA_CV Paso 3 + estas reglas), todo para esta vacante o empresa
 
+**Personalización completa (lo más importante para el usuario, 24 oct 2026).** Fijo en todas las HV solo queda lo que
+no puede cambiar: nombre, contacto y enlaces, y los **hechos** de `CONTEXTO_CV` (empresas, fechas, cifras, estudios,
+certificados). Todo lo demás se escribe para esta vacante: título, ubicación, perfil, qué experiencias van y en qué
+orden, cargos, descripciones, **qué logros se eligen y cómo se redactan** (con las keywords de la vacante), las 5
+categorías de habilidades **y el contenido de cada una** (ordenado según lo que pide la vacante; nunca la lista de
+`CONTEXTO_CV` copiada tal cual) y el idioma. Antes de entregar, compara con la última HV hecha: si un perfil, una
+descripción o una categoría de habilidades sale igual, reescríbela.
+
 **Experiencias** (máximo 4, en orden de relevancia para la vacante, no por fecha):
 - Base: **Seguros Bolívar** (siempre), **Meevent** y **Central Xpress**, ampliadas con lo mejor de `CONTEXTO_CV`.
 - **Trezo** o **Creditop** solo si aportan bastante a esta vacante. Creditop, solo si la vacante pide research de forma
