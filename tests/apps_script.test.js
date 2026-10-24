@@ -242,6 +242,21 @@ const detalle = context.parseVacancyDetail(['Diseñador UX/UI Junior', 'Empresa:
 assert.deepStrictEqual(JSON.parse(JSON.stringify(detalle)),
   { title: 'Diseñador UX/UI Junior', company: 'Acme', link: 'https://x.co/1', email: null, language: 'en' });
 
+// Verificación antes de la HV (2026-10-24): veredicto de Verificacion.txt
+const verdict = t => JSON.parse(JSON.stringify(context.parseVerdict(t)));
+assert.deepStrictEqual(verdict('VEREDICTO: DESCARTAR\nMOTIVO: exige inglés fluido'), { verdict: 'DESCARTAR', reason: 'exige inglés fluido' });
+assert.deepStrictEqual(verdict('Empresa — Cargo\nVeredicto: ❌ Cerrada (ya no recibe postulaciones)'),
+  { verdict: 'DESCARTAR', reason: 'ya no recibe postulaciones' });
+assert.strictEqual(verdict('veredicto: dudosa\nmotivo: medio tiempo').verdict, 'DUDOSA');
+assert.strictEqual(verdict('Veredicto: ⏸️ Pendiente de decisión').verdict, 'DUDOSA');
+assert.strictEqual(verdict('VEREDICTO: MENOR_PRIORIDAD').verdict, 'MENOR_PRIORIDAD');
+assert.strictEqual(verdict('Veredicto: 🟡 Menor prioridad (pide 4+ años)').verdict, 'MENOR_PRIORIDAD');
+assert.deepStrictEqual(verdict('**VEREDICTO:** DUDOSA\n**MOTIVO:** no dice si acepta Colombia'),
+  { verdict: 'DUDOSA', reason: 'no dice si acepta Colombia' });
+assert.strictEqual(verdict('- VEREDICTO: LISTA').verdict, 'LISTA');
+assert.strictEqual(verdict('').verdict, null);
+assert.strictEqual(verdict('Sin veredicto, solo notas: descartar luego').verdict, null);
+
 // Guía de búsqueda y HV (2026-10-22): filtros nuevos, avisos cerrados y reglas de la HV
 const ex = d => context.exclusionReason({ title: 'UX Designer', description: d });
 assert.strictEqual(ex('Inglés intermedio y Figma avanzado'), null);

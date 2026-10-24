@@ -1,6 +1,6 @@
 ---
 name: verificar-vacante
-description: Verifica una vacante de diseño UX/UI antes de recomendarla o de que el candidato se postule — los cinco chequeos (abierta, acepta candidatos desde Colombia, postular es gratis, no aplicada antes, enlace real), que el cargo encaje por sus funciones y no por el título, nivel, ubicación, inglés y contrato — y deja un veredicto (lista / menor prioridad / descartar) con sus razones. Úsala cuando el usuario pegue el enlace de una vacante, pida "verifica/revisa esta vacante", antes de postularse, o al revisar las carpetas de "Vacantes con IA/Sin revisar".
+description: Verifica una vacante de diseño UX/UI antes de recomendarla o de que el candidato se postule — los cinco chequeos (abierta, acepta candidatos desde Colombia, postular es gratis, no aplicada antes, enlace real), que el cargo encaje por sus funciones y no por el título, nivel, ubicación, inglés y contrato — y deja un veredicto (lista / menor prioridad / dudosa / descartar) con sus razones; solo las listas y de menor prioridad reciben hoja de vida. Úsala cuando el usuario pegue el enlace de una vacante, pida "verifica/revisa esta vacante", antes de postularse, o al revisar las carpetas de "Vacantes con IA/Sin revisar".
 ---
 
 # Verificar vacante
@@ -103,8 +103,8 @@ la de sus roles, entra; si el título suena a diseño pero la función principal
 | Sector | Cualquiera | — (fintech y financiero van primero) | — |
 | Salario | Sin piso mínimo: no se descarta por monto. Si la vacante publica salario, **reportarlo** | — | — |
 
-**Pendiente de definir por el usuario:** medio tiempo con contrato fijo. No descartar ni recomendar: reportar con la
-etiqueta "medio tiempo (pendiente de definir)" para que decida él.
+**Pendiente de definir por el usuario:** medio tiempo con contrato fijo. No descartar ni recomendar: veredicto
+🔶 **Dudosa** con el motivo "medio tiempo (pendiente de definir)" para que decida él.
 
 Una vacante de menor prioridad solo entra si pasa los cinco chequeos.
 
@@ -148,18 +148,19 @@ marcar y explicar.
 
 ## Modo lote ("verifica las de hoy")
 
-1. Lista las carpetas de `Sin revisar/<fecha>/` (sin contar `Posts`) y los enlaces del documento `Posts/Posts`.
+1. Lista las carpetas de `Sin revisar/<fecha>/` (sin contar `Posts` ni `Dudosas`) y los enlaces del documento `Posts/Posts`.
 2. Salta las que ya tienen `Verificacion.txt` con veredicto, salvo que el usuario pida re-verificar.
 3. Verifica cada una con los pasos de arriba (en el orden de trabajo indicado).
 4. Termina con un resumen corto:
 
 ```
-Verificación <fecha>: <N> revisadas — ✅ <a> listas · 🟡 <b> menor prioridad · ❌ <c> descartadas · ⏸️ <d> pendientes
+Verificación <fecha>: <N> revisadas — ✅ <a> listas · 🟡 <b> menor prioridad · 🔶 <d> dudosas · ❌ <c> descartadas
 Meta diaria: <a + b> de 10 (si no se llega, decirlo; no rellenar)
 | Empresa | Cargo | Veredicto | Motivo / qué la baja | Cómo aplicar |
 ```
 
-Ordena la tabla: primero ✅, luego 🟡, después ⏸️ y al final ❌.
+Ordena la tabla: primero 🔶 (las decide el usuario), luego ✅, 🟡 y al final ❌ (una línea con empresa y motivo
+basta). Cierra con la pregunta: "De las dudosas, ¿cuáles sí y cuáles no?".
 
 ## Resultado
 
@@ -168,13 +169,18 @@ Un veredicto por vacante:
 - 🟡 **Menor prioridad**: pasa los cinco chequeos, pero es mid de 3 a 5 años, pide 5 o más años, tiene de 22 a 28 días
   o es presencial en Medellín/Cali. Decir qué la baja.
 - ❌ **Descartar** (o **Cerrada**): falla un chequeo, no encaja o tiene señales de alerta. Decir el motivo.
-- ⏸️ **Pendiente de decisión**: medio tiempo con contrato fijo.
+- 🔶 **Dudosa**: zona gris que decide el usuario. No se pudo comprobar un chequeo clave aunque se intentó (la página
+  no abre, no dice si acepta Colombia, no aparece el aviso original), el encaje por funciones es parcial, o es medio
+  tiempo con contrato fijo. Decir la duda concreta en una frase. No usarla para evitar comprobar algo que sí se puede.
+
+Solo ✅ y 🟡 reciben hoja de vida (`CV_IA.json`). 🔶 espera la decisión del usuario y ❌ no se le entrega: el
+usuario no quiere carpetas de vacantes que no le sirven (24 oct 2026).
 
 Formato del reporte (una línea por punto; "sin verificar" cuando no se pudo):
 
 ```
 Empresa — Cargo — <enlace original>
-Veredicto: ✅ Lista | 🟡 Menor prioridad (motivo) | ❌ Descartar/Cerrada (motivo) | ⏸️ Pendiente de decisión
+Veredicto: ✅ Lista | 🟡 Menor prioridad (motivo) | 🔶 Dudosa (duda) | ❌ Descartar/Cerrada (motivo)
 Chequeos: abierta sí/no · acepta Colombia sí/no · gratis sí/no · no aplicada sí/no · enlace real sí/no
 Encaje: función principal · nivel/años · ubicación · inglés · contrato (marca lo que no cumple)
 Salario: <si lo publica> | no publicado
@@ -184,11 +190,25 @@ Fecha de publicación: <fecha> (fuente)
 ```
 
 Registro:
-- Si hay acceso de escritura a Drive, guarda el reporte como archivo de texto `Verificacion.txt` en la carpeta de la
-  vacante.
-- Las que no pasan quedan en el registro (`Vacantes UX - Registro`, `Hoja 1`, columna F Estado) como
-  `Descartada: <motivo>` o `Cerrada: <motivo>`, en vez de llegarle al usuario como opción. Con el conector de Google
-  Sheets: busca la fila por el enlace (columna D) o por empresa + cargo y actualiza **solo** la celda de Estado de esa
-  fila; si la vacante no está en el registro, agrega una fila (Fecha, Empresa, Cargo, Link, Match Score vacío, Estado).
-  Nunca reescribas otras filas ni columnas. Sin conector, deja en el reporte la lista de filas a actualizar.
-- No borres ni muevas carpetas: el usuario decide qué hacer con ellas.
+- Guarda el reporte como archivo de texto `Verificacion.txt` en la carpeta de la vacante. Las **dos primeras líneas**
+  las lee Apps Script (`parseVerdict`) y van exactas:
+  ```
+  VEREDICTO: LISTA | MENOR_PRIORIDAD | DUDOSA | DESCARTAR
+  MOTIVO: <una frase corta>
+  ```
+  Después, el reporte con el formato de arriba. Las publicaciones del documento `Posts` van en
+  `Posts/Verificacion_Posts.txt`, una línea por publicación: `<veredicto> | <autor o empresa> | <enlace> | <motivo>`.
+- Carpetas de `Sin revisar/<hoy>`: con eso basta. A las 10:00 `generarCVsDesdeIA` manda las DESCARTAR a la papelera
+  de Drive (recuperables 30 días), mueve las DUDOSA a `Sin revisar/<fecha>/Dudosas/` y deja en el registro
+  (`Hoja 1`, columna F Estado) `Descartada: <motivo>` o `Dudosa: <motivo>`. Las de `Dudosas` cuyo veredicto cambie a
+  LISTA vuelven al día; a DESCARTAR, a la papelera.
+- **Decisión del usuario sobre una dudosa:** "sí" → reemplaza su `Verificacion.txt` (`update_file`) para que empiece
+  por `VEREDICTO: LISTA` y `MOTIVO: aprobada por el usuario`, y sigue con la hoja de vida; "no" → `VEREDICTO:
+  DESCARTAR` y su motivo.
+- Otras carpetas (otro día, o después de las 10:00) o enlaces sueltos: con el conector de Google Sheets, busca la fila
+  por el enlace (columna D) o por empresa + cargo y actualiza **solo** la celda de Estado (`Descartada: <motivo>`,
+  `Cerrada: <motivo>` o `Dudosa: <motivo>`); si no está en el registro, agrega una fila (Fecha, Empresa, Cargo, Link,
+  Match Score vacío, Estado). Nunca reescribas otras filas ni columnas. Una carpeta DESCARTAR de `Sin revisar` va a la
+  papelera (`trash_file`); sin conector de escritura, deja la lista en el reporte.
+- Nunca mandes a la papelera ni muevas una carpeta de `Vacantes con IA/CV/` (lo aplicado) ni una que ya tenga hoja de
+  vida (`HV_…`): ahí decide el usuario.

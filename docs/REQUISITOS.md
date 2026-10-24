@@ -38,6 +38,7 @@ Estados: ✅ hecho y probado · 🟡 parcial · ⏳ pendiente · ❓ falta una d
 | Dedupe contra la pestaña Correos en frío | ✅ | `getColdEmailCompanies_` |
 | Dedupe contra todas las carpetas de Drive (incluidas confidencial y semanas) | 🟡 | cubre `Vacantes con IA/CV/...` vía `sincronizarAplicadas`; no recorre otras carpetas |
 | Verificación humana asistida de cada vacante (abierta, original, encaje, repetida, alertas, cómo aplicar) con veredicto | ✅ | skill `.claude/skills/verificar-vacante` (incluye el documento "Cómo filtro tus vacantes", 2026-10-24) |
+| La IA verifica cada vacante antes de escribir su HV; solo ✅/🟡 reciben HV; las que no pasan no se entregan ni quedan en carpetas; las dudosas las decide el usuario (decisión del usuario 2026-10-24) | ✅ | prompt `ia/prompt_cv_diario.md` (paso 3, `Verificacion.txt` con `VEREDICTO:`/`MOTIVO:`); `parseVerdict` y `setAsideVacancy_` en `CV.gs`: DESCARTAR → papelera, DUDOSA → `Sin revisar/<fecha>/Dudosas`, estado en Hoja 1 |
 | Cómo se aplica (botón o correo verificado) | 🟡 | `Detalle_Vacante` guarda el enlace y el correo si el aviso lo trae |
 
 ## Drive y Sheet (guía §5, §6)
@@ -86,6 +87,6 @@ Estados: ✅ hecho y probado · 🟡 parcial · ⏳ pendiente · ❓ falta una d
 | Sitios que piden tarjeta para postular, nunca como origen | 🟡 | `verificar-vacante` |
 | Fuentes nuevas: Magneto365, Torre, portales fintech, bolsa UNAL, comunidades de diseño | ⏳ | hoy: SerpAPI (Google Jobs, que incluye varios portales), Remotive, Get on Board, Jobicy |
 | Salario publicado se reporta (sin piso mínimo) | 🟡 | `verificar-vacante` |
-| Descartadas/cerradas quedan en el registro con su motivo | ✅ | `verificar-vacante` con el conector de Google Sheets (conectado 2026-10-24): solo la celda Estado de esa fila |
-| Medio tiempo con contrato fijo | ❓ | pendiente de definir por el usuario |
+| Descartadas/cerradas quedan en el registro con su motivo | ✅ | `setAsideVacancy_` (10:00) escribe `Descartada:`/`Dudosa:` en Estado; fuera de ese flujo, `verificar-vacante` con el conector de Google Sheets (solo la celda Estado) |
+| Medio tiempo con contrato fijo | ❓ | pendiente de definir por el usuario; mientras tanto la vacante queda 🔶 Dudosa |
 

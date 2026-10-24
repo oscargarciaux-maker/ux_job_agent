@@ -47,16 +47,40 @@ function buildCvsInFolder_(dateFolder, sheet) {
   const template = getTemplateFile_();
   const placeholders = listPlaceholders_(template.getId()).map(p => p.slice(2, -2));
 
-  const folders = dateFolder.getFolders();
-  while (folders.hasNext()) {
-    const folder = folders.next();
+  // Se copian antes del ciclo: las carpetas descartadas o dudosas se mueven mientras se recorren. También se revisan
+  // las de Dudosas: si el usuario cambió el veredicto a LISTA vuelven al día; a DESCARTAR, van a la papelera.
+  const folders = [];
+  const it = dateFolder.getFolders();
+  while (it.hasNext()) {
+    const folder = it.next();
+    if (folder.getName() === CONFIG.DOUBTFUL_FOLDER_NAME) {
+      const doubtful = folder.getFolders();
+      while (doubtful.hasNext()) folders.push({ folder: doubtful.next(), inDoubtful: true });
+    } else if (folder.getName() !== CONFIG.POSTS_FOLDER_NAME) {
+      folders.push({ folder: folder, inDoubtful: false });
+    }
+  }
+  folders.forEach(entry => {
+    const folder = entry.folder;
     const label = folder.getName();
     try {
+      const verdict = parseVerdict(readOptionalText_(folder, CONFIG.VERIFICATION_FILE_NAME));
+      if (entry.inDoubtful) {
+        if (verdict.verdict === 'DUDOSA') return;  // Sigue esperando la decisión del usuario
+        if (verdict.verdict === 'LISTA' || verdict.verdict === 'MENOR_PRIORIDAD') {
+          folder.moveTo(dateFolder);
+          console.log(label + ' -> aprobada por el usuario, vuelve a ' + dateFolder.getName());
+        }
+      }
+      if ((verdict.verdict === 'DESCARTAR' || verdict.verdict === 'DUDOSA') && !hasGeneratedCv_(folder)) {
+        setAsideVacancy_(folder, verdict, dateFolder, sheet);
+        return;
+      }
       const jsonFile = firstFileByName_(folder, CONFIG.CV_JSON_NAME);
-      if (!jsonFile) continue;
+      if (!jsonFile) return;
       if (hasGeneratedCv_(folder)) {
         console.log(label + ' -> ya tiene CV generado, se omite');
-        continue;
+        return;
       }
       const detailFile = firstFileByName_(folder, 'Detalle_Vacante');
       const vacancy = parseVacancyDetail(detailFile ? DocumentApp.openById(detailFile.getId()).getBody().getText() : '');
@@ -74,7 +98,7 @@ function buildCvsInFolder_(dateFolder, sheet) {
         replaceFile_(folder, CONFIG.CV_ERRORS_NAME, check.errors.join('\n'));
         updateVacancyStatus_(sheet, vacancy.link, 'CV rechazado (validación)');
         console.error(label + ' -> CV_IA.json rechazado:\n  ' + check.errors.join('\n  '));
-        continue;
+        return;
       }
 
       const cvName = buildCvFileName(cv, vacancy, label);
@@ -94,11 +118,48 @@ function buildCvsInFolder_(dateFolder, sheet) {
     } catch (e) {
       console.error(label + ' -> ERROR: ' + e.message);
     }
-  }
+  });
   console.log('--- Generación de CVs finalizada ---');
 }
 
+/** Saca del día una vacante que no pasó la verificación: DESCARTAR -> papelera (recuperable); DUDOSA -> Dudosas. */
+function setAsideVacancy_(folder, verdict, dateFolder, sheet) {
+  const detailFile = firstFileByName_(folder, 'Detalle_Vacante');
+  const vacancy = parseVacancyDetail(detailFile ? DocumentApp.openById(detailFile.getId()).getBody().getText() : '');
+  const reason = verdict.reason || 'sin motivo';
+  if (verdict.verdict === 'DESCARTAR') {
+    updateVacancyStatus_(sheet, vacancy.link, 'Descartada: ' + reason);
+    folder.setTrashed(true);
+    console.log(folder.getName() + ' -> descartada (' + reason + '), carpeta a la papelera');
+  } else {
+    updateVacancyStatus_(sheet, vacancy.link, 'Dudosa: ' + reason);
+    folder.moveTo(getOrCreateSubfolder_(dateFolder, CONFIG.DOUBTFUL_FOLDER_NAME));
+    console.log(folder.getName() + ' -> dudosa (' + reason + '), movida a ' + CONFIG.DOUBTFUL_FOLDER_NAME);
+  }
+}
+
 // ---------- Lógica pura (probada en tests/apps_script.test.js) ----------
+
+/**
+ * Veredicto de Verificacion.txt: líneas "VEREDICTO: LISTA|MENOR_PRIORIDAD|DUDOSA|DESCARTAR" y "MOTIVO: ...".
+ * Acepta tildes, minúsculas y los sinónimos de la skill (Cerrada = DESCARTAR, Pendiente de decisión = DUDOSA).
+ */
+function parseVerdict(text) {
+  const raw = String(text || '');
+  const line = raw.match(/^[\s*#>-]*VEREDICTO\s*:[ \t*]*(.+)$/im);
+  const reasonLine = raw.match(/^[\s*#>-]*MOTIVO\s*:[ \t*]*(.+)$/im);
+  if (!line) return { verdict: null, reason: reasonLine ? reasonLine[1].trim().slice(0, 200) : '' };
+  // Sin línea MOTIVO, el formato de la skill lo trae entre paréntesis: "Veredicto: ❌ Descartar (motivo)"
+  const inline = line[1].match(/\(([^)]+)\)/);
+  const reason = (reasonLine ? reasonLine[1] : inline ? inline[1] : '').trim().slice(0, 200);
+  const v = line[1].normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+  let verdict = null;
+  if (/DESCART|CERRAD/.test(v)) verdict = 'DESCARTAR';
+  else if (/DUDOS|PENDIENTE/.test(v)) verdict = 'DUDOSA';
+  else if (/MENOR/.test(v)) verdict = 'MENOR_PRIORIDAD';
+  else if (/LISTA/.test(v)) verdict = 'LISTA';
+  return { verdict: verdict, reason: reason };
+}
 
 function parseCvJson(text) {
   let cv;
@@ -326,6 +387,12 @@ function hasGeneratedCv_(folder) {
     if (name.indexOf('CV_') === 0 || name.indexOf(CONFIG.CV_FILE_PREFIX) === 0) return true;
   }
   return false;
+}
+
+/** Texto de un archivo de la carpeta, o '' si no existe. */
+function readOptionalText_(folder, name) {
+  const file = firstFileByName_(folder, name);
+  return file ? readTextFile_(file) : '';
 }
 
 function firstFileByName_(folder, name) {

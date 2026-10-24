@@ -98,6 +98,10 @@ const CONFIG = {
   CONTEXT_DOC_NAME: 'CONTEXTO_CV',   // Google Doc privado con los datos reales (validación anti-alucinación)
   CV_JSON_NAME: 'CV_IA.json',        // Lo deja la IA en la carpeta de cada vacante
   CV_ERRORS_NAME: 'CV_IA_ERRORES.txt',
+  // Verificación de la IA antes de la HV (decisión del usuario 2026-10-24): Verificacion.txt con "VEREDICTO: ..." y
+  // "MOTIVO: ...". A las CV_HOUR, DESCARTAR -> carpeta a la papelera; DUDOSA -> Sin revisar/<fecha>/Dudosas (él decide)
+  VERIFICATION_FILE_NAME: 'Verificacion.txt',
+  DOUBTFUL_FOLDER_NAME: 'Dudosas',
   // Vacantes nuevas del agente, aún sin revisar ni enviar (decisión del usuario 2026-10-22): Vacantes con IA/Sin revisar/
   // <YYYY-MM-DD>/<Empresa>. Fuera de CV/<semana>: allá solo van, movidas por el usuario, las que ya envió.
   PENDING_FOLDER_NAME: 'Sin revisar',
