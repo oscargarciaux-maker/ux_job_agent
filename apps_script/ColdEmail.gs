@@ -44,7 +44,7 @@ function crearBorradoresEnFrio() {
       const pdf = hv.getAs(MimeType.PDF).setName(hv.getName() + '.pdf');
       const done = check.warnings.map(w => 'AVISO: ' + w);
       check.recipients.forEach(r => {
-        const id = createApplicationDraft_(r.para, r.asunto, r.cuerpo + '\n\n' + data.firma, pdf);
+        const id = createApplicationDraft_(r.para, coldDraftSubject(data.empresa, r.asunto), r.cuerpo + '\n\n' + data.firma, pdf);
         sheet.appendRow([data.empresa, r.para, '—', r.asunto, pdf.getName(), 'Borrador preparado, no enviado', '',
                          [r.fuente, r.fecha_fuente, r.nota].filter(Boolean).join(' | ')]);
         contacted[r.para.toLowerCase()] = 'borrador';
@@ -52,10 +52,23 @@ function crearBorradoresEnFrio() {
       });
       removeFiles_(folder, CONFIG.COLD_ERRORS_FILE);
       replaceFile_(folder, CONFIG.COLD_DRAFTS_DONE_FILE, done.join('\n'));
+      if (check.recipients.length) markTargetCompany_(ss, data.empresa, 'Borradores creados');
       console.log(label + ' -> ' + check.recipients.length + ' borradores con ' + pdf.getName());
     } catch (e) {
       console.error(label + ' -> ERROR: ' + e.message);
     }
+  });
+}
+
+/** Estado de la empresa en la pestaña "Empresas objetivo" (skill investigar-empresas), si está allí. */
+function markTargetCompany_(ss, company, status) {
+  const sheet = ss.getSheetByName(CONFIG.TARGET_COMPANIES_SHEET_NAME);
+  if (!sheet || sheet.getLastRow() < 2) return;
+  const headers = CONFIG.TARGET_COMPANIES_HEADERS;
+  const names = sheet.getRange(2, headers.indexOf('Empresa') + 1, sheet.getLastRow() - 1, 1).getValues();
+  const key = companyKey_(company);
+  names.forEach((row, i) => {
+    if (companyKey_(row[0]) === key) sheet.getRange(i + 2, headers.indexOf('Estado') + 1).setValue(status);
   });
 }
 
@@ -101,10 +114,24 @@ function contactedAddresses(rows) {
   return out;
 }
 
-/** Palabras de un mensaje como las cuenta la guía de cover letters: sin URLs; "[LinkedIn](url)" cuenta como 1. */
-function countEmailWords(text) {
-  return String(text || '').replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/https?:\/\/\S+/g, ' ')
-    .split(/\s+/).filter(w => /[\p{L}\p{N}]/u.test(w)).length;
+/**
+ * Palabras de un mensaje como las cuenta la guía de cover letters: sin URLs; "[LinkedIn](url)" cuenta como 1. El
+ * nombre de la empresa (que se menciona con discreción en el texto) no cuenta (decisión del usuario 2026-10-24).
+ */
+function countEmailWords(text, company) {
+  let t = String(text || '').replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/https?:\/\/\S+/g, ' ');
+  if (String(company || '').trim()) t = t.replace(companyPattern_(company, 'giu'), ' ');
+  return t.split(/\s+/).filter(w => /[\p{L}\p{N}]/u.test(w)).length;
+}
+
+/** El nombre de la empresa como palabra completa, sin importar mayúsculas. */
+function companyPattern_(company, flags) {
+  return new RegExp('(^|[^\\p{L}\\p{N}])' + escapeRegex_(String(company).trim()) + '(?=$|[^\\p{L}\\p{N}])', flags || 'iu');
+}
+
+/** Asunto del borrador: "[Empresa] asunto" para identificarlo; el usuario quita el prefijo al enviar. */
+function coldDraftSubject(company, subject) {
+  return '[' + String(company).trim() + '] ' + String(subject).trim();
 }
 
 /**
@@ -139,7 +166,8 @@ function validateColdEmails(data, contextText, contacted) {
       if (!String((c && c[f]) || '').trim()) errors.push(who + ': falta "' + f + '"' + (f === 'fuente' ? ' (de dónde sale la dirección)' : ''));
     });
     const body = String(c.cuerpo || '');
-    const words = countEmailWords(body);
+    const company = String(data.empresa || '').trim();
+    const words = countEmailWords(body, company);
     if (words > CONFIG.COLD_EMAIL_MAX_WORDS) errors.push(who + ': el cuerpo tiene ' + words + ' palabras (máximo ' + CONFIG.COLD_EMAIL_MAX_WORDS + ', Guía Maestra de Cover Letters)');
     const plain = body.replace(/\([^)]*https?:\/\/[^)]*\)/g, ' ').replace(/https?:\/\/\S+/g, ' ').replace(/\S+@\S+/g, ' ');
     extractNumbers_(plain + ' ' + String(c.asunto || '')).forEach(n => {
@@ -148,7 +176,13 @@ function validateColdEmails(data, contextText, contacted) {
     const forbidden = forbiddenCvWords(body + ' ' + String(c.asunto || ''), false);
     if (forbidden.length) errors.push(who + ': palabras prohibidas: ' + forbidden.join(', '));
     if (/^\s*postulaci[oó]n\b/i.test(String(c.asunto || ''))) warnings.push(who + ': el asunto empieza por "Postulación" (la guía pide nombrar la especialidad)');
-    recipients.push({ para: para, asunto: String(c.asunto || '').trim(), cuerpo: body.trim(), fuente: String(c.fuente || '').trim(),
+    // Decisiones del usuario (2026-10-24): el asunto que se envía no lleva el nombre de la empresa (Apps Script le pone
+    // "[Empresa] " solo en el borrador); si la dirección es de una persona, se la saluda por su nombre.
+    if (company && companyPattern_(company).test(String(c.asunto || ''))) errors.push(who + ': el asunto no puede llevar el nombre de la empresa (el borrador lo muestra como prefijo [' + company + '] que se quita al enviar)');
+    const firstName = String(c.nombre || '').trim().split(/\s+/)[0];
+    if (firstName && !new RegExp('^[^\\n]{0,40}' + escapeRegex_(firstName), 'iu').test(body.trim())) errors.push(who + ': el saludo debe ir a ' + firstName + ' (la dirección es de esa persona)');
+    if (company && !companyPattern_(company).test(body)) warnings.push(who + ': el cuerpo no menciona a ' + company);
+    recipients.push({ para: para, nombre: String(c.nombre || '').trim(), asunto: String(c.asunto || '').trim(), cuerpo: body.trim(), fuente: String(c.fuente || '').trim(),
                       fecha_fuente: String(c.fecha_fuente || '').trim(), nota: String(c.nota || '').trim() });
   });
   if (!errors.length && !recipients.length) warnings.push('Todos los destinatarios ya estaban usados o rebotados: no se crea ningún borrador');

@@ -383,8 +383,8 @@ const contacted = run('contactedAddresses')(coldRows);
 assert.deepStrictEqual(JSON.parse(JSON.stringify(contacted)), { 'contacto@ludussf.com': 'usado', 'info@ludussf.com': 'rebotado', 'talent@ludussf.com': 'rebotado',
   'vlad@blue-storm.co.uk': 'rebotado', 'jobs@movii.com.co': 'usado' });
 const coldCtx = 'Logré que el 93% de los casos se resolvieran por canales digitales. Reduje en un 83% las reuniones.';
-const mail = (over) => Object.assign({ para: 'talento@empresa.co', asunto: 'Diseñador UX/UI - Pagos digitales - Empresa',
-  cuerpo: 'Hola, vi que lanzaron pagos con QR para comercios. Llevé al 93% la resolución digital de reclamos en una aseguradora. ¿Conversamos 10 minutos? Adjunto HV, [LinkedIn](https://linkedin.com/in/x) y [Portafolio](https://x.app).',
+const mail = (over) => Object.assign({ para: 'talento@empresa.co', asunto: 'Diseñador UX/UI - Pagos digitales',
+  cuerpo: 'Hola, vi que Empresa lanzó pagos con QR para comercios. Llevé al 93% la resolución digital de reclamos en una aseguradora. ¿Conversamos 10 minutos? Adjunto HV, [LinkedIn](https://linkedin.com/in/x) y [Portafolio](https://x.app).',
   fuente: 'https://empresa.co/trabaja-con-nosotros', fecha_fuente: '2026-09' }, over);
 const coldData = (correos) => ({ empresa: 'Empresa', idioma: 'es', firma: 'Oscar Garcia', correos: correos });
 let cold = run('validateColdEmails')(coldData([mail({})]), coldCtx + ' 10', contacted);
@@ -403,6 +403,18 @@ assert.strictEqual(cold.warnings.length, 2);
 cold = run('validateColdEmails')(coldData([mail({ cuerpo: 'Soy practicante de diseño. ¿Conversamos?' })]), coldCtx, contacted);
 assert.ok(cold.errors.some(e => /prohibidas/.test(e)));
 assert.ok(run('validateColdEmails')({ empresa: 'X', idioma: 'fr', correos: [] }, '', {}).errors.length >= 3);
+// Decisiones del usuario (2026-10-24): el nombre de la empresa no cuenta en las 35 palabras, el asunto que se envía no
+// lo lleva (el borrador lo muestra como prefijo) y si la dirección es de una persona se la saluda por su nombre
+assert.strictEqual(run('countEmailWords')('Hola Ana, en Banco de Bogotá vi su app.', 'Banco de Bogotá'), 6);
+assert.strictEqual(run('coldDraftSubject')('Bold', 'Diseñador UX/UI - Pagos'), '[Bold] Diseñador UX/UI - Pagos');
+cold = run('validateColdEmails')(coldData([mail({ asunto: 'Diseñador UX/UI - Empresa' })]), coldCtx + ' 10', contacted);
+assert.ok(cold.errors.some(e => /asunto no puede llevar/.test(e)));
+cold = run('validateColdEmails')(coldData([mail({ nombre: 'Ana Pérez' })]), coldCtx + ' 10', contacted);
+assert.ok(cold.errors.some(e => /saludo debe ir a Ana/.test(e)));
+cold = run('validateColdEmails')(coldData([mail({ nombre: 'Ana Pérez', cuerpo: mail({}).cuerpo.replace('Hola,', 'Hola Ana,') })]), coldCtx + ' 10', contacted);
+assert.deepStrictEqual(Array.from(cold.errors), []);
+cold = run('validateColdEmails')(coldData([mail({ cuerpo: 'Hola, vi que lanzaron pagos con QR. ¿Conversamos?' })]), coldCtx, contacted);
+assert.ok(cold.warnings.some(w => /no menciona a Empresa/.test(w)));
 assert.strictEqual(run('emailPlainText')('Ver [LinkedIn](https://l.in/x).'), 'Ver LinkedIn (https://l.in/x).');
 assert.ok(run('emailHtml')('Ver [LinkedIn](https://l.in/x) y https://p.app').includes('<a href="https://l.in/x">LinkedIn</a> y <a href="https://p.app">https://p.app</a>'));
 

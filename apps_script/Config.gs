@@ -129,6 +129,10 @@ const CONFIG = {
   COLD_DRAFTS_DONE_FILE: 'Borradores.txt',   // Ya se crearon sus borradores: no se repiten
   COLD_ERRORS_FILE: 'Correos_ERRORES.txt',
   COLD_EMAIL_MAX_WORDS: 35,                  // Guía Maestra de Cover Letters (la guía principal de correos del usuario)
+  // Skill investigar-empresas (2026-10-24): empresas que contratan diseñadores UX/UI, con correos verificados
+  TARGET_COMPANIES_SHEET_NAME: 'Empresas objetivo',
+  TARGET_COMPANIES_HEADERS: ['Fecha', 'Empresa', 'Ámbito', 'Ciudad / país', 'Tipo', 'Sector', 'Por qué encaja (fuente)',
+                             'Web', 'Página de empleo', 'Correos (fuente, fecha)', 'Estado', 'Notas'],
   // Palabras que nunca van en una HV ni en su nombre de archivo (guía 2026-10-22). Ojo: "internacional" no cuenta.
   CV_FORBIDDEN_WORDS: /\b(aprendiz\w*|voluntari\w*|practicante\w*|junior|jr|interns?|internships?|volunteer\w*|din'?t)\b/gi,
   CV_DEFAULT_ROLE: 'Product Designer',  // Cargo del nombre de archivo si la vacante no deja uno usable
