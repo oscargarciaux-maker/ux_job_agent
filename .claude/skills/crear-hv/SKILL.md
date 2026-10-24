@@ -40,6 +40,7 @@ o un enlace.
   "Product Designer UX/UI"; agencia → "Diseñador UX/UI"). Si el usuario dice el cargo, usa ese.
 - **Carpeta:** `Vacantes con IA/Correos en frío/<Empresa>/` (créala si no existe).
 - Las keywords salen de la empresa (producto, sector, lo que publica), no de un aviso.
+- Los correos (direcciones, mensaje y borradores) los prepara la skill `correo-en-frio`.
 
 ## Paso 1. Leer
 
@@ -131,7 +132,10 @@ luego un cuarto logro, luego palabras de los logros; nunca la ubicación ni el p
 ### En la tarea diaria (automático)
 Escribe `CV_IA.json` en la carpeta de la vacante (`create_file`, `application/json`, sin convertir): una clave por cada
 marcador de `MASTER_TEMPLATE` (sin llaves; `""` = se borra ese párrafo) más `_idioma`, `_keywords`, `_gaps`,
-`_nombre_archivo` y `_correo_cuerpo` (correo de postulación de 3–4 párrafos si `Detalle_Vacante` trae correo; si no, `""`).
+`_nombre_archivo` y `_correo_cuerpo` (si `Detalle_Vacante` trae correo: el mensaje de postulación según el Prompt 2 de la
+"Guía Maestra de Cover Letters" —la guía principal de correos—: [reto crítico de la vacante] + [métrica de `CONTEXTO_CV`]
++ [CTA de reunión] + [adjuntos: HV, LinkedIn, Portafolio], **máximo 35 palabras**, sin clichés ni saludos largos; si no,
+`""`).
 Apps Script lo valida y arma la HV a las 10:00.
 
 ### En una conversación (inmediato)

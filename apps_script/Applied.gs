@@ -8,6 +8,12 @@
 
 /** Recorre la carpeta de aplicadas y reescribe la hoja "Aplicadas" (con el color de cada carpeta). */
 function sincronizarAplicadas() {
+  // Borradores de correos en frío (2026-10-24): van primero y aparte, así un error aquí no frena la sincronización
+  try {
+    crearBorradoresEnFrio();
+  } catch (e) {
+    console.error('Correos en frío -> ERROR: ' + e.message);
+  }
   const root = DriveApp.getFolderById(getProp_(PROPS.ROOT_FOLDER_ID));
   const folders = root.getFoldersByName(CONFIG.APPLIED_FOLDER_NAME);
   if (!folders.hasNext()) {

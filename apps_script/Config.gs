@@ -121,6 +121,14 @@ const CONFIG = {
   APPLIED_FOLDER_NAME: 'CV',
   APPLIED_SHEET_NAME: 'Aplicadas',
   COLD_EMAIL_SHEET_NAME: 'Correos en frío',   // Empresas ya contactadas (columna A): no se proponen de nuevo
+  COLD_EMAIL_SHEET_HEADERS: ['Empresa', 'Destinatario(s)', 'Fecha y hora envío', 'Asunto', 'CV usado', 'Estado',
+                             'Respuesta / info', 'Notas'],
+  // Skill correo-en-frio (2026-10-24): Vacantes con IA/Correos en frío/<Empresa>/ con la HV y Correos.json
+  COLD_EMAIL_FOLDER_NAME: 'Correos en frío',
+  COLD_EMAILS_FILE: 'Correos.json',
+  COLD_DRAFTS_DONE_FILE: 'Borradores.txt',   // Ya se crearon sus borradores: no se repiten
+  COLD_ERRORS_FILE: 'Correos_ERRORES.txt',
+  COLD_EMAIL_MAX_WORDS: 35,                  // Guía Maestra de Cover Letters (la guía principal de correos del usuario)
   // Palabras que nunca van en una HV ni en su nombre de archivo (guía 2026-10-22). Ojo: "internacional" no cuenta.
   CV_FORBIDDEN_WORDS: /\b(aprendiz\w*|voluntari\w*|practicante\w*|junior|jr|interns?|internships?|volunteer\w*|din'?t)\b/gi,
   CV_DEFAULT_ROLE: 'Product Designer',  // Cargo del nombre de archivo si la vacante no deja uno usable

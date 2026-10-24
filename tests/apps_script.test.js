@@ -372,6 +372,40 @@ assert.ok(context.mentionsVacancy('https://co.computrabajo.com/oferta-1?fgoa=tru
 assert.ok(context.sameRole('Gestor de Producto y UX/UI', context.hvRoleFromFileName('HV_Oscar_Garcia_Gestor_Producto_UX_UI.pdf')));
 assert.ok(!context.mentionsVacancy('UX Researcher\nEmpresa: Acme', { title: 'UI Designer', link: 'https://a.co/1' }));
 
+// Correos en frío (skill correo-en-frio, 2026-10-24): Guía Maestra de Cover Letters = máximo 35 palabras
+assert.strictEqual(run('countEmailWords')('Hola Ana, vi que lanzaron pagos QR. Adjunto mi HV, [LinkedIn](https://linkedin.com/in/x) y https://x.app'), 12);
+const coldRows = [
+  ['Ludus', 'contacto@ludussf.com; info@ludussf.com; talent@ludussf.com (BCC)', '', '', '', 'Rebotado parcialmente', 'Rebotes 20-oct: info@ y talent@ (550)', ''],
+  ['Dazzle', 'vlad@blue-storm.co.uk', '', '', '', 'Rebotado', 'Rebote 22-oct', ''],
+  ['Movii', 'jobs@movii.com.co', '—', '', '', 'Borrador preparado, no enviado', '', ''],
+];
+const contacted = run('contactedAddresses')(coldRows);
+assert.deepStrictEqual(JSON.parse(JSON.stringify(contacted)), { 'contacto@ludussf.com': 'usado', 'info@ludussf.com': 'rebotado', 'talent@ludussf.com': 'rebotado',
+  'vlad@blue-storm.co.uk': 'rebotado', 'jobs@movii.com.co': 'usado' });
+const coldCtx = 'Logré que el 93% de los casos se resolvieran por canales digitales. Reduje en un 83% las reuniones.';
+const mail = (over) => Object.assign({ para: 'talento@empresa.co', asunto: 'Diseñador UX/UI - Pagos digitales - Empresa',
+  cuerpo: 'Hola, vi que lanzaron pagos con QR para comercios. Llevé al 93% la resolución digital de reclamos en una aseguradora. ¿Conversamos 10 minutos? Adjunto HV, [LinkedIn](https://linkedin.com/in/x) y [Portafolio](https://x.app).',
+  fuente: 'https://empresa.co/trabaja-con-nosotros', fecha_fuente: '2026-09' }, over);
+const coldData = (correos) => ({ empresa: 'Empresa', idioma: 'es', firma: 'Oscar Garcia', correos: correos });
+let cold = run('validateColdEmails')(coldData([mail({})]), coldCtx + ' 10', contacted);
+assert.deepStrictEqual(Array.from(cold.errors), []);
+assert.strictEqual(cold.recipients.length, 1);
+cold = run('validateColdEmails')(coldData([mail({})]), coldCtx, contacted);
+assert.ok(cold.errors.some(e => /cifra 10/.test(e)), 'el "10 minutos" debe estar respaldado por CONTEXTO_CV');
+cold = run('validateColdEmails')(coldData([mail({ cuerpo: Array(36).fill('palabra').join(' ') })]), coldCtx, contacted);
+assert.ok(cold.errors.some(e => /36 palabras/.test(e)));
+cold = run('validateColdEmails')(coldData([mail({ fuente: '' })]), coldCtx + ' 10', contacted);
+assert.ok(cold.errors.some(e => /fuente/.test(e)));
+cold = run('validateColdEmails')(coldData([mail({ para: 'info@ludussf.com' }), mail({ para: 'jobs@movii.com.co' }), mail({})]), coldCtx + ' 10', contacted);
+assert.deepStrictEqual(Array.from(cold.errors), []);
+assert.deepStrictEqual(Array.from(cold.recipients.map(r => r.para)), ['talento@empresa.co']);
+assert.strictEqual(cold.warnings.length, 2);
+cold = run('validateColdEmails')(coldData([mail({ cuerpo: 'Soy practicante de diseño. ¿Conversamos?' })]), coldCtx, contacted);
+assert.ok(cold.errors.some(e => /prohibidas/.test(e)));
+assert.ok(run('validateColdEmails')({ empresa: 'X', idioma: 'fr', correos: [] }, '', {}).errors.length >= 3);
+assert.strictEqual(run('emailPlainText')('Ver [LinkedIn](https://l.in/x).'), 'Ver LinkedIn (https://l.in/x).');
+assert.ok(run('emailHtml')('Ver [LinkedIn](https://l.in/x) y https://p.app').includes('<a href="https://l.in/x">LinkedIn</a> y <a href="https://p.app">https://p.app</a>'));
+
 // HITL: ninguna llamada de envío de correo en el código
 const allCode = fs.readdirSync(dir).map(f => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n');
 assert.ok(!/\.send\(|Messages\.send|sendEmail|GmailApp/.test(allCode), 'El agente no debe poder enviar correos');
@@ -388,7 +422,8 @@ const loaderCtx = {
 vm.createContext(loaderCtx);
 vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'instalador', 'Cargador.gs'), 'utf8'), loaderCtx);
 const api = vm.runInContext('agente_()', loaderCtx);
-for (const fn of ['ejecutarPipeline', 'ejecutarPrueba', 'ejecutarSimulacion', 'configurarAgente', 'generarCVsDesdeIA', 'probarCVsDesdeIA']) {
+for (const fn of ['ejecutarPipeline', 'ejecutarPrueba', 'ejecutarSimulacion', 'configurarAgente', 'generarCVsDesdeIA', 'probarCVsDesdeIA',
+                  'sincronizarAplicadas', 'crearBorradoresEnFrio']) {
   assert.strictEqual(typeof api[fn], 'function', 'El cargador debe exponer ' + fn);
   assert.strictEqual(typeof loaderCtx[fn], 'function', 'Cargador.gs debe definir ' + fn + ' (activadores/editor)');
 }
