@@ -53,6 +53,9 @@ Una de estas:
 
 ## Paso 3. ¿El cargo encaja? Por funciones, no por título
 
+Si `Detalle_Vacante` dice `Rol: VERIFICAR FUNCIONES`, el agente la dejó pasar por un título dudoso (CX, contenido,
+producto digital…): esta revisión decide.
+
 Regla del usuario (24 oct): si el nombre es distinto (p. ej. CX o gestión de producto) pero la **función principal** es
 la de sus roles, entra; si el título suena a diseño pero la función principal es de otro oficio, no entra.
 
@@ -85,14 +88,22 @@ criterios leyendo el aviso completo, que es lo que el código no puede juzgar bi
 
 ## Paso 4. ¿Está repetida o ya aplicada?
 
-- Compara por **enlace y por empresa + cargo** contra la hoja `Vacantes UX - Registro` (Hoja 1). La misma vacante
-  aparece con enlaces distintos (LinkedIn, Indeed, portal).
+- Compara por **enlace y por empresa + cargo** contra la hoja `Vacantes UX - Registro`, pestaña `Hoja 1` (columnas
+  B Empresa, C Cargo, D Link). La misma vacante aparece con enlaces distintos (LinkedIn, Indeed, portal).
 - **Lo aplicado se mira en las carpetas semanales** de `Vacantes con IA/CV/` (primera, segunda, tercera semana… y
-  todas sus subcarpetas, incluida la confidencial). La pestaña `Aplicadas` no es la fuente de verdad. No cuentan como
-  aplicadas las carpetas `Prueba` (preparadas sin enviar) ni `Sin revisar`.
-- **La misma empresa con un cargo distinto no es duplicado:** se evalúa como vacante nueva (y se avisa que ya hay una
-  postulación a esa empresa).
-- Si la empresa está en la pestaña `Correos en frío`, avisar que ya se le escribió.
+  todas sus subcarpetas, incluida la confidencial). La pestaña `Aplicadas` es solo un índice de esas carpetas (se
+  regenera cada hora); úsala para encontrarlas (columna F trae el enlace a cada carpeta), pero decide mirando la carpeta.
+- **Si la empresa ya tiene carpeta** (regla del usuario 2026-10-24): entra a la carpeta y compara con la vacante nueva
+  usando su documento `Vacante` o `Detalle_Vacante` (enlace, cargo y funciones) y el nombre de la HV
+  (`HV_Nombre_Apellido_<Cargo>`).
+  - Mismo enlace, mismo cargo o mismas funciones → **repetida** (ya aplicada o ya preparada).
+  - Otro cargo con otras funciones → **vacante nueva**; avisa que ya hay una postulación a esa empresa.
+  - La carpeta no tiene información para comparar → dilo y deja que el usuario decida.
+- Las carpetas dentro de `Prueba` son HV **preparadas sin enviar**: cuentan como repetidas (no se propone de nuevo la
+  misma vacante), pero no como aplicadas.
+- Si la empresa está en la pestaña `Correos en frío`, avisa que ya se le escribió (no la descarta).
+- Las vacantes que el agente marcó en `Detalle_Vacante` con `Aviso empresa:` ya pasaron por esta comparación
+  automática (solo por cargo y enlace); confírmala con las funciones.
 
 ## Paso 5. Señales de alerta (posible fraude o vacante falsa)
 
@@ -133,7 +144,9 @@ Fecha de publicación: <fecha> (fuente)
 Registro:
 - Si hay acceso de escritura a Drive, guarda el reporte como archivo de texto `Verificacion.txt` en la carpeta de la
   vacante.
-- Las que no pasan quedan en el registro (`Vacantes UX - Registro`, columna Estado) como **Descartada** o **Cerrada**
-  con el motivo, en vez de llegarle al usuario como opción. Si la sesión no puede escribir en Sheets (sin conector de
-  Google Sheets), deja la lista de filas a actualizar en el reporte para que se hagan después.
+- Las que no pasan quedan en el registro (`Vacantes UX - Registro`, `Hoja 1`, columna F Estado) como
+  `Descartada: <motivo>` o `Cerrada: <motivo>`, en vez de llegarle al usuario como opción. Con el conector de Google
+  Sheets: busca la fila por el enlace (columna D) o por empresa + cargo y actualiza **solo** la celda de Estado de esa
+  fila; si la vacante no está en el registro, agrega una fila (Fecha, Empresa, Cargo, Link, Match Score vacío, Estado).
+  Nunca reescribas otras filas ni columnas. Sin conector, deja en el reporte la lista de filas a actualizar.
 - No borres ni muevas carpetas: el usuario decide qué hacer con ellas.

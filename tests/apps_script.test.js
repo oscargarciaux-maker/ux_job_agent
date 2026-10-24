@@ -295,6 +295,31 @@ assert.strictEqual(entry.heading, 'Buscamos diseñador UX/UI · Ana Gómez · 20
 assert.strictEqual(entry.link, 'https://www.linkedin.com/posts/ana_1');
 assert.strictEqual(entry.snippet, 'Envía tu HV a ana@example.com');
 
+// Cargo por funciones, no por título (2026-10-24): títulos dudosos entran marcados para revisar
+assert.strictEqual(context.roleTitleClass('Diseñador UX/UI Junior'), 'design');
+assert.strictEqual(context.roleTitleClass('Product & Content UX/UI Designer'), 'verify');
+assert.strictEqual(context.roleTitleClass('CX Designer'), 'verify');
+assert.strictEqual(context.roleTitleClass('Analista de Producto Digital'), 'verify');
+assert.strictEqual(context.roleTitleClass('SEO Copywriter'), 'excluded');
+assert.strictEqual(context.roleTitleClass('Design Engineer (React/TypeScript)'), 'excluded');
+assert.strictEqual(context.roleTitleClass('Linux Administrator'), 'other');
+const pv = { title: 'CX Designer', description: '' };
+assert.ok(vm.runInContext('acceptRoleTitle_', context)(pv) && pv.roleToVerify === true);
+assert.ok(context.computePriority({ title: 'CX Designer', roleToVerify: true }, 80) < context.computePriority({ title: 'CX Designer' }, 80));
+// Misma empresa: solo es repetida si es el mismo cargo
+assert.ok(context.sameRole('Diseñador UX/UI Junior', 'UX/UI Designer'));
+assert.ok(context.sameRole('Product Designer (Remoto)', 'product designer senior'));
+assert.ok(!context.sameRole('Product Designer', 'Product Owner'));
+assert.ok(!context.sameRole('UX Researcher', 'UI Designer'));
+assert.strictEqual(context.hvRoleFromFileName('HV_Nombre_Apellido_UI_UX_Designer.pdf'), 'UI UX Designer');
+assert.strictEqual(context.hvRoleFromFileName('Vacante'), '');
+assert.strictEqual(context.extractFolderId('=HYPERLINK("https://drive.google.com/drive/folders/1AbC-d_9","Abrir")'), '1AbC-d_9');
+assert.ok(context.mentionsVacancy('Product Designer\nEmpresa: Acme', { title: 'Diseñador de producto', link: '' }));
+assert.ok(context.mentionsVacancy('Ver https://co.linkedin.com/jobs/view/123?utm=x', { title: 'Otro', link: 'https://co.linkedin.com/jobs/view/123?utm_source=g' }));
+assert.ok(context.mentionsVacancy('https://co.computrabajo.com/oferta-1?fgoa=true\n\n  \n\nGestor de Producto y UX/UI\nCali', { title: 'Gestor de producto y UX/UI - Cali', link: '' }));
+assert.ok(context.sameRole('Gestor de Producto y UX/UI', context.hvRoleFromFileName('HV_Oscar_Garcia_Gestor_Producto_UX_UI.pdf')));
+assert.ok(!context.mentionsVacancy('UX Researcher\nEmpresa: Acme', { title: 'UI Designer', link: 'https://a.co/1' }));
+
 // HITL: ninguna llamada de envío de correo en el código
 const allCode = fs.readdirSync(dir).map(f => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n');
 assert.ok(!/\.send\(|Messages\.send|sendEmail|GmailApp/.test(allCode), 'El agente no debe poder enviar correos');

@@ -58,21 +58,38 @@ function runPipeline_(opts) {
     sheet = getRegistrySheet_();
     const existing = getExistingUrls_(sheet);
     let applied = [];
+    let cold = [];
     try {
-      applied = getAppliedCompanies_();  // La hoja la mantiene al día el activador horario de sincronizarAplicadas
+      applied = getAppliedRecords_();  // La hoja la mantiene al día el activador horario de sincronizarAplicadas
     } catch (e) {
       console.warn('No se pudo leer la hoja ' + CONFIG.APPLIED_SHEET_NAME + ': ' + e.message);
     }
     try {
-      applied = applied.concat(getColdEmailCompanies_());  // Empresas ya contactadas por correo en frío
+      cold = getColdEmailCompanies_();
     } catch (e) {
       console.warn('No se pudo leer la hoja ' + CONFIG.COLD_EMAIL_SHEET_NAME + ': ' + e.message);
     }
     const known = raw.filter(v => existing[v.link] || existing[vacancyKey(v)]);
-    const appliedHits = raw.filter(v => !known.includes(v) && isAppliedCompany(v.company, applied));
+    // Empresa con carpeta en CV/ (decisión del usuario 2026-10-24): se abre la carpeta y solo es repetida si es el
+    // mismo cargo (o la misma vacante); con otro cargo entra, con una nota para que el usuario lo tenga en cuenta.
+    const appliedHits = [];
+    raw.filter(v => !known.includes(v)).forEach(v => {
+      const sameCompany = applied.filter(r => isAppliedCompany(v.company, [r.company]));
+      if (sameCompany.length) {
+        const match = sameCompany.filter(r => isSameAppliedVacancy_(v, r))[0];
+        if (match) {
+          appliedHits.push(v);
+          return;
+        }
+        v.companyNote = 'Ya hay carpeta de esta empresa en CV (' + sameCompany.map(r => r.group + '/' + r.folderName).join(', ') +
+                        ') con otro cargo: revísala antes de postular.';
+      }
+      if (isAppliedCompany(v.company, cold)) v.companyNote = (v.companyNote ? v.companyNote + ' ' : '') + 'Ya le escribiste en frío a esta empresa.';
+    });
     fresh = raw.filter(v => v.link && !known.includes(v) && !appliedHits.includes(v));
-    console.log('   Ya registradas: ' + known.length + '; de empresas donde ya aplicaste o escribiste en frío: ' + appliedHits.length +
-                (appliedHits.length ? ' (' + appliedHits.map(v => v.company).join(', ') + ')' : ''));
+    console.log('   Ya registradas: ' + known.length + '; ya aplicadas (mismo cargo en CV/): ' + appliedHits.length +
+                (appliedHits.length ? ' (' + appliedHits.map(v => v.company + ' - ' + v.title).join(', ') + ')' : '') +
+                '; de empresas con carpeta pero otro cargo: ' + raw.filter(v => v.companyNote).length);
   }
   if (!opts.useSample) fresh = verifyPostingDates_(fresh);
   console.log('2. Vacantes nuevas y con <= ' + CONFIG.MAX_POST_AGE_DAYS + ' días: ' + fresh.length +

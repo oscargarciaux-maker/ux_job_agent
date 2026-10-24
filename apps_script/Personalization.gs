@@ -70,7 +70,8 @@ function computePriority(vacancy, score) {
   const fintech = CONFIG.FINTECH_PATTERN.test(vacancyText_(vacancy) + ' ' + (vacancy.company || '')) ? CONFIG.FINTECH_BONUS : 0;
   const years = requiredYears(vacancy);
   const tooMuch = years !== null && years >= CONFIG.EXPERIENCE_YEARS_LIMIT ? CONFIG.EXPERIENCE_PENALTY : 0;
-  return score + (vacancy.sourceBonus || 0) + fintech - tooMuch;
+  const verify = vacancy.roleToVerify ? CONFIG.ROLE_VERIFY_PENALTY : 0;
+  return score + (vacancy.sourceBonus || 0) + fintech - tooMuch - verify;
 }
 
 /**
@@ -98,6 +99,31 @@ function exclusionReason(vacancy) {
   if (rule) return rule.reason;
   // Cargos de liderazgo muy por encima de junior (Senior sí entra, con la regla de años)
   return CONFIG.EXCLUDED_TITLE_PATTERN.test(vacancy.title || '') ? 'cargo de liderazgo (staff/principal/head/director/manager)' : null;
+}
+
+/** Palabras del cargo comparables entre idiomas, sin nivel, modalidad ni conectores. */
+function roleTokens_(title) {
+  const synonyms = { 'disenador': 'designer', 'disenadora': 'designer', 'diseno': 'design', 'producto': 'product',
+                     'investigador': 'researcher', 'investigacion': 'research', 'sistemas': 'system', 'systems': 'system' };
+  return String(title || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/experiencia de usuario|user experience/g, 'ux').replace(/\(.*?\)/g, ' ')
+    .split(/[^a-z0-9]+/).filter(Boolean).map(w => synonyms[w] || w)
+    .filter(w => !/^(junior|jr|senior|sr|semi|ssr|mid|remoto|remote|hibrido|hybrid|latam|de|del|la|el|en|para|y|e|and|the|of|a|or|o|a)$/.test(w))
+    .filter((w, i, all) => all.indexOf(w) === i);
+}
+
+/** true si dos títulos son el mismo cargo ("Diseñador UX/UI Junior" = "UX/UI Designer"). */
+function sameRole(a, b) {
+  const x = roleTokens_(a), y = roleTokens_(b);
+  if (!x.length || !y.length) return false;
+  const common = x.filter(w => y.indexOf(w) !== -1).length;
+  return common / (x.length + y.length - common) >= 0.6;
+}
+
+/** Cargo a partir del nombre de una HV: "HV_Nombre_Apellido_UI_UX_Designer.pdf" -> "UI UX Designer". */
+function hvRoleFromFileName(name) {
+  const parts = String(name || '').replace(/\.[a-z]{2,4}$/i, '').split(/[_\s]+/);
+  return /^(hv|cv)$/i.test(parts[0]) && parts.length >= 4 ? parts.slice(3).join(' ') : '';
 }
 
 /** Clave para reconocer la misma vacante publicada con enlaces distintos: empresa|cargo normalizados. */

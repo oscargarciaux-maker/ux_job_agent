@@ -48,6 +48,8 @@ const CONFIG = {
   // Piden 5 o más años: no se descartan, pero bajan de prioridad. Con menos de 5 años cuenta como mid aunque diga Senior.
   EXPERIENCE_YEARS_LIMIT: 5,
   EXPERIENCE_PENALTY: 30,
+  // Título dudoso (CX, contenido, producto digital…): entra con menor prioridad y "Rol: VERIFICAR FUNCIONES" (2026-10-24)
+  ROLE_VERIFY_PENALTY: 15,
   // Fuentes gratuitas (sin créditos de SerpAPI) con API pública. 1 llamada por día cada una.
   EXTRA_SOURCES: {
     remotive: { url: 'https://remotive.com/api/remote-jobs?category=design&limit=100' },

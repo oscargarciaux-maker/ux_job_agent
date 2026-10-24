@@ -113,7 +113,9 @@ function createVacancyDetailDoc_(folder, vacancy, item, language) {
     'Idioma: ' + language.toUpperCase(),
     'Correo de contacto: ' + (extractContactEmail(vacancy) || 'N/D'),
     'Fuente: ' + (vacancy.source || 'N/D'),
-  ].forEach(line => body.appendParagraph(line));
+  ].concat(vacancy.roleToVerify ? ['Rol: VERIFICAR FUNCIONES (el título no es de diseño; entra solo si la función principal es diseño)'] : [])
+   .concat(vacancy.companyNote ? ['Aviso empresa: ' + vacancy.companyNote] : [])
+   .forEach(line => body.appendParagraph(line));
   body.appendParagraph('Descripción completa').setHeading(DocumentApp.ParagraphHeading.HEADING2);
   body.appendParagraph(vacancy.description || vacancy.snippet || '');
   doc.saveAndClose();

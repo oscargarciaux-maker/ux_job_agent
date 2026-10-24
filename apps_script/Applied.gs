@@ -35,17 +35,23 @@ function sincronizarAplicadas() {
   console.log('Aplicadas sincronizadas: ' + rows.length + ' ' + JSON.stringify(count));
 }
 
-/** Las carpetas sin subcarpetas son vacantes; las demás (fechas, semanas) solo agrupan. */
-function collectAppliedFolders_(parentId, groupName, rows) {
+/**
+ * Las carpetas sin subcarpetas son vacantes; las demás (fechas, semanas) solo agrupan. Las que están dentro de una
+ * carpeta "Prueba" son HV preparadas que el usuario aún no envió: estado "Preparada, sin enviar" (siguen contando para
+ * no proponer de nuevo la misma vacante).
+ */
+function collectAppliedFolders_(parentId, groupName, rows, inTest) {
   listChildFolders_(parentId).forEach(f => {
+    const test = inTest || /^prueba$/i.test(String(f.name).trim());
     const children = listChildFolders_(f.id);
     if (children.length) {
-      collectAppliedFolders_(f.id, f.name, rows);
+      collectAppliedFolders_(f.id, f.name, rows, test);
       return;
     }
     const parsed = parseAppliedFolderName(f.name);
     rows.push({ id: f.id, group: groupName, company: parsed.company, title: parsed.title,
-                status: colorToStatus(f.folderColorRgb), color: f.folderColorRgb, created: (f.createdTime || '').slice(0, 10) });
+                status: test ? 'Preparada, sin enviar' : colorToStatus(f.folderColorRgb), color: f.folderColorRgb,
+                created: (f.createdTime || '').slice(0, 10) });
   });
 }
 
@@ -63,11 +69,44 @@ function listChildFolders_(parentId) {
   return out;
 }
 
-/** Empresas de la hoja "Aplicadas" (para no volver a postular). */
-function getAppliedCompanies_() {
+/** Filas de la hoja "Aplicadas": empresa, cargo, grupo y carpeta (id sacado del enlace "Abrir"). */
+function getAppliedRecords_() {
   const sheet = SpreadsheetApp.openById(getProp_(PROPS.SHEET_ID)).getSheetByName(CONFIG.APPLIED_SHEET_NAME);
   if (!sheet || sheet.getLastRow() < 2) return [];
-  return sheet.getRange(2, 2, sheet.getLastRow() - 1, 1).getValues().map(r => r[0]).filter(Boolean);
+  const n = sheet.getLastRow() - 1;
+  const values = sheet.getRange(2, 1, n, 3).getValues();
+  const formulas = sheet.getRange(2, 6, n, 1).getFormulas();
+  return values.map((r, i) => ({ group: String(r[0] || ''), company: String(r[1] || ''), title: String(r[2] || ''),
+                                 folderId: extractFolderId(formulas[i][0]) }))
+    .filter(r => r.company)
+    .map(r => Object.assign(r, { folderName: r.company + (r.title ? '_' + r.title : '') }));
+}
+
+/**
+ * ¿La vacante nueva es la misma que una ya guardada en CV/? Compara el cargo de la carpeta, el de sus HV
+ * (HV_Nombre_Apellido_<Cargo>) y el texto de su documento de vacante (enlace o cargo). Sin datos para comparar: false.
+ */
+function isSameAppliedVacancy_(vacancy, record) {
+  if (record.title && sameRole(vacancy.title, record.title)) return true;
+  if (!record.folderId) return false;
+  try {
+    const files = DriveApp.getFolderById(record.folderId).getFiles();
+    const texts = [];
+    let docsRead = 0;
+    while (files.hasNext()) {
+      const f = files.next();
+      const role = hvRoleFromFileName(f.getName());
+      if (role && sameRole(vacancy.title, role)) return true;
+      if (!role && docsRead < 3 && f.getMimeType() === MimeType.GOOGLE_DOCS) {
+        texts.push(DocumentApp.openById(f.getId()).getBody().getText());
+        docsRead++;
+      }
+    }
+    return texts.some(t => mentionsVacancy(t, vacancy));
+  } catch (e) {
+    console.warn('No se pudo revisar la carpeta de ' + record.company + ': ' + e.message);
+    return false;
+  }
 }
 
 /** Empresas de la pestaña "Correos en frío" (columna A): ya contactadas, no se proponen de nuevo. */
@@ -92,6 +131,20 @@ function colorToStatus(hex) {
   if (hue < 70) return 'Aplicada, sin respuesta';
   if (hue < 170) return 'En proceso';
   return 'Aplicada';
+}
+
+/** Id de carpeta del enlace =HYPERLINK("https://drive.google.com/drive/folders/<id>","Abrir"). */
+function extractFolderId(formula) {
+  const m = String(formula || '').match(/folders\/([A-Za-z0-9_-]+)/);
+  return m ? m[1] : '';
+}
+
+/** true si el texto de un documento de vacante es de esta vacante: trae su enlace (sin utm) o su cargo. */
+function mentionsVacancy(text, vacancy) {
+  const t = String(text || '');
+  const link = String(vacancy.link || '').split('?')[0];
+  if (link.length > 15 && t.indexOf(link) !== -1) return true;
+  return t.split(/\r?\n/).map(l => l.trim()).filter(Boolean).slice(0, 8).some(line => sameRole(line, vacancy.title));
 }
 
 /** "Empresa_Cargo" (carpetas del agente) o solo "Empresa" (carpetas hechas a mano). */
