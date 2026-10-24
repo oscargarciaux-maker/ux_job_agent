@@ -38,6 +38,14 @@ Una de estas:
 - **Nunca** como origen: trabajo.org, Jooble, JobLeads, BeBee, Upwork, Freelancer, Workana, Fiverr, vacantes.com, ni
   sitios que piden tarjeta para postular. Si la vacante aparece ahí, rastrea la publicación original; si no existe,
   descártala ("solo en agregador, original no encontrado").
+- **Tableros que repiten avisos de otros** (no son el original aunque no estén vetados): Jobicy, Remotive, Working
+  Nomads, UI/UX Jobs Board, Built In y los tableros de fondos de inversión (General Catalyst, Techstars…). Busca el
+  aviso en el portal de empleo de la empresa o su sistema de postulación (Greenhouse, Lever, Ashby, Workable,
+  Teamtailor…). Si las copias se contradicen (ubicación, tipo de contrato, salario), repórtalo y decide con el original.
+- **Si la página no abre** desde tu entorno (las sesiones en la nube no llegan a muchos portales), intenta una búsqueda
+  web del cargo + empresa para encontrar el original y sus datos; lo que no puedas abrir queda "sin verificar" y la
+  verificación final se hace en el navegador del usuario (app de escritorio o Claude en Chrome). Nunca lo des por
+  cumplido.
 
 ## Paso 2. Los cinco chequeos (todos obligatorios)
 
