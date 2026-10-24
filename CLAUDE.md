@@ -69,7 +69,7 @@ Reemplazar solo el "cerebro"; el resto del pipeline y el contrato `CV_IA.json` n
 - Advertencias para el usuario: en el nivel gratuito Google puede usar los datos enviados para mejorar sus productos (incluye su CV/contexto), y hay límites de solicitudes por minuto/día (10 CV/día caben).
 
 ## 🧰 Skills (`.claude/skills/`, plan del usuario 2026-10-24)
-Procedimientos reutilizables en cualquier sesión (nube, escritorio, Cowork). Sin datos personales: apuntan a los Docs privados de Drive. Orden acordado: `verificar-vacante` ✅ (falta integrar los criterios del documento "Cómo filtro tus vacantes": `files.instinct.com` está bloqueado por la red de este entorno) → `crear-hv` → `revisar-hv` → `correo-en-frio` → `seguimiento`. Si cambias un filtro en `Config.gs`, revisa también la tabla de `verificar-vacante`.
+Procedimientos reutilizables en cualquier sesión (nube, escritorio, Cowork). Sin datos personales: apuntan a los Docs privados de Drive. Orden acordado: `verificar-vacante` ✅ (incluye los criterios del documento del usuario "Cómo filtro tus vacantes", 2026-10-24: cinco chequeos, cargo por funciones y no por título, HTML/CSS deseable sí, sin piso salarial, misma empresa con otro cargo no es duplicado, lo aplicado = carpetas semanales de `CV/`, medio tiempo pendiente de definir; varias de esas reglas aún no están en el código: ver `docs/REQUISITOS.md`) → `crear-hv` → `revisar-hv` → `correo-en-frio` → `seguimiento`. Si cambias un filtro en `Config.gs`, revisa también la tabla de `verificar-vacante`.
 
 ## 🛠️ Comandos
 - Pruebas (obligatorias antes de push): `node tests/apps_script.test.js`

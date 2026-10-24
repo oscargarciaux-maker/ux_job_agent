@@ -37,7 +37,7 @@ Estados: ✅ hecho y probado · 🟡 parcial · ⏳ pendiente · ❓ falta una d
 | Dedupe contra la pestaña Aplicadas | ✅ | `getAppliedCompanies_`, `isAppliedCompany` |
 | Dedupe contra la pestaña Correos en frío | ✅ | `getColdEmailCompanies_` |
 | Dedupe contra todas las carpetas de Drive (incluidas confidencial y semanas) | 🟡 | cubre `Vacantes con IA/CV/...` vía `sincronizarAplicadas`; no recorre otras carpetas |
-| Verificación humana asistida de cada vacante (abierta, original, encaje, repetida, alertas, cómo aplicar) con veredicto | ✅ | skill `.claude/skills/verificar-vacante` (criterios del documento "Cómo filtro tus vacantes" pendientes) |
+| Verificación humana asistida de cada vacante (abierta, original, encaje, repetida, alertas, cómo aplicar) con veredicto | ✅ | skill `.claude/skills/verificar-vacante` (incluye el documento "Cómo filtro tus vacantes", 2026-10-24) |
 | Cómo se aplica (botón o correo verificado) | 🟡 | `Detalle_Vacante` guarda el enlace y el correo si el aviso lo trae |
 
 ## Drive y Sheet (guía §5, §6)
@@ -75,3 +75,17 @@ Estados: ✅ hecho y probado · 🟡 parcial · ⏳ pendiente · ❓ falta una d
 | Nunca enviar; solo borradores | ✅ | prueba "El agente no debe poder enviar correos" |
 | Correos en frío (35–40 palabras, gancho verificado, un borrador por destinatario, PDF adjunto, lotes de 3) | ⏳ | requiere investigación web por empresa (paso de IA) |
 | Resumen diario corto en español | ⏳ | |
+
+## Documento "Cómo filtro tus vacantes" (2026-10-24): reglas que el código aún no aplica
+
+| Regla | Estado | Dónde / cómo se comprueba |
+|---|---|---|
+| El cargo se juzga por funciones, no por título (CX o gestión de producto entran si la función principal es diseño) | ❓ | `verificar-vacante` lo aplica; `isDesignRole` filtra por título y hoy descarta títulos CX y cualquiera con "content" |
+| La misma empresa con un cargo distinto no es duplicado | ❓ | `verificar-vacante` lo aplica; `isAppliedCompany` descarta toda vacante de una empresa ya aplicada o contactada en frío |
+| Lo aplicado se mira en las carpetas semanales de `CV/` (no cuentan `Prueba`) | 🟡 | `sincronizarAplicadas` ya reconstruye `Aplicadas` desde `CV/`, pero cuenta también `Prueba` |
+| Sitios que piden tarjeta para postular, nunca como origen | 🟡 | `verificar-vacante` |
+| Fuentes nuevas: Magneto365, Torre, portales fintech, bolsa UNAL, comunidades de diseño | ⏳ | hoy: SerpAPI (Google Jobs, que incluye varios portales), Remotive, Get on Board, Jobicy |
+| Salario publicado se reporta (sin piso mínimo) | 🟡 | `verificar-vacante` |
+| Descartadas/cerradas quedan en el registro con su motivo | 🟡 | `verificar-vacante` (necesita conector de Google Sheets para escribir) |
+| Medio tiempo con contrato fijo | ❓ | pendiente de definir por el usuario |
+
