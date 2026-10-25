@@ -568,6 +568,14 @@ assert.strictEqual(run('localDay')('', 'America/Bogota'), '');
   assert.deepStrictEqual([cold.Ceiba.clave, cold.Movii.clave, cold.Movii.entregadas, cold.Movii.dia], ['respondio', 'borrador', 0, '']);
 }
 assert.strictEqual(dashModel.meta, 50);
+// Acciones pendientes: por empresa manda la fila más reciente; esperar respuesta no es una acción (2026-10-25)
+{
+  const f = (empresa, siguiente) => ({ empresa, siguiente });
+  const acc = Array.from(run('pendingFollowups')([f('Experian', 'Esperar respuesta'), f('Pavago', 'Grabar el video'), f('Ceiba', 'Revisar vacantes'),
+    f('Somewhere', 'Hacer la prueba'), f('EXPERIAN', 'Ninguna'), f('Pavago', 'Esperar respuesta'), f('Ceiba', 'Esperar respuesta'), f('Allinsoft', '')]));
+  assert.deepStrictEqual(acc.map(r => r.empresa), ['Somewhere'], 'Pavago y Ceiba ya hechas; Experian rechazada');
+  assert.deepStrictEqual(Array.from(dashModel.acciones.map(r => r.siguiente)), ['Entregar prueba']);
+}
 assert.ok(fs.readFileSync(path.join(dir, 'dashboard.html'), 'utf8').includes('/*__DATA__*/null'), 'dashboard.html necesita el marcador de datos');
 {
   const dashHtml = fs.readFileSync(path.join(dir, 'dashboard.html'), 'utf8');
