@@ -47,6 +47,11 @@ function sincronizarAplicadas() {
   } catch (e) {
     console.error('Por enviar -> ERROR: ' + e.message);
   }
+  try {
+    warmDashboardCache_();
+  } catch (e) {
+    console.error('Tablero -> ERROR: ' + e.message);
+  }
 }
 
 /**

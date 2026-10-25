@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
 <title>Búsqueda UX · Oscar Garcia</title>
 <style>
@@ -137,6 +138,9 @@ section.panel[hidden] { display: none; }
 .more { margin-top: 12px; }
 .empty { padding: 24px 16px; text-align: center; color: var(--muted); }
 .error { padding: 24px; }
+.skeleton { display: grid; gap: 12px; }
+.skeleton div { background: var(--surface-2); border-radius: 12px; animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .5; } }
 footer { margin-top: 28px; font-size: .8125rem; color: var(--muted); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
@@ -151,7 +155,9 @@ footer { margin-top: 28px; font-size: .8125rem; color: var(--muted); }
     <a class="btn" id="reload" href="#" target="_top" aria-label="Actualizar los datos">↻ Actualizar</a>
   </header>
 
-  <main id="app" aria-live="polite"></main>
+  <main id="app" aria-live="polite" aria-busy="true">
+    <div class="skeleton" aria-label="Cargando datos"><div style="height:120px"></div><div style="height:88px"></div><div style="height:88px"></div><div style="height:240px"></div></div>
+  </main>
   <footer>
     Datos en vivo desde el registro de la búsqueda (Google Sheets). Las postulaciones se cuentan por la semana en que
     Oscar las organiza; los correos en frío, por dirección.
@@ -163,6 +169,8 @@ footer { margin-top: 28px; font-size: .8125rem; color: var(--muted); }
 function dashboardMain(D) {
   'use strict';
   var app = document.getElementById('app');
+  app.textContent = '';
+  app.removeAttribute('aria-busy');
   var STATUS = {
     proceso: { label: 'En proceso', color: 'var(--s-proceso)' },
     sinRespuesta: { label: 'Sin respuesta', color: 'var(--s-sin)' },
@@ -522,17 +530,42 @@ function dashboardMain(D) {
   }
   if (!/^[\w-]+$/.test(p.api || '') || !p.k) return locked();
   var url = 'https://script.google.com/macros/s/' + p.api + '/exec?formato=json&k=' + encodeURIComponent(p.k);
-  fetch(url, { credentials: 'omit' })
-    .then(function (r) { return r.json(); })
-    .then(function (data) { return data; }, function () { return null; })
-    .then(function (data) {
-      if (data && data.error) return locked();
-      if (data) data.recargar = null;
-      dashboardMain(data);
-      var reload = document.getElementById('reload');
-      reload.hidden = !data;
-      reload.onclick = function (e) { e.preventDefault(); location.reload(); };
-    });
+  var reload = document.getElementById('reload');
+  var updated = document.getElementById('updated');
+  // Lo último que se vio (solo en este navegador) se muestra al instante mientras llegan los datos nuevos
+  var STORE = 'tablero:' + p.api;
+  var shown = false;
+  try {
+    var last = JSON.parse(localStorage.getItem(STORE) || 'null');
+    if (last && last.generado) { last.recargar = null; dashboardMain(last); shown = true; }
+  } catch (e) { /* sin almacenamiento: se espera a los datos */ }
+  function load(fresh) {
+    if (shown) updated.textContent = 'Actualizando…';
+    reload.setAttribute('aria-disabled', 'true');
+    return fetch(url + (fresh ? '&fresco=1' : ''), { credentials: 'omit' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) { return data; }, function () { return null; })
+      .then(function (data) {
+        reload.removeAttribute('aria-disabled');
+        if (data && data.error) return locked();
+        if (!data) {
+          if (!shown) dashboardMain(null);
+          else updated.textContent = 'Sin conexión: mostrando los últimos datos';
+          reload.hidden = false;
+          return;
+        }
+        data.recargar = null;
+        dashboardMain(data);
+        shown = true;
+        reload.hidden = false;
+        try { localStorage.setItem(STORE, JSON.stringify(data)); } catch (e) { /* lleno o bloqueado */ }
+      });
+  }
+  reload.onclick = function (e) {
+    e.preventDefault();
+    if (reload.getAttribute('aria-disabled') !== 'true') load(true);
+  };
+  load(false);
 })();
 </script>
 </body>

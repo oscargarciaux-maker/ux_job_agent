@@ -26,12 +26,21 @@ function doGet(e) {
 /**
  * Solo los datos (?formato=json&k=...), para la página servida aparte (GitHub Pages): el navegador los pide con fetch sin
  * cookies, así que no choca con varias cuentas de Google abiertas (con ellas la app web da "No se puede abrir el archivo").
+ * Se guardan en caché (DASHBOARD_CACHE_KEY) para que el Cargador los devuelva sin descargar el agente; sincronizarAplicadas
+ * los renueva cada hora y el botón "Actualizar" (&fresco=1) los recalcula.
  */
 function dashboardJson_(given, key) {
-  const body = dashboardKeyOk(given, key)
-    ? buildDashboardModel(readDashboardTabs_(), new Date(), tz_())
-    : { error: 'clave' };
-  return ContentService.createTextOutput(JSON.stringify(body)).setMimeType(ContentService.MimeType.JSON);
+  const json = dashboardKeyOk(given, key) ? warmDashboardCache_() : JSON.stringify({ error: 'clave' });
+  return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);
+}
+
+/** Calcula los datos del tablero y los deja en caché (si caben); devuelve el JSON. */
+function warmDashboardCache_() {
+  const json = JSON.stringify(buildDashboardModel(readDashboardTabs_(), new Date(), tz_()));
+  if (json.length < CONFIG.DASHBOARD_CACHE_MAX_CHARS) {
+    CacheService.getScriptCache().put(CONFIG.DASHBOARD_CACHE_KEY, json, CONFIG.DASHBOARD_CACHE_SECONDS);
+  }
+  return json;
 }
 
 /**
