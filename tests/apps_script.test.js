@@ -290,6 +290,9 @@ assert.deepStrictEqual(JSON.parse(JSON.stringify(appliedRows.map(r => [r.group, 
   ['Prueba', 'Tercera semana', 'Ursus', 'Preparada, sin enviar'],
 ]);
 assert.strictEqual(run("CONFIG.APPLIED_SHEET_HEADERS[7]"), 'Semana (carpeta)');
+// Carpeta de postulaciones antiguas junto a CV/ (2026-10-25)
+assert.ok(['Antigua', 'antiguas', 'Antiguo', ' ANTIGUA '].every(n => run('CONFIG.APPLIED_OLD_FOLDER_PATTERN').test(n.trim())));
+assert.ok(!['Antigua semana', 'CV', 'Primera semana'].some(n => run('CONFIG.APPLIED_OLD_FOLDER_PATTERN').test(n)));
 delete context.Drive;
 
 // Mañana compacta (2026-10-25): generarCVsDesdeIA corre cada 10 min, solo trabaja dentro de su ventana
