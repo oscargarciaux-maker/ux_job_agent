@@ -13,6 +13,9 @@ function generarCVsDesdeIA() { agente_().generarCVsDesdeIA(); }
 function probarCVsDesdeIA() { agente_().probarCVsDesdeIA(); }
 function sincronizarAplicadas() { agente_().sincronizarAplicadas(); }
 function crearBorradoresEnFrio() { agente_().crearBorradoresEnFrio(); }
+function configurarTablero() { agente_().configurarTablero(); }
+// Tablero web para el coach: Implementar > Nueva implementación > App web (ejecutar como tú, acceso: cualquier usuario)
+function doGet(e) { return agente_().doGet(e); }
 
 function agente_() {
   const get = url => {

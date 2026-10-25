@@ -146,6 +146,10 @@ const CONFIG = {
   CV_DEFAULT_ROLE: 'Product Designer',  // Cargo del nombre de archivo si la vacante no deja uno usable
   // 'Semana (carpeta)' (2026-10-25): la carpeta de primer nivel de CV/, la semana tal como la organiza el usuario
   APPLIED_SHEET_HEADERS: ['Grupo (carpeta)', 'Empresa', 'Cargo', 'Estado', 'Color', 'Carpeta', 'Creada', 'Semana (carpeta)'],
+  FOLLOWUP_SHEET_NAME: 'Seguimiento',        // Skill seguimiento: una fila por hallazgo en el Gmail laboral
+  // Tablero web para el coach (2026-10-25, Dashboard.gs): la interfaz se descarga de la rama deploy, como el código
+  DASHBOARD_HTML_URL: 'https://raw.githubusercontent.com/oscargarciaux-maker/ux_job_agent/deploy/apps_script/dashboard.html',
+  DASHBOARD_WEEKLY_GOAL: 50,                 // Meta del usuario: ~50 postulaciones por semana
 };
 
 // Nombres de las Propiedades del script
@@ -154,6 +158,7 @@ const PROPS = {
   ROOT_FOLDER_ID: 'GOOGLE_DRIVE_ROOT_FOLDER_ID',
   SHEET_ID: 'GOOGLE_SHEET_ID',
   TEMPLATE_ID: 'GOOGLE_DOCS_MASTER_TEMPLATE_ID',
+  DASHBOARD_KEY: 'DASHBOARD_KEY',   // Clave del enlace del tablero web (la crea configurarTablero)
 };
 
 function getProp_(key) {

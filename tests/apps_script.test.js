@@ -493,6 +493,57 @@ assert.ok(!tcm('', 'X'));
 // Los encabezados que usa markTargetCompany_ existen en la pestaña
 assert.ok(run("CONFIG.TARGET_COMPANIES_HEADERS.indexOf('Empresa') === 1 && CONFIG.TARGET_COMPANIES_HEADERS.indexOf('Estado') === 10"));
 
+// Tablero web para el coach (2026-10-25): lógica pura de Dashboard.gs
+context.Utilities.formatDate = (d, tz, fmt) => {
+  const b = new Date(d.getTime() - 5 * 3600000).toISOString();  // Bogotá (UTC-5)
+  return fmt === 'yyyy-MM-dd' ? b.slice(0, 10) : b.slice(0, 16);
+};
+assert.strictEqual(run('dashboardKeyOk')('abc', 'abc'), true);
+assert.strictEqual(run('dashboardKeyOk')('abc', ''), false, 'sin clave guardada nadie entra');
+assert.strictEqual(run('dashboardKeyOk')('', null), false);
+assert.strictEqual(run('dashboardKeyOk')('x', 'abc'), false);
+const unsafe = run('safeJsonForScript')({ a: '</script><script>alert(1)</script>&' });
+assert.ok(!/<|>|&/.test(unsafe));
+assert.strictEqual(JSON.parse(unsafe).a, '</script><script>alert(1)</script>&');
+assert.deepStrictEqual(['Rechazada', 'En proceso', 'Aplicada, sin respuesta', 'Aplicada', 'Preparada, sin enviar', '']
+  .map(x => run('applicationStatusKey')(x)), ['rechazada', 'proceso', 'sinRespuesta', 'aplicada', 'preparada', 'aplicada']);
+assert.strictEqual(run('dashboardWeekName')('24-09-2026'), 'Primera semana');
+assert.strictEqual(run('dashboardWeekName')('Tercera semana'), 'Tercera semana');
+const dashModel = run('buildDashboardModel')({
+  registro: [['Fecha', 'Empresa', 'Cargo', 'Link', 'Match Score', 'Estado'], ['2026-10-25', 'A', 'UX', 'l1', '100', 'Pendiente'],
+             ['2026-10-01', 'B', 'UX', 'l2', '90', 'Pendiente']],
+  aplicadas: { values: [['Grupo (carpeta)', 'Empresa', 'Cargo', 'Estado', 'Color', 'Carpeta', 'Creada', 'Semana (carpeta)'],
+                        ['24-09-2026', 'Belcorp', '', 'Rechazada', '#f83a22', 'Abrir', '2026-09-24', '24-09-2026'],
+                        ['x', 'Kanguro', 'UX', 'En proceso', '#16a765', 'Abrir', '2026-10-23', 'Tercera semana'],
+                        ['x', 'Ursus', 'UX', 'Preparada, sin enviar', '', 'Abrir', '2026-10-23', 'Tercera semana'],
+                        ['x', 'Mind', 'UX', 'Aplicada, sin respuesta', '', 'Abrir', '2026-10-22', 'Tercera semana']],
+               links: [[], [, , , , , 'https://drive.google.com/a']] },
+  porEnviar: { values: [['Fecha', 'Empresa', 'Cargo', 'Verificación', 'Revisión', 'Carpeta', 'HV']], links: [] },
+  correos: [['Empresa', 'Destinatario(s)', 'Fecha y hora envío', 'Asunto', 'CV usado', 'Estado', 'Respuesta / info', 'Notas'],
+            ['Ludus', 'a@l.co; b@l.co', '2026-10-20', 's', 'hv', 'Rebotado parcialmente', 'Rebote: b@l.co (550)', ''],
+            ['Ceiba', 'c@c.co', '2026-10-20', 's', 'hv', 'Respondió', 'No activa', ''],
+            ['Movii', 'd@m.co', '—', 's', 'hv', 'Borrador preparado, no enviado', '', '']],
+  seguimiento: [['Fecha revisión', 'Empresa', 'Cargo', 'Carpeta', 'Hecho', 'Fecha del mensaje', 'Fuente', 'Estado anterior', 'Estado nuevo', 'Siguiente acción'],
+                ['2026-10-25', 'Kanguro', 'UX', '', 'Prueba técnica', '2026-10-24', '', 'Aplicada', 'En proceso', 'Entregar prueba'],
+                ['2026-10-25', 'REVISIÓN', '', '', 'Cobertura', '', '', '', '', '']],
+  objetivo: [['Fecha', 'Empresa', 'Estado'], ['2026-10-24', 'X', 'En lote'], ['2026-10-24', 'Y', 'En lote']],
+}, new Date('2026-10-25T15:00:00Z'), 'America/Bogota');
+assert.strictEqual(dashModel.postulaciones.total, 3, 'las preparadas sin enviar no cuentan como enviadas');
+assert.strictEqual(dashModel.postulaciones.preparadas, 1);
+assert.strictEqual(dashModel.postulaciones.tasaRespuesta, 66.7);
+assert.deepStrictEqual(Array.from(dashModel.postulaciones.semanas.map(w => w.semana + ':' + w.total)), ['Primera semana:1', 'Tercera semana:2']);
+assert.strictEqual(dashModel.postulaciones.lista[0].carpeta, 'https://drive.google.com/a');
+assert.deepStrictEqual([dashModel.correos.enviados, dashModel.correos.entregados, dashModel.correos.rebotados, dashModel.correos.borradores],
+  [3, 2, 1, 1], 'rebote parcial: solo la dirección que nombra la respuesta');
+assert.strictEqual(dashModel.correos.empresasRespondieron, 1);
+assert.strictEqual(dashModel.correos.empresasContactadas, 2);
+assert.strictEqual(dashModel.vacantes.ultimos14, 1);
+assert.strictEqual(dashModel.vacantes.porDia.length, 14);
+assert.strictEqual(dashModel.seguimiento.length, 1, 'la fila REVISIÓN no es un movimiento');
+assert.strictEqual(dashModel.objetivo.porEstado['En lote'], 2);
+assert.strictEqual(dashModel.meta, 50);
+assert.ok(fs.readFileSync(path.join(dir, 'dashboard.html'), 'utf8').includes('/*__DATA__*/null'), 'dashboard.html necesita el marcador de datos');
+
 // HITL: ninguna llamada de envío de correo en el código
 const allCode = fs.readdirSync(dir).map(f => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n');
 assert.ok(!/\.send\(|Messages\.send|sendEmail|GmailApp/.test(allCode), 'El agente no debe poder enviar correos');
@@ -510,7 +561,7 @@ vm.createContext(loaderCtx);
 vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'instalador', 'Cargador.gs'), 'utf8'), loaderCtx);
 const api = vm.runInContext('agente_()', loaderCtx);
 for (const fn of ['ejecutarPipeline', 'ejecutarPrueba', 'ejecutarSimulacion', 'configurarAgente', 'generarCVsDesdeIA', 'probarCVsDesdeIA',
-                  'sincronizarAplicadas', 'crearBorradoresEnFrio']) {
+                  'sincronizarAplicadas', 'crearBorradoresEnFrio', 'doGet', 'configurarTablero']) {
   assert.strictEqual(typeof api[fn], 'function', 'El cargador debe exponer ' + fn);
   assert.strictEqual(typeof loaderCtx[fn], 'function', 'Cargador.gs debe definir ' + fn + ' (activadores/editor)');
 }
