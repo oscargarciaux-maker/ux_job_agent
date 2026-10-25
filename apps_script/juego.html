@@ -40,7 +40,7 @@ a { color: var(--poder); }
 
 /* Arena */
 .arena { position: relative; display: flex; flex-direction: column; overflow: hidden; border-top: 2px solid var(--sombra); border-bottom: 2px solid var(--sombra); }
-.escenario { position: relative; height: max(300px, 34dvh); background: linear-gradient(var(--fondo) 0 62%, #1A1446 62% 100%); }
+.escenario { position: relative; height: max(350px, 36dvh); background: linear-gradient(var(--fondo) 0 62%, #1A1446 62% 100%); }
 .escenario::after { content: ''; position: absolute; left: 0; right: 0; top: 62%; height: 4px; background: var(--suelo); }
 .lado { position: absolute; bottom: 8px; width: 46%; display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 1; }
 .lado.izq { left: 2%; } .lado.der { right: 2%; }
@@ -55,10 +55,10 @@ a { color: var(--poder); }
 .barra-txt { font-size: 20px; color: var(--texto-2); display: flex; justify-content: space-between; }
 .sprite { position: relative; width: 128px; height: 160px; image-rendering: pixelated; }
 .sprite svg, .sprite img { width: 128px; height: 160px; display: block; image-rendering: pixelated; }
-.sprite img { object-fit: cover; object-position: 50% 0; }
-/* En la arena y en los modales, el retrato va recortado de la cintura hacia arriba (sección 13) */
-.lado .sprite, .escena .sprite { overflow: hidden; }
-.lado .sprite img, .escena .sprite img { width: 172px; height: 220px; max-width: none; margin-left: -22px; }
+.sprite img { object-fit: contain; object-position: 50% 100%; }
+/* El retrato (sin fondo) se ve completo, sin recorte: decisión del usuario 2026-10-25 */
+.sprite.retrato-img { width: auto; height: 180px; }
+.sprite.retrato-img img { width: auto; height: 180px; max-width: 100%; }
 .estrellas { position: absolute; left: 50%; top: -6px; transform: translateX(-50%); color: var(--oro); font-family: var(--pixel); font-size: 12px; white-space: nowrap; }
 .flota { position: absolute; left: 50%; top: 20%; transform: translateX(-50%); font-family: var(--pixel); font-size: 16px; text-shadow: 2px 2px 0 var(--sombra); pointer-events: none; }
 .flota.mala { color: var(--dano); } .flota.buena { color: var(--hp); } .flota.oro { color: var(--oro); }
@@ -703,6 +703,7 @@ function ultimoVistoDe(efectos) {
   // ===================== ARENA =====================
   function pintarSprites() {
     var o = $('spr-oscar'); o.textContent = '';
+    o.classList.toggle('retrato-img', !!retratoOk);
     if (retratoOk) o.appendChild(el('img', { src: RETRATO, alt: '' })); else o.appendChild(spriteOscar());
     var j = $('spr-jefe'); j.textContent = ''; j.appendChild(spriteJefe());
     if (mostrado) actualizarAlt();
@@ -938,7 +939,7 @@ function ultimoVistoDe(efectos) {
 
   function verHeroe() {
     var e = resultado.estado, m = modelo, v = $('v-heroe'); v.textContent = '';
-    var ret = el('div', { class: 'sprite', role: 'img', 'aria-label': 'Retrato de Oscar' }, [retratoOk ? el('img', { src: RETRATO, alt: '' }) : spriteOscar()]);
+    var ret = el('div', { class: 'sprite' + (retratoOk ? ' retrato-img' : ''), role: 'img', 'aria-label': 'Retrato de Oscar' }, [retratoOk ? el('img', { src: RETRATO, alt: '' }) : spriteOscar()]);
     var xpPct = Math.round(100 * e.xpNivel / e.xpNecesita);
     var w1 = el('section', { class: 'win', 'aria-labelledby': 'h-heroe' }, [el('h2', { id: 'h-heroe', text: 'Héroe' }),
       el('div', { class: 'retrato' }, [ret, el('div', { style: 'flex:1;min-width:180px' }, [
@@ -1035,7 +1036,7 @@ function ultimoVistoDe(efectos) {
       logro: ((LOGROS.find(function (l) { return l.id === it.logro; }) || {}).nombre || '') + '.',
     }[it.tipo] || '';
     var escena = el('div', { class: 'escena', 'aria-hidden': 'true' });
-    var o = el('div', { class: 'sprite' + (reducido() ? '' : ' respira') }, [retratoOk ? el('img', { src: RETRATO, alt: '' }) : spriteOscar()]);
+    var o = el('div', { class: 'sprite' + (retratoOk ? ' retrato-img' : '') + (reducido() ? '' : ' respira') }, [retratoOk ? el('img', { src: RETRATO, alt: '' }) : spriteOscar()]);
     if (it.tipo !== 'nivel' && it.tipo !== 'logro') {
       var j = el('div', { class: 'sprite' + (it.tipo === 'rechazo' || reducido() ? '' : ' golpeado') }, [spriteJefe()]);
       if (it.tipo === 'proceso') j.appendChild(el('span', { class: 'estrellas' }, [el('span', { class: 'gira', text: '★ ✦ ★' })]));
@@ -1144,7 +1145,7 @@ function ultimoVistoDe(efectos) {
       var mostrar = function () {
         var p = pasos[i];
         abrirModal('grande', [el('h2', { id: 'modal-titulo', text: p[0] }), el('div', { class: 'escena', 'aria-hidden': 'true' }, [
-          el('div', { class: 'sprite' }, [spriteJefe()]), el('div', { class: 'sprite' }, [retratoOk ? el('img', { src: RETRATO, alt: '' }) : spriteOscar()])]),
+          el('div', { class: 'sprite' }, [spriteJefe()]), el('div', { class: 'sprite' + (retratoOk ? ' retrato-img' : '') }, [retratoOk ? el('img', { src: RETRATO, alt: '' }) : spriteOscar()])]),
           el('p', { class: 'cierre', text: p[1] }), el('p', { class: 'dato', text: 'Paso ' + (i + 1) + ' de ' + pasos.length }),
           botonContinuar(i < pasos.length - 1 ? 'Siguiente' : 'A pelear')], function () { i++; if (i < pasos.length) setTimeout(mostrar, 0); else resolve(); });
       };
