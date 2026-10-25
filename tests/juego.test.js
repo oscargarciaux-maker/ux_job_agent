@@ -134,6 +134,20 @@ const modales = cola.items.filter(it => it.tamano === 'mediano' || it.tamano ===
 if (modales.some(it => J('BUENAS')[it.tipo])) assert.ok(J('BUENAS')[modales[modales.length - 1].tipo], 'cierra con una buena noticia');
 // Visto el último efecto: nada nuevo
 assert.strictEqual(J('colaReplay')(efectos, J('ultimoVistoDe')(efectos)).items.length, 0, 'un evento ya visto no se repite');
+// Un rechazo que llega tarde (fecha anterior a la última visita) también se reproduce (2026-10-25, Experian)
+{
+  const marca = J('ultimoVistoDe')(efectos);
+  assert.ok(marca.vistos.length > 0 && marca.vistos.every(h => typeof h === 'string'));
+  const m2 = JSON.parse(JSON.stringify(modelo));
+  const tarde = m2.postulaciones.lista.find(a => (a.clave === 'aplicada' || a.clave === 'sinRespuesta') && a.creada && a.creada.slice(0, 10) < '2026-10-21');
+  tarde.clave = 'rechazada'; tarde.estadoFecha = '2026-10-21';
+  const efectos2 = J('simular')(J('construirEventos')(m2), m2).efectos;
+  const cola2 = J('colaReplay')(efectos2, marca);
+  assert.deepStrictEqual(plain(cola2.items.filter(it => it.tipo === 'rechazo').map(it => it.empresa)), [tarde.empresa], 'el rechazo tardío entra al replay');
+  assert.ok(cola2.items.every(it => it.tipo === 'rechazo' || it.tipo === 'nivel' || it.tipo === 'logro'), 'lo ya visto no se repite: ' + plain(cola2.items.map(it => it.tipo)));
+  // Formato anterior { id, dia }: sigue funcionando
+  assert.strictEqual(J('colaReplay')(efectos, { id: marca.id, dia: marca.dia }).items.length, 0);
+}
 // Saltar todo deja las mismas stats que verlo completo
 assert.deepStrictEqual(J('estadoAlTerminar')({ estado }, cola, true), J('estadoAlTerminar')({ estado }, cola, false));
 {

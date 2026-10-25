@@ -630,18 +630,38 @@ function simular(eventos, m) {
   };
 }
 
+/** Huella corta de un id de efecto: así el navegador guarda cuáles ya se vieron sin ocupar mucho. */
+function huella(id) {
+  var h = 5381;
+  for (var i = 0; i < id.length; i++) h = ((h << 5) + h + id.charCodeAt(i)) | 0;
+  return (h >>> 0).toString(36);
+}
+
 /**
- * Cola del replay: los efectos nuevos desde el último visto, sin la historia sin fecha. Agrupa lo repetido del mismo día
- * (5 HV = una ráfaga, en el lugar de la primera), deja como máximo 5 modales (los más recientes; el resto va al resumen) y, si hay una buena noticia,
- * cierra con ella. `visto` es { id, dia } del último efecto visto; sin él (primera visita) no hay replay.
+ * Cola del replay: los efectos que todavía no se han visto, sin la historia sin fecha. Un evento que llega tarde (un rechazo
+ * del 23 que el seguimiento anota el 25) también entra, aunque su fecha sea anterior a la última visita (2026-10-25: el de
+ * Experian no se vio). `visto` es lo que guarda ultimoVistoDe: { id, dia, vistos: [huellas] }; el formato anterior { id, dia }
+ * sigue sirviendo (todo lo que va hasta ese efecto cuenta como visto). Solo se miran los últimos VENTANA_TARDIOS días antes de
+ * la última visita. Agrupa lo repetido del mismo día (5 HV = una ráfaga, en el lugar de la primera), deja como máximo 5
+ * modales (los más recientes; el resto va al resumen) y, si hay una buena noticia, cierra con ella. Sin `visto` (primera
+ * visita) no hay replay.
  */
+var VENTANA_TARDIOS = 14;
 function colaReplay(efectos, visto, maxModales) {
   maxModales = maxModales || REGLAS.MAX_MODALES;
   if (!visto || !visto.id) return { items: [], resumen: 0, primeraVisita: true };
-  var idx = -1;
-  for (var i = efectos.length - 1; i >= 0; i--) if (efectos[i].id === visto.id) { idx = i; break; }
-  var nuevos = (idx >= 0 ? efectos.slice(idx + 1) : efectos.filter(function (f) { return f.dia && f.dia > (visto.dia || ''); }))
-    .filter(function (f) { return !f.historico; });
+  var nuevos;
+  if (visto.vistos) {
+    var ya = {}; visto.vistos.forEach(function (h) { ya[h] = true; });
+    var desde = diaValido(visto.dia);
+    for (var d = 0; desde && d < VENTANA_TARDIOS; d++) desde = diaAnterior(desde);
+    nuevos = efectos.filter(function (f) { return !ya[huella(f.id)] && (!desde || (f.dia && f.dia >= desde)); });
+  } else {
+    var idx = -1;
+    for (var i = efectos.length - 1; i >= 0; i--) if (efectos[i].id === visto.id) { idx = i; break; }
+    nuevos = idx >= 0 ? efectos.slice(idx + 1) : efectos.filter(function (f) { return f.dia && f.dia > (visto.dia || ''); });
+  }
+  nuevos = nuevos.filter(function (f) { return !f.historico; });
   var items = [], grupos = {};
   nuevos.forEach(function (f) {
     var prev = f.tamano === 'dialogo' ? grupos[f.tipo + '|' + f.dia] : null;
@@ -676,9 +696,12 @@ function estadoAlTerminar(resultado, cola, saltado) {
   return resultado.estado;
 }
 
+/** Marca de lo visto: el último efecto (de ahí arranca el replay) y la huella de cada efecto con fecha. */
 function ultimoVistoDe(efectos) {
-  for (var i = efectos.length - 1; i >= 0; i--) if (!efectos[i].historico) return { id: efectos[i].id, dia: efectos[i].dia };
-  return efectos.length ? { id: efectos[efectos.length - 1].id, dia: efectos[efectos.length - 1].dia } : null;
+  if (!efectos.length) return null;
+  var ultimo = efectos[efectos.length - 1];
+  for (var i = efectos.length - 1; i >= 0; i--) if (!efectos[i].historico) { ultimo = efectos[i]; break; }
+  return { id: ultimo.id, dia: ultimo.dia, vistos: efectos.filter(function (f) { return !f.historico; }).map(function (f) { return huella(f.id); }) };
 }
 // ===================== FIN DEL MOTOR =====================
 </script>
@@ -1274,7 +1297,22 @@ var ARTE = {
       nodos: [el('p', { class: 'dato', text: [f.empresa, f.cargo, fecha(f.dia)].filter(Boolean).join(' · ') }),
         f.historico ? el('p', { text: 'Sin fecha exacta: cuenta en las stats desde el inicio de su semana.' }) : null],
       efectos: [el('span', { class: malo ? 'mag' : 'verde', text: textoEfecto(f) })],
-      botones: [botonCarpeta(safeUrl(f.carpeta)), botonContinuar('Cerrar')], fuente: FUENTE[f.tipo], fecha: f.dia ? fecha(f.dia).toUpperCase() : 'SIN FECHA' });
+      botones: [f.historico ? null : el('button', { class: 'btn ancho', type: 'button', onclick: function () { repetir(f); } }, [el('span', { text: 'Ver de nuevo en la arena' }), el('span', { 'aria-hidden': 'true', text: '▶' })]),
+        botonCarpeta(safeUrl(f.carpeta)), botonContinuar('Cerrar')], fuente: FUENTE[f.tipo], fecha: f.dia ? fecha(f.dia).toUpperCase() : 'SIN FECHA' });
+  }
+  /** Vuelve a mostrar un evento de la Bitácora en la arena (con su modal) y deja todo como estaba. */
+  function repetir(f) {
+    var final = resultado.estado;
+    var alTerminar = function () {
+      var it = Object.assign({}, f, { ids: [f.id], delta: Object.assign({}, f.delta), empresas: f.empresa ? [f.empresa] : [] });
+      var sig = estadoDe(f.despues, { meta: final.meta, aturdido: f.tipo === 'proceso', burla: false });
+      replayActivo = true; saltar = false;
+      if (it.tamano === 'dialogo') { var t = dialogoDe(it); decir(t.voz, t.dato, []); anunciar(t.voz + ' ' + t.dato); }
+      coreografia(it, sig, mostrado)
+        .then(function () { return it.tamano === 'mediano' || it.tamano === 'grande' ? modalEvento(it) : espera(1500); })
+        .then(function () { replayActivo = false; verArena(final); decirReposo(); });
+    };
+    alCerrar = null; cerrarModal(); irA('arena'); setTimeout(alTerminar, 0);
   }
 
   function verHeroe() {
