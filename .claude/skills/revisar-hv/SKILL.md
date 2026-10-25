@@ -37,7 +37,7 @@ entrevistas; nunca "entrevisté a más de 90"); Seguros Bolívar, equipo de 6 co
 - Un Google Doc `HV_…` (enlace o nombre) o la carpeta de una vacante.
 - **"Revisa las de hoy"** (o la tarea diaria): cada carpeta de `Vacantes con IA/Sin revisar/<hoy>/` (sin `Posts` ni
   `Dudosas`) con un Google Doc `HV_…` o `CV_…` y sin `Revision.txt`. Una carpeta con `CV_IA.json` pero sin HV todavía
-  se reporta como "aún sin armar" (Apps Script la arma entre las 10 y las 11).
+  se reporta como "aún sin armar" (Apps Script revisa cada 10 minutos y la arma poco después; la revisa la corrida siguiente).
 - Correo en frío: la carpeta `Vacantes con IA/Correos en frío/<Empresa>/`.
 
 ## Paso 1. Leer
