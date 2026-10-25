@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>El juego laboral</title>
+</head>
+<body>
+<script id="motor">
+// ===================== MOTOR DEL JUEGO (funciones puras; pruebas en tests/juego.test.js) =====================
+// Traduce el JSON del tablero (buildDashboardModel) en eventos y stats. Nada se guarda: todo se recalcula desde el
+// historial completo, así Oscar y el coach ven lo mismo en cualquier dispositivo (docs/JUEGO_LABORAL.md, secciones 5 y 6).
+
+var REGLAS = {
+  META: 50, HP_INICIAL: 100, HP_MAX: 100, HP_MIN: 1, PODER_MAX: 30,
+  XP: { hv: 10, ko: 100, proceso: 50, rechazo: 5, correo: 5, aliado: 30 },
+  HP: { pocion: 15, proceso: 20, semanaNueva: 20, rechazoBase: 8, rebote: 3, aliado: 10 },
+  POCIONES: [10, 20, 40], AVALANCHA: 30, COMBOS: [3, 6, 9], MAX_MODALES: 5,
+};
+
+// Un jefe distinto cada semana de CV/; rotan en orden (sección 5)
+var JEFES = [
+  { nombre: 'Gerente Gracias por Participar', frase: 'Valoramos mucho tu interés…', ataque: 'Carta de agradecimiento' },
+  { nombre: 'Señor Silencio', frase: '…', ataque: 'Visto y no respondido' },
+  { nombre: 'Doctora Filtro ATS', frase: 'Palabras clave insuficientes.', ataque: 'Escaneo rojo' },
+  { nombre: 'Licenciado Experiencia Requerida', frase: 'Junior, con 5 años de experiencia.', ataque: 'Lluvia de requisitos' },
+  { nombre: 'La Reclutadora Fantasma', frase: 'Te escribimos pronto.', ataque: 'Desaparece (ghosting)' },
+  { nombre: 'El Comité', frase: 'Lo vamos a discutir internamente.', ataque: 'Votación en contra' },
+];
+
+var LOGROS = [
+  { id: 'primeraHv', nombre: 'Primera HV', requisito: 'Enviar 1 HV' },
+  { id: 'primeraPrueba', nombre: 'Primera prueba', requisito: 'Recibir una prueba o entrevista' },
+  { id: 'correos10', nombre: '10 correos entregados', requisito: 'Que lleguen 10 correos en frío' },
+  { id: 'semana30', nombre: 'Semana de 30', requisito: 'Enviar 30 HV en una semana' },
+  { id: 'semana50', nombre: 'Semana de 50', requisito: 'Enviar 50 HV en una semana' },
+  { id: 'racha5', nombre: 'Racha de 5 días', requisito: '5 días hábiles seguidos con envíos' },
+];
+
+// Tamaño de presentación de cada efecto (sección 7)
+var TAMANO = { hv: 'dialogo', correo: 'dialogo', rebote: 'dialogo', semanaNueva: 'pequeno', pocion: 'pequeno', combo: 'pequeno',
+  rechazo: 'mediano', proceso: 'grande', aliado: 'grande', avalancha: 'grande', ko: 'grande', nivel: 'grande', logro: 'grande' };
+var BUENAS = { proceso: 1, aliado: 1, avalancha: 1, ko: 1, nivel: 1, logro: 1, pocion: 1, combo: 1, hv: 1, correo: 1 };
+
+function jefeDeSemana(i) { return JEFES[((i % JEFES.length) + JEFES.length) % JEFES.length]; }
+
+/** Daño de un rechazo con rendimientos decrecientes por Resiliencia (con 10, quita 4 en vez de 8). */
+function golpeRechazo(resiliencia) { return Math.max(2, Math.round(REGLAS.HP.rechazoBase * 10 / (10 + resiliencia))); }
+
+/** XP para pasar del nivel n al siguiente: 100 · n^1,5. */
+function xpParaSubir(n) { return Math.round(100 * Math.pow(n, 1.5)); }
+
+function nivelDeXp(xp) {
+  var n = 1, resto = xp;
+  while (resto >= xpParaSubir(n)) { resto -= xpParaSubir(n); n++; }
+  return { nivel: n, resto: resto, necesita: xpParaSubir(n) };
+}
+
+/** +10 % por cada 3 días de racha, con tope de ×1,5. */
+function multiplicadorRacha(racha) { return Math.min(1.5, 1 + 0.1 * Math.floor(racha / 3)); }
+
+function diaValido(d) { var m = /^\d{4}-\d{2}-\d{2}/.exec(String(d || '')); return m ? m[0] : ''; }
+function esFinDeSemana(dia) { var w = new Date(dia + 'T12:00:00Z').getUTCDay(); return w === 0 || w === 6; }
+function diaAnterior(dia) { var d = new Date(dia + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() - 1); return d.toISOString().slice(0, 10); }
+
+/**
+ * Días hábiles seguidos con al menos un envío, hasta `hoy`. Los fines de semana no suman ni rompen; un día hábil de hoy
+ * todavía sin envíos tampoco rompe (el día no ha terminado).
+ */
+function racha(diasConEnvio, hoy) {
+  var d = hoy, n = 0, primero = true;
+  for (var guarda = 0; guarda < 800 && d; guarda++) {
+    if (esFinDeSemana(d)) { d = diaAnterior(d); continue; }
+    if (diasConEnvio[d]) n++;
+    else if (!primero) break;
+    primero = false;
+    d = diaAnterior(d);
+  }
+  return n;
+}
+
+/** Días hábiles completos sin envíos antes de hoy (para la burla del Reclutador). */
+function diasSinEnvio(diasConEnvio, hoy) {
+  var d = diaAnterior(hoy), n = 0;
+  for (var guarda = 0; guarda < 60; guarda++) {
+    if (esFinDeSemana(d)) { d = diaAnterior(d); continue; }
+    if (diasConEnvio[d]) return n;
+    n++; d = diaAnterior(d);
+  }
+  return n;
+}
+
+function mismoNombre(a, b) {
+  var n = function (x) { return String(x || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim(); };
+  return !!n(a) && n(a) === n(b);
+}
+
+/**
+ * Eventos reales en orden. Cada uno trae la semana del juego (la carpeta de CV/) y su día; los que no tienen fecha
+ * (rechazos o pruebas anteriores al seguimiento) son "historia": cuentan en las stats desde el inicio de su semana,
+ * pero no se reproducen en el replay.
+ */
+function construirEventos(m) {
+  var P = (m && m.postulaciones) || {};
+  var semanas = P.semanas || [];
+  var indice = {}; semanas.forEach(function (w, i) { indice[w.semana] = i; });
+  var desde = semanas.map(function (w) { return diaValido(w.desde); });
+  var semanaDeDia = function (dia) { var k = 0; desde.forEach(function (d, i) { if (d && d <= dia) k = i; }); return k; };
+  var eventos = [];
+  var agregar = function (e) { e.historico = !e.dia; eventos.push(e); };
+  (P.lista || []).forEach(function (a) {
+    if (a.clave === 'preparada') return;
+    var s = indice[a.semana] != null ? indice[a.semana] : 0;
+    var base = { empresa: a.empresa || '', cargo: a.cargo || '', carpeta: a.carpeta || '' };
+    agregar(Object.assign({ tipo: 'hv', dia: diaValido(a.creada), semana: s, n: 1 }, base));
+    if (a.clave === 'proceso' || a.clave === 'rechazada') {
+      var d = diaValido(a.estadoFecha);
+      agregar(Object.assign({ tipo: a.clave === 'proceso' ? 'proceso' : 'rechazo', dia: d, semana: d ? Math.max(s, semanaDeDia(d)) : s, n: 1 }, base));
+    }
+  });
+  var historial = (m && m.historial) || [];
+  ((m && m.correos && m.correos.lista) || []).forEach(function (c) {
+    if (!c.clave || c.clave === 'borrador') return;
+    var d = diaValido(c.dia || c.fecha);
+    var s = d ? semanaDeDia(d) : 0;
+    var base = { empresa: c.empresa || '', cargo: '', carpeta: '' };
+    if (c.entregadas) agregar(Object.assign({ tipo: 'correo', dia: d, semana: s, n: c.entregadas }, base));
+    if (c.rebotadas) agregar(Object.assign({ tipo: 'rebote', dia: d, semana: s, n: c.rebotadas }, base));
+    if (c.clave === 'respondio') {
+      var r = historial.filter(function (h) { return mismoNombre(h.empresa, c.empresa) && /respondi/i.test(h.ahora); })
+        .map(function (h) { return diaValido(h.fechaMensaje) || diaValido(h.fecha); }).filter(Boolean).sort().pop() || d;
+      agregar(Object.assign({ tipo: 'aliado', dia: r, semana: r ? semanaDeDia(r) : s, n: 1 }, base));
+    }
+  });
+  var orden = { hv: 1, correo: 2, rebote: 3, proceso: 4, aliado: 5, rechazo: 6 };
+  eventos.forEach(function (e, i) { e._i = i; e._fecha = e.dia || desde[e.semana] || ''; });
+  eventos.sort(function (a, b) {
+    return (a._fecha < b._fecha ? -1 : a._fecha > b._fecha ? 1 : 0) || (a.historico === b.historico ? 0 : a.historico ? -1 : 1) ||
+      (orden[a.tipo] - orden[b.tipo]) || (a.empresa < b.empresa ? -1 : a.empresa > b.empresa ? 1 : 0) || (a._i - b._i);
+  });
+  var vistos = {};
+  eventos.forEach(function (e) {
+    var clave = [e.tipo, e.semana, e.dia || 'sin-fecha', e.empresa, e.cargo].join('|');
+    vistos[clave] = (vistos[clave] || 0) + 1;
+    e.id = clave + '#' + vistos[clave];
+    delete e._i; delete e._fecha;
+  });
+  return eventos;
+}
+
+/**
+ * Recorre los eventos en orden y devuelve el estado final y cada efecto (con el estado después de aplicarlo).
+ * Regla de honestidad: el HP del Reclutador de cada semana es la meta menos las HV reales de esa semana.
+ */
+function simular(eventos, m) {
+  var meta = (m && m.meta) || REGLAS.META;
+  var hoy = diaValido(m && m.hoy) || '';
+  var nSemanas = Math.max(((m && m.postulaciones && m.postulaciones.semanas) || []).length, 1);
+  var est = { hp: REGLAS.HP_INICIAL, xp: 0, resiliencia: 0, procesos: 0, rechazos: 0, hvTotal: 0, correosEntregados: 0, aliados: 0 };
+  var semanas = [];
+  for (var i = 0; i < nSemanas; i++) semanas.push({ hv: 0, poder: 0, avalancha: false, ko: false, pociones: {} });
+  var diasEnvio = {}, logros = {}, efectos = [], semanaActual = -1, ultimoProceso = '', comboAnunciado = {};
+  var snapshot = function (s) {
+    var nv = nivelDeXp(est.xp);
+    return { hp: est.hp, xp: est.xp, nivel: nv.nivel, resiliencia: est.resiliencia, poder: semanas[s].poder,
+      reclutadorHp: Math.max(0, meta - semanas[s].hv), semana: s };
+  };
+  var cambiarHp = function (d) { var antes = est.hp; est.hp = Math.min(REGLAS.HP_MAX, Math.max(REGLAS.HP_MIN, est.hp + d)); return est.hp - antes; };
+  var efecto = function (e, tipo, delta, extra) {
+    var f = Object.assign({ id: tipo === e.tipo ? e.id : e.id + ':' + tipo + (extra && extra.marca ? ':' + extra.marca : ''), tipo: tipo,
+      dia: e.dia, semana: e.semana, historico: !!e.historico, empresa: e.empresa, cargo: e.cargo, carpeta: e.carpeta, n: e.n,
+      tamano: TAMANO[tipo], delta: delta }, extra || {});
+    delete f.marca;
+    f.despues = snapshot(e.semana);
+    efectos.push(f);
+    return f;
+  };
+  var revisarNivelYLogros = function (e, nivelAntes) {
+    var nv = nivelDeXp(est.xp).nivel;
+    if (nv > nivelAntes) efecto(e, 'nivel', { hp: 0, xp: 0 }, { nivel: nv, marca: nv });
+    var alcanzados = {
+      primeraHv: est.hvTotal >= 1, primeraPrueba: est.procesos >= 1, correos10: est.correosEntregados >= 10,
+      semana30: semanas.some(function (w) { return w.hv >= 30; }), semana50: semanas.some(function (w) { return w.hv >= 50; }),
+      racha5: e.dia ? racha(diasEnvio, e.dia) >= 5 : false,
+    };
+    LOGROS.forEach(function (l) {
+      if (alcanzados[l.id] && !logros[l.id]) { logros[l.id] = e.dia || 'historia'; efecto(e, 'logro', { hp: 0, xp: 0 }, { logro: l.id, marca: l.id }); }
+    });
+  };
+  eventos.forEach(function (e) {
+    while (e.semana > semanaActual) {
+      semanaActual++;
+      if (semanaActual > 0) {
+        var inicio = { id: 'semana|' + semanaActual, dia: e.dia, semana: semanaActual, historico: e.historico, empresa: '', cargo: '', carpeta: '', n: 1 };
+        var dh = cambiarHp(REGLAS.HP.semanaNueva);
+        efecto(inicio, 'semanaNueva', { hp: dh, xp: 0 }, { jefe: jefeDeSemana(semanaActual) });
+      }
+    }
+    var W = semanas[e.semana];
+    var nivelAntes = nivelDeXp(est.xp).nivel;
+    if (e.tipo === 'hv' && e.dia) diasEnvio[e.dia] = true;
+    var r = e.dia ? racha(diasEnvio, e.dia) : 0;
+    var mult = multiplicadorRacha(r) * (W.avalancha ? 2 : 1);
+    var xp = function (base) { var v = Math.round(base * mult); est.xp += v; return v; };
+    if (e.tipo === 'hv') {
+      W.hv++; est.hvTotal++; W.poder = Math.min(REGLAS.PODER_MAX, W.hv);
+      efecto(e, 'hv', { hp: 0, xp: xp(REGLAS.XP.hv), reclutador: W.hv <= meta ? -1 : 0, poder: W.hv <= REGLAS.PODER_MAX ? 1 : 0 });
+      if (REGLAS.POCIONES.indexOf(W.hv) !== -1 && !W.pociones[W.hv]) {
+        W.pociones[W.hv] = true;
+        efecto(e, 'pocion', { hp: cambiarHp(REGLAS.HP.pocion), xp: 0 }, { hvSemana: W.hv, marca: W.hv });
+      }
+      if (W.hv === REGLAS.AVALANCHA && !W.avalancha) { W.avalancha = true; efecto(e, 'avalancha', { hp: 0, xp: 0 }, { hvSemana: W.hv }); }
+      if (W.hv === meta && !W.ko) { W.ko = true; efecto(e, 'ko', { hp: 0, xp: xp(REGLAS.XP.ko) }, { hvSemana: W.hv, jefe: jefeDeSemana(e.semana) }); }
+      if (e.dia && REGLAS.COMBOS.indexOf(r) !== -1 && !comboAnunciado[e.dia]) {
+        comboAnunciado[e.dia] = true;
+        efecto(e, 'combo', { hp: 0, xp: 0 }, { racha: r, multiplicador: multiplicadorRacha(r), marca: r });
+      }
+    } else if (e.tipo === 'proceso') {
+      est.procesos++; if (e.dia && e.dia > ultimoProceso) ultimoProceso = e.dia;
+      efecto(e, 'proceso', { hp: cambiarHp(REGLAS.HP.proceso), xp: xp(REGLAS.XP.proceso) });
+    } else if (e.tipo === 'rechazo') {
+      var golpe = golpeRechazo(est.resiliencia);
+      if (W.avalancha) golpe = Math.ceil(golpe / 2);
+      est.rechazos++; est.resiliencia++;
+      efecto(e, 'rechazo', { hp: cambiarHp(-golpe), xp: xp(REGLAS.XP.rechazo), resiliencia: 1 }, { jefe: jefeDeSemana(e.semana), golpe: golpe });
+    } else if (e.tipo === 'correo') {
+      est.correosEntregados += e.n;
+      efecto(e, 'correo', { hp: 0, xp: xp(REGLAS.XP.correo * e.n) });
+    } else if (e.tipo === 'rebote') {
+      efecto(e, 'rebote', { hp: cambiarHp(-REGLAS.HP.rebote * e.n), xp: 0 });
+    } else if (e.tipo === 'aliado') {
+      est.aliados++;
+      efecto(e, 'aliado', { hp: cambiarHp(REGLAS.HP.aliado), xp: xp(REGLAS.XP.aliado) });
+    }
+    revisarNivelYLogros(e, nivelAntes);
+  });
+  // Semanas sin ningún evento al final (una carpeta nueva y vacía)
+  while (semanaActual < nSemanas - 1) {
+    semanaActual++;
+    var vacia = { id: 'semana|' + semanaActual, dia: hoy, semana: semanaActual, historico: false, empresa: '', cargo: '', carpeta: '', n: 1 };
+    efecto(vacia, 'semanaNueva', { hp: cambiarHp(REGLAS.HP.semanaNueva), xp: 0 }, { jefe: jefeDeSemana(semanaActual) });
+  }
+  var actual = nSemanas - 1;
+  var nv = nivelDeXp(est.xp);
+  var nombres = ((m && m.postulaciones && m.postulaciones.semanas) || []).map(function (w) { return w.semana; });
+  return {
+    estado: {
+      hp: est.hp, xp: est.xp, nivel: nv.nivel, xpNivel: nv.resto, xpNecesita: nv.necesita, resiliencia: est.resiliencia,
+      poder: semanas[actual].poder, avalancha: semanas[actual].avalancha, semanaActual: actual,
+      reclutadorHp: Math.max(0, meta - semanas[actual].hv), meta: meta, ko: semanas[actual].ko,
+      jefe: jefeDeSemana(actual), racha: hoy ? racha(diasEnvio, hoy) : 0,
+      aturdido: !!ultimoProceso && !!hoy && (ultimoProceso === hoy || ultimoProceso === diaAnterior(hoy)),
+      burla: hoy ? diasSinEnvio(diasEnvio, hoy) >= 2 : false,
+      semanasGanadas: semanas.filter(function (w) { return w.ko; }).length,
+      logros: logros,
+      semanas: semanas.map(function (w, i) {
+        return { nombre: nombres[i] || 'Semana ' + (i + 1), jefe: jefeDeSemana(i), hv: w.hv, reclutadorHp: Math.max(0, meta - w.hv), ko: w.ko, avalancha: w.avalancha };
+      }),
+    },
+    efectos: efectos,
+  };
+}
+
+/**
+ * Cola del replay: los efectos nuevos desde el último visto, sin la historia sin fecha. Agrupa lo repetido del mismo día
+ * (5 HV = una ráfaga, en el lugar de la primera), deja como máximo 5 modales (los más recientes; el resto va al resumen) y, si hay una buena noticia,
+ * cierra con ella. `visto` es { id, dia } del último efecto visto; sin él (primera visita) no hay replay.
+ */
+function colaReplay(efectos, visto, maxModales) {
+  maxModales = maxModales || REGLAS.MAX_MODALES;
+  if (!visto || !visto.id) return { items: [], resumen: 0, primeraVisita: true };
+  var idx = -1;
+  for (var i = efectos.length - 1; i >= 0; i--) if (efectos[i].id === visto.id) { idx = i; break; }
+  var nuevos = (idx >= 0 ? efectos.slice(idx + 1) : efectos.filter(function (f) { return f.dia && f.dia > (visto.dia || ''); }))
+    .filter(function (f) { return !f.historico; });
+  var items = [], grupos = {};
+  nuevos.forEach(function (f) {
+    var prev = f.tamano === 'dialogo' ? grupos[f.tipo + '|' + f.dia] : null;
+    if (prev) {
+      prev.n += f.n; prev.ids.push(f.id);
+      ['hp', 'xp', 'reclutador', 'poder'].forEach(function (k) { if (f.delta[k]) prev.delta[k] = (prev.delta[k] || 0) + f.delta[k]; });
+      if (f.empresa && prev.empresas.indexOf(f.empresa) === -1) prev.empresas.push(f.empresa);
+      prev.despues = f.despues;
+      return;
+    }
+    var it = Object.assign({}, f, { ids: [f.id], delta: Object.assign({}, f.delta), empresas: f.empresa ? [f.empresa] : [] });
+    if (f.tamano === 'dialogo') grupos[f.tipo + '|' + f.dia] = it;
+    items.push(it);
+  });
+  var esModal = function (it) { return it.tamano === 'mediano' || it.tamano === 'grande'; };
+  var modales = items.filter(esModal);
+  var resumen = 0;
+  if (modales.length > maxModales) {
+    var fuera = modales.slice(0, modales.length - maxModales);
+    resumen = fuera.length;
+    items = items.filter(function (it) { return fuera.indexOf(it) === -1; });
+  }
+  var ultimoModal = -1, ultimaBuena = -1;
+  items.forEach(function (it, i) { if (esModal(it)) { ultimoModal = i; if (BUENAS[it.tipo]) ultimaBuena = i; } });
+  if (ultimoModal >= 0 && !BUENAS[items[ultimoModal].tipo] && ultimaBuena >= 0) items.push(items.splice(ultimaBuena, 1)[0]);
+  return { items: items, resumen: resumen, primeraVisita: false };
+}
+
+/** Lo que muestra el panel al terminar el replay, se vea o se salte: siempre el estado final del motor. */
+function estadoAlTerminar(resultado, cola, saltado) {
+  void cola; void saltado;
+  return resultado.estado;
+}
+
+function ultimoVistoDe(efectos) {
+  for (var i = efectos.length - 1; i >= 0; i--) if (!efectos[i].historico) return { id: efectos[i].id, dia: efectos[i].dia };
+  return efectos.length ? { id: efectos[efectos.length - 1].id, dia: efectos[efectos.length - 1].dia } : null;
+}
+// ===================== FIN DEL MOTOR =====================
+</script>
+</body>
+</html>

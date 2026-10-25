@@ -142,8 +142,18 @@ function collectAppliedFolders_(parentId, groupName, rows, inTest, weekName) {
     const parsed = parseAppliedFolderName(f.name);
     rows.push({ id: f.id, group: groupName, company: parsed.company, title: parsed.title,
                 status: test ? 'Preparada, sin enviar' : colorToStatus(f.folderColorRgb), color: f.folderColorRgb,
-                created: (f.createdTime || '').slice(0, 10), week: weekName || groupName });
+                created: localDay(f.createdTime, tz_()), week: weekName || groupName });
   });
+}
+
+/**
+ * Día (yyyy-MM-dd) de una fecha RFC 3339 de Drive en la zona del script (2026-10-25): antes se cortaba la fecha UTC y
+ * una carpeta creada de noche en Bogotá caía al día siguiente (importa para la racha del juego).
+ */
+function localDay(iso, timeZone) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? String(iso).slice(0, 10) : Utilities.formatDate(d, timeZone || 'America/Bogota', 'yyyy-MM-dd');
 }
 
 function listChildFolders_(parentId) {

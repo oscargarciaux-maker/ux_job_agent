@@ -135,6 +135,18 @@ function dashboardWeekName(week) {
   return /^\d{1,4}[-/.]\d{1,2}[-/.]\d{1,4}$/.test(w) ? 'Primera semana' : w;
 }
 
+/** Mismo nombre de empresa o cargo, sin importar mayúsculas, tildes ni signos. */
+function sameCompany_(a, b) {
+  const n = x => String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+  return !!n(a) && n(a) === n(b);
+}
+
+/** El día (yyyy-MM-dd) al inicio de un texto de fecha del Sheet, o vacío ("—", "sin fecha"...). */
+function dayOf_(text) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(text || '').trim());
+  return m ? m[0] : '';
+}
+
 /** Filas con encabezado -> objetos por nombre de columna (con el enlace de cada celda en _links, si lo hay). */
 function dashboardRows(values, links) {
   if (!values || values.length < 2) return [];
@@ -166,6 +178,17 @@ function buildDashboardModel(tabs, now, timeZone) {
       semana: dashboardWeekName(r['Semana (carpeta)'] || r['Grupo (carpeta)']), creada: r['Creada'],
       carpeta: r._links['Carpeta'] || '',
     }));
+  // Fecha del cambio de estado (para el juego, 2026-10-25): la del hallazgo más reciente de Seguimiento con esa empresa
+  // (y cargo, si lo dice) y ese mismo estado. Sin hallazgo queda vacía: el juego la trata como historia ya vivida.
+  const followupRows = dashboardRows(tabs.seguimiento).filter(r => r['Empresa'] && !/^revisi[oó]n$/i.test(r['Empresa']));
+  applications.forEach(a => {
+    if (a.clave !== 'proceso' && a.clave !== 'rechazada') { a.estadoFecha = ''; return; }
+    a.estadoFecha = followupRows.filter(r => sameCompany_(r['Empresa'], a.empresa) &&
+        (!r['Cargo'] || !a.cargo || sameCompany_(r['Cargo'], a.cargo)) &&
+        applicationStatusKey(r['Estado nuevo']) === a.clave)
+      .map(r => dayOf_(r['Fecha del mensaje']) || dayOf_(r['Fecha revisión']))
+      .filter(Boolean).sort().pop() || '';
+  });
   const sent = applications.filter(a => a.clave !== 'preparada');
   const count = (list, key) => list.filter(a => a.clave === key).length;
   const weekMap = {};
@@ -183,10 +206,22 @@ function buildDashboardModel(tabs, now, timeZone) {
   const coldValues = tabs.correos || [];
   const addressState = contactedAddresses(coldValues.slice(1));
   const states = Object.keys(addressState).map(k => addressState[k]);
-  const coldRows = dashboardRows(coldValues).map(r => ({
-    empresa: r['Empresa'], para: r['Destinatario(s)'], fecha: r['Fecha y hora envío'], asunto: r['Asunto'],
-    hv: r['CV usado'], estado: r['Estado'], respuesta: r['Respuesta / info'], notas: r['Notas'],
-  }));
+  // Por fila (para el juego): cuántas direcciones llegaron o rebotaron, contando cada dirección solo en su primera fila
+  const seenAddress = {};
+  const coldRows = dashboardRows(coldValues).map(r => {
+    const row = { empresa: r['Empresa'], para: r['Destinatario(s)'], fecha: r['Fecha y hora envío'], asunto: r['Asunto'],
+      hv: r['CV usado'], estado: r['Estado'], respuesta: r['Respuesta / info'], notas: r['Notas'] };
+    const states = contactedAddresses([['', row.para, '', '', '', row.estado, row.respuesta]]);
+    row.entregadas = 0; row.rebotadas = 0;
+    Object.keys(states).forEach(addr => {
+      if (states[addr] === 'borrador' || seenAddress[addr]) return;
+      seenAddress[addr] = true;
+      if (states[addr] === 'rebotado') row.rebotadas++; else row.entregadas++;
+    });
+    row.clave = /^\s*borrador/i.test(row.estado) ? 'borrador' : /respondi/i.test(row.estado) ? 'respondio' : row.estado ? 'enviado' : '';
+    row.dia = dayOf_(row.fecha);
+    return row;
+  });
   const repliedCompanies = {};
   coldRows.filter(r => /respondi/i.test(r.estado)).forEach(r => { repliedCompanies[r.empresa] = true; });
   const sentCompanies = {};
@@ -203,10 +238,12 @@ function buildDashboardModel(tabs, now, timeZone) {
   const pending = dashboardRows(tabs.porEnviar && tabs.porEnviar.values, tabs.porEnviar && tabs.porEnviar.links)
     .map(r => ({ fecha: r['Fecha'], empresa: r['Empresa'], cargo: r['Cargo'], verificacion: r['Verificación'],
                  revision: r['Revisión'], carpeta: r._links['Carpeta'] || '', hv: r._links['HV'] || '' }));
-  const followup = dashboardRows(tabs.seguimiento).map(r => ({
+  const followup = followupRows.map(r => ({
     fecha: r['Fecha revisión'], empresa: r['Empresa'], cargo: r['Cargo'], hecho: r['Hecho'], fechaMensaje: r['Fecha del mensaje'],
     antes: r['Estado anterior'], ahora: r['Estado nuevo'], siguiente: r['Siguiente acción'],
-  })).filter(r => r.empresa && !/^revisi[oó]n$/i.test(r.empresa)).reverse();
+  }));
+  const history = followup.slice();  // completo y en orden cronológico (el juego lo recorre entero)
+  followup.reverse();
   const targets = dashboardRows(tabs.objetivo);
   const targetStatus = {};
   targets.forEach(r => { const s = r['Estado'] || 'Sin estado'; targetStatus[s] = (targetStatus[s] || 0) + 1; });
@@ -233,6 +270,7 @@ function buildDashboardModel(tabs, now, timeZone) {
     vacantes: { ultimos14: recent.length, porDia: Object.keys(perDay).map(d => ({ dia: d, n: perDay[d] })) },
     porEnviar: pending,
     seguimiento: followup.slice(0, 40),
+    historial: history,
     objetivo: { total: targets.length, porEstado: targetStatus },
   };
 }
