@@ -136,7 +136,7 @@ marcador de `MASTER_TEMPLATE` (sin llaves; `""` = se borra ese párrafo) más `_
 "Guía Maestra de Cover Letters" —la guía principal de correos—: [reto crítico de la vacante] + [métrica de `CONTEXTO_CV`]
 + [CTA de reunión] + [adjuntos: HV, LinkedIn, Portafolio], **máximo 35 palabras**, sin clichés ni saludos largos; si no,
 `""`).
-Apps Script lo valida y arma la HV a las 10:00.
+Apps Script lo valida y arma la HV en su siguiente pasada (cada 10 minutos, de 7:00 a 22:59).
 
 ### En una conversación (inmediato)
 Cuando el usuario la pide en el chat, arma la HV en ese momento (con los conectores de Google Drive y Google Docs; lee

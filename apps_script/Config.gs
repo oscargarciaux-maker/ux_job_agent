@@ -93,7 +93,7 @@ const CONFIG = {
   // Si Google Jobs no trae la fecha, se lee "datePosted" de la página original (gratis, sin SerpAPI). Las que siguen
   // sin fecha solo entran (marcadas "SIN VERIFICAR") si con las verificadas no se llega a MIN_DAILY.
   MIN_DAILY: 5,              // Pueden ser menos de DAILY_LIMIT, pero no menos de 5 (decisión del usuario)
-  PIPELINE_HOUR: 7,          // 7:00 AM hora de Bogotá (guía 2026-10-22; antes 8). Corre entre 7:00 y 8:00
+  PIPELINE_HOUR: 7,          // 7:00 AM hora de Bogotá (guía 2026-10-22; antes 8). Con nearMinute(0): 6:45–7:15
   ROOT_FOLDER_NAME: 'Vacantes con IA',
   SHEET_TITLE: 'Vacantes UX - Registro',
   TEMPLATE_TITLE: 'Plantilla CV Maestra',
@@ -106,7 +106,7 @@ const CONFIG = {
   CV_JSON_NAME: 'CV_IA.json',        // Lo deja la IA en la carpeta de cada vacante
   CV_ERRORS_NAME: 'CV_IA_ERRORES.txt',
   // Verificación de la IA antes de la HV (decisión del usuario 2026-10-24): Verificacion.txt con "VEREDICTO: ..." y
-  // "MOTIVO: ...". A las CV_HOUR, DESCARTAR -> carpeta a la papelera; DUDOSA -> Sin revisar/<fecha>/Dudosas (él decide)
+  // "MOTIVO: ...". En cada pasada de generarCVsDesdeIA, DESCARTAR -> carpeta a la papelera; DUDOSA -> Sin revisar/<fecha>/Dudosas (él decide)
   VERIFICATION_FILE_NAME: 'Verificacion.txt',
   DOUBTFUL_FOLDER_NAME: 'Dudosas',
   // Vacantes nuevas del agente, aún sin revisar ni enviar (decisión del usuario 2026-10-22): Vacantes con IA/Sin revisar/
@@ -115,7 +115,11 @@ const CONFIG = {
   CV_TEST_FOLDER: 'PRUEBA_IA',       // Carpeta de prueba en la raíz para probarCVsDesdeIA
   CV_EXPORT_PDF: false,      // En pausa: el usuario ajusta a mano el Google Doc del CV y exporta él mismo
   CV_FILE_PREFIX: 'HV_',     // HV_Nombre_Apellido_Cargo (guía Adaptia); el nombre completo lo da _nombre_archivo
-  CV_HOUR: 10,               // 10:00 AM: arma CV/PDF/borrador con los CV_IA.json de hoy
+  // Arma CV/PDF/borrador con los CV_IA.json de hoy cada CV_EVERY_MINUTES, entre CV_FIRST_HOUR y CV_LAST_HOUR (decisión
+  // del usuario 2026-10-25: compactar la mañana; antes una sola vez a las 10:00–11:00). Las corridas sin trabajo son cortas.
+  CV_EVERY_MINUTES: 10,
+  CV_FIRST_HOUR: 7,
+  CV_LAST_HOUR: 22,          // Hasta las 22:59: también arma las dudosas que el usuario apruebe en la tarde
   SHEET_HEADERS: ['Fecha', 'Empresa', 'Cargo', 'Link', 'Match Score', 'Estado'],
   // Vacantes ya aplicadas por el usuario (carpetas coloreadas: rojo rechazada, verde en proceso, amarillo sin respuesta)
   APPLIED_FOLDER_NAME: 'CV',

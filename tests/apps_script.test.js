@@ -272,6 +272,14 @@ assert.strictEqual(verdict('- VEREDICTO: LISTA').verdict, 'LISTA');
 assert.strictEqual(verdict('').verdict, null);
 assert.strictEqual(verdict('Sin veredicto, solo notas: descartar luego').verdict, null);
 
+// Mañana compacta (2026-10-25): generarCVsDesdeIA corre cada 10 min, solo trabaja dentro de su ventana
+assert.ok(!context.isWithinCvWindow(6) && context.isWithinCvWindow(7) && context.isWithinCvWindow(22) &&
+  !context.isWithinCvWindow(23));
+const setupCode = fs.readFileSync(path.join(dir, 'Setup.gs'), 'utf8');
+assert.ok(/'generarCVsDesdeIA'\)\.timeBased\(\)\.everyMinutes\(CONFIG\.CV_EVERY_MINUTES\)/.test(setupCode));
+assert.ok(/atHour\(CONFIG\.PIPELINE_HOUR\)\.nearMinute\(0\)/.test(setupCode));
+assert.ok(!/CV_HOUR\b/.test(fs.readdirSync(dir).map(f => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n')));
+
 // Guía de búsqueda y HV (2026-10-22): filtros nuevos, avisos cerrados y reglas de la HV
 const ex = d => context.exclusionReason({ title: 'UX Designer', description: d });
 assert.strictEqual(ex('Inglés intermedio y Figma avanzado'), null);

@@ -1,6 +1,7 @@
 /**
  * Fase 3: arma el CV a partir de CV_IA.json (redactado por la IA) sobre MASTER_TEMPLATE, exporta el PDF (si CV_EXPORT_PDF)
- * y crea el borrador de Gmail. Se ejecuta solo a las CONFIG.CV_HOUR (después del paso de IA).
+ * y crea el borrador de Gmail. Un activador la corre cada CONFIG.CV_EVERY_MINUTES dentro de la ventana CV_FIRST_HOUR–CV_LAST_HOUR:
+ * arma cada HV poco después de que la IA deja su CV_IA.json.
  * Contrato CV_IA.json: una clave por marcador de MASTER_TEMPLATE (sin llaves; "" = eliminar ese párrafo)
  * + metadatos _idioma ('es'/'en'), _keywords, _gaps y _correo_cuerpo.
  */
@@ -17,8 +18,11 @@ const TEMPLATE_LABELS_EN_ = {
 
 /** Para cada carpeta de hoy con CV_IA.json y sin CV generado: valida, llena la plantilla, PDF (si está activo), borrador y registro. */
 function generarCVsDesdeIA() {
+  const now = new Date();
+  const hour = Number(Utilities.formatDate(now, tz_(), 'H'));
+  if (!isWithinCvWindow(hour)) return;  // El activador corre cada CV_EVERY_MINUTES todo el día
   const root = DriveApp.getFolderById(getProp_(PROPS.ROOT_FOLDER_ID));
-  const today = Utilities.formatDate(new Date(), tz_(), 'yyyy-MM-dd');
+  const today = Utilities.formatDate(now, tz_(), 'yyyy-MM-dd');
   // Sin revisar/<hoy> desde 2026-10-22; <hoy> en la raíz por si alguna corrida anterior la dejó allí
   const pending = root.getFoldersByName(CONFIG.PENDING_FOLDER_NAME);
   const candidates = [pending.hasNext() ? pending.next().getFoldersByName(today) : null, root.getFoldersByName(today)];
@@ -31,6 +35,11 @@ function generarCVsDesdeIA() {
   dateFolders.forEach(f => buildCvsInFolder_(f, sheet));
 }
 
+/** true si la hora (0–23, Bogotá) está dentro de la ventana en que generarCVsDesdeIA trabaja. */
+function isWithinCvWindow(hour) {
+  return hour >= CONFIG.CV_FIRST_HOUR && hour <= CONFIG.CV_LAST_HOUR;
+}
+
 /** Prueba desde el editor: arma los CV de la carpeta PRUEBA_IA (en la carpeta raíz) sin tocar la hoja de registro. */
 function probarCVsDesdeIA() {
   const root = DriveApp.getFolderById(getProp_(PROPS.ROOT_FOLDER_ID));
@@ -41,11 +50,20 @@ function probarCVsDesdeIA() {
 
 function buildCvsInFolder_(dateFolder, sheet) {
   console.log('--- Generando CVs desde CV_IA.json en ' + dateFolder.getName() + ' ---');
-  const contextDoc = findDocByName_(CONFIG.CONTEXT_DOC_NAME);
-  if (!contextDoc) throw new Error('No se encontró el Google Doc ' + CONFIG.CONTEXT_DOC_NAME + ' (necesario para validar).');
-  const contextText = DocumentApp.openById(contextDoc.getId()).getBody().getText();
-  const template = getTemplateFile_();
-  const placeholders = listPlaceholders_(template.getId()).map(p => p.slice(2, -2));
+  // CONTEXTO_CV y la plantilla se leen solo si hay un CV_IA.json por armar: la mayoría de pasadas (cada 10 min) no tienen.
+  let shared = null;
+  const getShared = () => {
+    if (shared) return shared;
+    const contextDoc = findDocByName_(CONFIG.CONTEXT_DOC_NAME);
+    if (!contextDoc) throw new Error('No se encontró el Google Doc ' + CONFIG.CONTEXT_DOC_NAME + ' (necesario para validar).');
+    const template = getTemplateFile_();
+    shared = {
+      contextText: DocumentApp.openById(contextDoc.getId()).getBody().getText(),
+      template: template,
+      placeholders: listPlaceholders_(template.getId()).map(p => p.slice(2, -2)),
+    };
+    return shared;
+  };
 
   // Se copian antes del ciclo: las carpetas descartadas o dudosas se mueven mientras se recorren. También se revisan
   // las de Dudosas: si el usuario cambió el veredicto a LISTA vuelven al día; a DESCARTAR, van a la papelera.
@@ -84,6 +102,7 @@ function buildCvsInFolder_(dateFolder, sheet) {
       }
       const detailFile = firstFileByName_(folder, 'Detalle_Vacante');
       const vacancy = parseVacancyDetail(detailFile ? DocumentApp.openById(detailFile.getId()).getBody().getText() : '');
+      const { contextText, template, placeholders } = getShared();
 
       let cv;
       let check;

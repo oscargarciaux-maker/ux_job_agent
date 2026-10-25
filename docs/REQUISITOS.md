@@ -100,6 +100,6 @@ Estados: ✅ hecho y probado · 🟡 parcial · ⏳ pendiente · ❓ falta una d
 | Sitios que piden tarjeta para postular, nunca como origen | 🟡 | `verificar-vacante` |
 | Fuentes nuevas: Magneto365, Torre, portales fintech, bolsa UNAL, comunidades de diseño | ⏳ | hoy: SerpAPI (Google Jobs, que incluye varios portales), Remotive, Get on Board, Jobicy |
 | Salario publicado se reporta (sin piso mínimo) | 🟡 | `verificar-vacante` |
-| Descartadas/cerradas quedan en el registro con su motivo | ✅ | `setAsideVacancy_` (10:00) escribe `Descartada:`/`Dudosa:` en Estado; fuera de ese flujo, `verificar-vacante` con el conector de Google Sheets (solo la celda Estado) |
+| Descartadas/cerradas quedan en el registro con su motivo | ✅ | `setAsideVacancy_` (cada pasada de `generarCVsDesdeIA`, cada 10 min) escribe `Descartada:`/`Dudosa:` en Estado; fuera de ese flujo, `verificar-vacante` con el conector de Google Sheets (solo la celda Estado) |
 | Medio tiempo con contrato fijo | ❓ | pendiente de definir por el usuario; mientras tanto la vacante queda 🔶 Dudosa |
 

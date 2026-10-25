@@ -231,14 +231,14 @@ Registro:
   ```
   Después, el reporte con el formato de arriba. Las publicaciones del documento `Posts` van en
   `Posts/Verificacion_Posts.txt`, una línea por publicación: `<veredicto> | <autor o empresa> | <enlace> | <motivo>`.
-- Carpetas de `Sin revisar/<hoy>`: con eso basta. A las 10:00 `generarCVsDesdeIA` manda las DESCARTAR a la papelera
+- Carpetas de `Sin revisar/<hoy>`: con eso basta. En su siguiente pasada (cada 10 minutos, de 7:00 a 22:59) `generarCVsDesdeIA` manda las DESCARTAR a la papelera
   de Drive (recuperables 30 días), mueve las DUDOSA a `Sin revisar/<fecha>/Dudosas/` y deja en el registro
   (`Hoja 1`, columna F Estado) `Descartada: <motivo>` o `Dudosa: <motivo>`. Las de `Dudosas` cuyo veredicto cambie a
   LISTA vuelven al día; a DESCARTAR, a la papelera.
 - **Decisión del usuario sobre una dudosa:** "sí" → reemplaza su `Verificacion.txt` (Drive `update_file` no cambia el contenido: `trash_file` del anterior y `create_file` del nuevo) para que empiece
   por `VEREDICTO: LISTA` y `MOTIVO: aprobada por el usuario`, y sigue con la hoja de vida; "no" → `VEREDICTO:
   DESCARTAR` y su motivo.
-- Otras carpetas (otro día, o después de las 10:00) o enlaces sueltos: con el conector de Google Sheets, busca la fila
+- Otras carpetas (de otro día) o enlaces sueltos: con el conector de Google Sheets, busca la fila
   por el enlace (columna D) o por empresa + cargo y actualiza **solo** la celda de Estado (`Descartada: <motivo>`,
   `Cerrada: <motivo>` o `Dudosa: <motivo>`); si no está en el registro, agrega una fila (Fecha, Empresa, Cargo, Link,
   Match Score vacío, Estado). Nunca reescribas otras filas ni columnas. Una carpeta DESCARTAR de `Sin revisar` va a la

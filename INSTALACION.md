@@ -12,6 +12,6 @@ Después de esto el agente corre solo todos los días y siempre usa la última v
 7. **Prueba:** ejecuta `ejecutarPrueba`. Debe crear 2 carpetas de prueba en Drive y 2 borradores en Gmail (a direcciones `@example.com`, puedes borrarlos).
 
 ## Uso diario
-- **Automático:** 7:00–8:00 AM busca vacantes y crea `Detalle_Vacante` en `Vacantes con IA/Sin revisar/<fecha>` (las publicaciones de LinkedIn van al documento `Posts`) → 9:10 la tarea programada de Claude deja `CV_IA.json` en cada carpeta → 10:00–11:00 `generarCVsDesdeIA` crea el CV en Google Doc y el borrador en Gmail (el PDF lo exportas tú).
+- **Automático:** 6:45–7:15 AM busca vacantes y crea `Detalle_Vacante` en `Vacantes con IA/Sin revisar/<fecha>` (las publicaciones de LinkedIn van al documento `Posts`) → 7:33 la tarea programada de Claude verifica y deja `CV_IA.json` en cada carpeta → cada 10 minutos `generarCVsDesdeIA` crea el CV en Google Doc y el borrador en Gmail (el PDF lo exportas tú) → 8:53 la tarea "Revisión HV diaria" revisa las HV (respaldo 11:53). Si cambias estas horas, vuelve a ejecutar `configurarAgente`.
 - **Manual:** en el editor ejecuta `ejecutarPipeline` (real), `ejecutarPrueba` (vacantes de prueba), `ejecutarSimulacion` (no toca nada) o `probarCVsDesdeIA` (arma el CV de la carpeta `PRUEBA_IA`).
 - Si algo falla, Google te envía un correo con el error.
