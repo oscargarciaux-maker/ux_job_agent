@@ -101,12 +101,18 @@ para confirmar que quedó.
 1. **Color de la carpeta** de la postulación: Drive `update_file` con `folderColorRgb` (los valores de la tabla; Drive
    los ajusta a su paleta). La pestaña `Aplicadas` se actualiza sola cada hora (`sincronizarAplicadas` lee los colores);
    no la edites a mano.
-2. **Postulación enviada que no tiene carpeta** (decisión del usuario, 24 oct 2026: se crea). Crea la carpeta
+2. **Postulación enviada que no tiene carpeta** (decisión del usuario, 24 oct 2026: se crea). Antes de crearla,
+   comprueba que de verdad no existe: las carpetas no siempre llevan el nombre de la empresa (el 24 oct 2026 se creó
+   una carpeta con el nombre de la agencia para una postulación que ya tenía carpeta con el nombre del reclutador del
+   post). Busca en
+   `Vacantes con IA/CV` y `Sin revisar` el destinatario (correo o dominio), el nombre del archivo de HV adjunto y el
+   cargo en los Docs `Vacante`/`Detalle_Vacante`; si aparece, es esa carpeta. Si no existe, crea la carpeta
    `<Empresa>_<Cargo corto>` (o solo `<Empresa>`) dentro de la carpeta semanal **más reciente** de `Vacantes con IA/CV`
-   (hoy "Tercera semana"; no crees carpetas semanales nuevas: las organiza el candidato). Dentro, un Google Doc `Vacante`
-   con lo que se sepa: cargo, empresa, enlace del aviso si aparece, fecha de envío, a quién se envió, enlace al correo
-   enviado y la HV que se adjuntó (nombre del archivo). Ponle el color según su estado. Si la empresa ya tiene carpeta
-   con otro cargo, crea la nueva igual (es otro proceso).
+   (no crees carpetas semanales nuevas: las organiza el candidato). Dentro, **siempre** un Google Doc `Vacante` (nunca
+   dejes la carpeta solo con la HV) con lo que se sepa: cargo, empresa, enlace del aviso si aparece, fecha de envío, a
+   quién se envió, enlace al correo enviado y la HV que se adjuntó (nombre del archivo). Ponle el color según su estado
+   y confírmalo listando la carpeta. Si la empresa ya tiene carpeta con otro cargo, crea la nueva igual (es otro
+   proceso).
 3. **`Correos en frío`:** cambia solo las celdas Estado y "Respuesta / info" de la fila de esa dirección (o agrega en
    "Respuesta / info" la fecha y el resumen). No borres filas.
 4. **Pestaña `Seguimiento`** (créala si no existe, con estos encabezados en este orden: `Fecha revisión`, `Empresa`,
