@@ -501,6 +501,11 @@ context.Utilities.formatDate = (d, tz, fmt) => {
 assert.strictEqual(run('dashboardKeyOk')('abc', 'abc'), true);
 assert.strictEqual(run('dashboardKeyOk')('abc', ''), false, 'sin clave guardada nadie entra');
 assert.strictEqual(run('dashboardKeyOk')('', null), false);
+assert.strictEqual(run('dashboardShareUrl')('https://script.google.com/macros/s/X/exec', 'k1'),
+  'https://script.google.com/macros/s/X/exec?k=k1');
+assert.strictEqual(run('dashboardShareUrl')('https://script.google.com/macros/s/X/dev', 'k1'), null,
+  'el enlace de prueba /dev no se comparte');
+assert.strictEqual(run('dashboardShareUrl')('', 'k1'), null);
 assert.strictEqual(run('dashboardKeyOk')('x', 'abc'), false);
 const unsafe = run('safeJsonForScript')({ a: '</script><script>alert(1)</script>&' });
 assert.ok(!/<|>|&/.test(unsafe));

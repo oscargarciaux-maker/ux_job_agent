@@ -15,24 +15,29 @@ function doGet(e) {
       .setTitle('Búsqueda UX').addMetaTag('viewport', 'width=device-width, initial-scale=1');
   }
   const model = buildDashboardModel(readDashboardTabs_(), new Date(), tz_());
-  model.recargar = ScriptApp.getService().getUrl() + '?k=' + encodeURIComponent(given);
+  model.recargar = dashboardShareUrl(ScriptApp.getService().getUrl(), given);
   const html = fetchDashboardHtml_().replace('/*__DATA__*/null', safeJsonForScript(model));
   return HtmlService.createHtmlOutput(html)
     .setTitle('Búsqueda UX · Oscar Garcia')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1, viewport-fit=cover');
 }
 
-/** Crea la clave del tablero si no existe y escribe en el registro el enlace para compartir (después de implementar). */
+/**
+ * Crea la clave del tablero si no existe y escribe en el registro cómo armar el enlace para compartir. Desde el editor
+ * getUrl() devuelve el enlace de prueba (/dev), que solo abre el dueño con su sesión: el que se comparte es el de la
+ * implementación (/exec), en Implementar > Gestionar implementaciones.
+ */
 function configurarTablero() {
   let key = getProp_(PROPS.DASHBOARD_KEY);
   if (!key) {
     key = Utilities.getUuid().replace(/-/g, '');
     setProp_(PROPS.DASHBOARD_KEY, key);
   }
-  const url = ScriptApp.getService().getUrl();
-  console.log(url
-    ? 'Enlace del tablero (compártelo solo con quien quieras): ' + url + '?k=' + key
-    : 'Aún no hay implementación de app web: Implementar > Nueva implementación > App web y vuelve a correr configurarTablero. Clave: ' + key);
+  const share = dashboardShareUrl(ScriptApp.getService().getUrl(), key);
+  console.log(share
+    ? 'Enlace del tablero (compártelo solo con quien quieras): ' + share
+    : 'Copia la "URL de la app web" de Implementar > Gestionar implementaciones (termina en /exec) y agrégale al final ' +
+      '?k=' + key + ' . Ese es el enlace para compartir. (El que termina en /dev es solo de prueba y no abre para otras personas.)');
 }
 
 function readDashboardTabs_() {
@@ -72,6 +77,12 @@ function fetchDashboardHtml_() {
 /** La clave del enlace coincide con la guardada (sin clave guardada, nadie entra). */
 function dashboardKeyOk(given, stored) {
   return !!stored && String(given || '') === String(stored);
+}
+
+/** Enlace para compartir: solo el de una implementación (/exec); el de prueba (/dev) no abre para otras personas. */
+function dashboardShareUrl(url, key) {
+  const u = String(url || '');
+  return /\/exec$/.test(u) && key ? u + '?k=' + encodeURIComponent(key) : null;
 }
 
 /** JSON que se puede poner dentro de <script> sin cerrarlo ni romper el HTML. */
