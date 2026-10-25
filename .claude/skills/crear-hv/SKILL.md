@@ -8,7 +8,7 @@ description: Crea la hoja de vida (HV) personalizada del candidato para una vaca
 Objetivo: una hoja de vida hecha **para esa vacante o esa empresa**, que el candidato pueda defender palabra por
 palabra en una entrevista, lista para enviar después de su revisión. Nunca se envía nada: la HV queda en Drive.
 
-## Fuentes (Google Drive, carpeta `Vacantes con IA`; nunca copiar su contenido a este repositorio público)
+## Fuentes (Google Drive, carpeta `Vacantes con IA/Recursos`, búscalas por nombre; nunca copiar su contenido a este repositorio público)
 
 | Documento | Para qué | Manda en |
 |---|---|---|

@@ -42,6 +42,82 @@ function sincronizarAplicadas() {
   const count = {};
   rows.forEach(r => { count[r.status] = (count[r.status] || 0) + 1; });
   console.log('Aplicadas sincronizadas: ' + rows.length + ' ' + JSON.stringify(count));
+  try {
+    writePendingCvs_(ss, root);
+  } catch (e) {
+    console.error('Por enviar -> ERROR: ' + e.message);
+  }
+}
+
+/**
+ * HV preparadas que el usuario aún no envía (2026-10-25): cada Sin revisar/<fecha>/<vacante> con una HV (Google Doc o
+ * PDF HV_/CV_) va a la hoja "Por enviar" con su verificación y su revisión. Al enviarla, el usuario mueve la carpeta a
+ * CV/<semana> y sale de esta lista en la siguiente sincronización.
+ */
+function writePendingCvs_(ss, root) {
+  const rows = [];
+  const pending = root.getFoldersByName(CONFIG.PENDING_FOLDER_NAME);
+  if (pending.hasNext()) {
+    listChildFolders_(pending.next().getId()).forEach(day => {
+      listChildFolders_(day.id).forEach(f => {
+        if (f.name === CONFIG.POSTS_FOLDER_NAME || f.name === CONFIG.DOUBTFUL_FOLDER_NAME) return;
+        const files = listChildFiles_(f.id);
+        const hv = files.find(isCvFile_);
+        if (!hv) return;
+        const text = name => {
+          const file = files.find(x => x.name === name);
+          return file ? readTextFile_(DriveApp.getFileById(file.id)) : '';
+        };
+        const record = pendingCvRecord(day.name, f.name, files.filter(isCvFile_).map(x => x.name),
+                                       text(CONFIG.VERIFICATION_FILE_NAME), text('Revision.txt'));
+        if (record) rows.push(Object.assign(record, { id: f.id, hvId: hv.id }));
+      });
+    });
+  }
+  rows.sort((a, b) => (a.fecha < b.fecha ? 1 : a.fecha > b.fecha ? -1 : 0));
+  const sheet = ss.getSheetByName(CONFIG.PENDING_CV_SHEET_NAME) || ss.insertSheet(CONFIG.PENDING_CV_SHEET_NAME, ss.getNumSheets());
+  sheet.clear();
+  const header = CONFIG.PENDING_CV_SHEET_HEADERS;
+  const values = [header].concat(rows.map(r => [r.fecha, r.empresa, r.cargo, r.verificacion, r.revision,
+    '=HYPERLINK("https://drive.google.com/drive/folders/' + r.id + '","Abrir")',
+    '=HYPERLINK("https://drive.google.com/open?id=' + r.hvId + '","' + r.hv.replace(/"/g, "'") + '")']));
+  sheet.getRange(1, 1, values.length, header.length).setValues(values);
+  sheet.getRange(1, 1, 1, header.length).setFontWeight('bold');
+  sheet.setFrozenRows(1);
+  console.log('Por enviar: ' + rows.length + ' HV en ' + CONFIG.PENDING_FOLDER_NAME);
+}
+
+/** Una HV generada: Google Doc o PDF cuyo nombre empieza por HV_ o CV_ (no CV_IA.json ni CV_IA_ERRORES.txt). */
+function isCvFile_(file) {
+  const okType = file.mimeType === 'application/vnd.google-apps.document' || file.mimeType === 'application/pdf';
+  return okType && /^(HV|CV)_/.test(file.name) && file.name.indexOf('CV_IA') !== 0;
+}
+
+/** Fila de "Por enviar" para una carpeta de Sin revisar; null si la carpeta no tiene HV. */
+function pendingCvRecord(dayName, folderName, cvNames, verificationText, revisionText) {
+  if (!cvNames.length) return null;
+  const parsed = parseAppliedFolderName(folderName);
+  const verdict = parseVerdict(verificationText).verdict;
+  const review = (String(revisionText || '').match(/VEREDICTO\s*:\s*(LISTA_PARA_ENVIAR|REVISAR)/i) || [])[1] || '';
+  return {
+    fecha: dayName, empresa: parsed.company, cargo: parsed.title, hv: cvNames[0],
+    verificacion: verdict ? verdict.replace('_', ' ').toLowerCase().replace(/^./, c => c.toUpperCase()) : 'Sin verificación',
+    revision: !review ? 'Sin revisión' : /^LISTA/i.test(review) ? 'Lista para enviar' : 'Revisar',
+  };
+}
+
+function listChildFiles_(parentId) {
+  const out = [];
+  let pageToken;
+  do {
+    const res = Drive.Files.list({
+      q: "'" + parentId + "' in parents and mimeType != 'application/vnd.google-apps.folder' and trashed = false",
+      fields: 'nextPageToken, files(id, name, mimeType)', pageSize: 1000, pageToken: pageToken,
+    });
+    (res.files || []).forEach(f => out.push(f));
+    pageToken = res.nextPageToken;
+  } while (pageToken);
+  return out;
 }
 
 /**

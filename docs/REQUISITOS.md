@@ -96,7 +96,7 @@ Estados: ✅ hecho y probado · 🟡 parcial · ⏳ pendiente · ❓ falta una d
 |---|---|---|
 | El cargo se juzga por funciones, no por título (CX o gestión de producto entran si la función principal es diseño) | ✅ | `roleTitleClass`: títulos dudosos entran con `ROLE_VERIFY_PENALTY` y `Rol: VERIFICAR FUNCIONES` en `Detalle_Vacante`; la IA no escribe HV si la función principal no es diseño; `verificar-vacante` decide |
 | La misma empresa con un cargo distinto no es duplicado; si la empresa ya tiene carpeta, se compara con lo que hay dentro | ✅ | `isSameAppliedVacancy_` (cargo de la carpeta, nombre de la HV, enlace/cargo del doc de vacante), `sameRole`; con otro cargo entra con `Aviso empresa:`; correos en frío solo avisan |
-| Lo aplicado se mira en las carpetas semanales de `CV/`; `Prueba` = preparada sin enviar | ✅ | `sincronizarAplicadas` reconstruye `Aplicadas` desde `CV/`; lo que está en `Prueba` queda como "Preparada, sin enviar" (sigue contando para no repetir) |
+| Lo aplicado se mira en las carpetas semanales de `CV/`; lo preparado sin enviar vive en `Sin revisar/<fecha>` (pestaña `Por enviar`, desde 2026-10-25; antes `Prueba`) | ✅ | `sincronizarAplicadas` reconstruye `Aplicadas` desde `CV/`; lo que está en `Prueba` queda como "Preparada, sin enviar" (sigue contando para no repetir) |
 | Sitios que piden tarjeta para postular, nunca como origen | 🟡 | `verificar-vacante` |
 | Fuentes nuevas: Magneto365, Torre, portales fintech, bolsa UNAL, comunidades de diseño | ⏳ | hoy: SerpAPI (Google Jobs, que incluye varios portales), Remotive, Get on Board, Jobicy |
 | Salario publicado se reporta (sin piso mínimo) | 🟡 | `verificar-vacante` |

@@ -124,6 +124,9 @@ const CONFIG = {
   // Vacantes ya aplicadas por el usuario (carpetas coloreadas: rojo rechazada, verde en proceso, amarillo sin respuesta)
   APPLIED_FOLDER_NAME: 'CV',
   APPLIED_SHEET_NAME: 'Aplicadas',
+  // HV preparadas sin enviar (Sin revisar/<fecha>/<vacante> con HV), las escribe sincronizarAplicadas (2026-10-25)
+  PENDING_CV_SHEET_NAME: 'Por enviar',
+  PENDING_CV_SHEET_HEADERS: ['Fecha', 'Empresa', 'Cargo', 'Verificación', 'Revisión', 'Carpeta', 'HV'],
   APPLIED_OLD_FOLDER_PATTERN: /^antigu[ao]s?$/i,   // Carpeta de postulaciones antiguas junto a CV/ (2026-10-25)
   COLD_EMAIL_SHEET_NAME: 'Correos en frío',   // Empresas ya contactadas (columna A): no se proponen de nuevo
   COLD_EMAIL_SHEET_HEADERS: ['Empresa', 'Destinatario(s)', 'Fecha y hora envío', 'Asunto', 'CV usado', 'Estado',
