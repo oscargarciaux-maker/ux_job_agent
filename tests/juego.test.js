@@ -153,4 +153,32 @@ const porSemana = modelo.postulaciones.semanas.map((w, i) => {
   return w.semana + ': nivel ' + (ult ? ult.despues.nivel : '?') + ', XP ' + (ult ? ult.despues.xp : '?') + ', HP ' + (ult ? ult.despues.hp : '?');
 });
 console.log('Ritmo real → ' + porSemana.join(' | '));
+// ---------- Poses: la foto de cada efecto trae lo que necesita el sprite (Avalancha) ----------
+{
+  const m = { meta: 50, hoy: '2026-10-25', postulaciones: { semanas: [{ semana: 'S1', desde: '2026-10-19', total: 31 }], lista: [] }, correos: { lista: [] } };
+  for (let i = 0; i < 31; i++) m.postulaciones.lista.push({ empresa: 'E' + i, cargo: 'C', clave: 'aplicada', semana: 'S1', creada: '2026-10-20' });
+  const r = J('simular')(J('construirEventos')(m), m);
+  assert.strictEqual(r.efectos.find(f => f.tipo === 'hv').despues.avalancha, false);
+  assert.strictEqual(r.efectos.find(f => f.tipo === 'avalancha').despues.avalancha, true, 'desde las 30 HV Oscar queda con aura');
+}
+assert.ok(efectos.every(f => typeof f.despues.avalancha === 'boolean'));
+
+// ---------- Arte: cada PNG que nombra el juego existe (y nada de la foto ni la ilustración de referencia) ----------
+{
+  const bloque = /<script id="arte">([\s\S]*?)<\/script>/.exec(html);
+  assert.ok(bloque, 'juego.html debe tener el bloque <script id="arte">');
+  const actx = {}; vm.createContext(actx); vm.runInContext(bloque[1], actx);
+  const ARTE = plain(actx.ARTE);
+  const raiz = path.join(__dirname, '..', 'apps_script', ARTE.raiz);
+  const existe = rel => assert.ok(fs.existsSync(path.join(raiz, rel)), 'falta ' + ARTE.raiz + rel);
+  ARTE.oscar.sprites.forEach(s => existe('oscar/sprite_' + s + '.png'));
+  ARTE.oscar.retratos.forEach(s => existe('oscar/retrato_' + s + '.png'));
+  existe(ARTE.hoja);
+  J('JEFES').forEach(j => assert.ok(ARTE.jefes[j.nombre], 'el jefe ' + j.nombre + ' necesita su id de carpeta en ARTE.jefes'));
+  // Un jefe con carpeta debe traer todas sus poses; el Gerente ya la tiene
+  assert.ok(fs.existsSync(path.join(raiz, 'gerente')));
+  Object.values(ARTE.jefes).forEach(j => { if (fs.existsSync(path.join(raiz, j.id))) ARTE.posesJefe.forEach(s => existe(j.id + '/sprite_' + s + '.png')); });
+  assert.ok(!/oscar\.png|Press Start 2P|VT323/.test(html), 'sin la foto ni las fuentes anteriores');
+}
+
 console.log('OK: todas las pruebas del motor del juego pasaron');

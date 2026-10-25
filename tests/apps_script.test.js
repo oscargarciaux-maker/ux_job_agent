@@ -30,7 +30,7 @@ const listed = JSON.parse(fs.readFileSync(path.join(dir, 'files.json'), 'utf8'))
 const actual = fs.readdirSync(dir).filter(f => f.endsWith('.gs') || f === 'appsscript.json').sort();
 assert.deepStrictEqual(listed, actual, 'apps_script/files.json no coincide con los archivos de apps_script/');
 const run = (expr) => vm.runInContext(expr, context);
-// Todo el texto de apps_script/ (sin carpetas como juego/, que guarda imágenes)
+// Todo el texto de apps_script/ (sin carpetas como img/, que guarda imágenes)
 const textFiles = () => fs.readdirSync(dir).filter(f => fs.statSync(path.join(dir, f)).isFile());
 
 const es = run('SAMPLE_VACANCIES_[0]');
