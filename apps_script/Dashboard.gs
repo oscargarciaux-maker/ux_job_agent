@@ -10,6 +10,7 @@
 function doGet(e) {
   const key = getProp_(PROPS.DASHBOARD_KEY);
   const given = String((e && e.parameter && e.parameter.k) || '');
+  if (e && e.parameter && e.parameter.formato === 'json') return dashboardJson_(given, key);
   if (!dashboardKeyOk(given, key)) {
     return HtmlService.createHtmlOutput(dashboardLockedHtml())
       .setTitle('Búsqueda UX').addMetaTag('viewport', 'width=device-width, initial-scale=1');
@@ -20,6 +21,17 @@ function doGet(e) {
   return HtmlService.createHtmlOutput(html)
     .setTitle('Búsqueda UX · Oscar Garcia')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1, viewport-fit=cover');
+}
+
+/**
+ * Solo los datos (?formato=json&k=...), para la página servida aparte (GitHub Pages): el navegador los pide con fetch sin
+ * cookies, así que no choca con varias cuentas de Google abiertas (con ellas la app web da "No se puede abrir el archivo").
+ */
+function dashboardJson_(given, key) {
+  const body = dashboardKeyOk(given, key)
+    ? buildDashboardModel(readDashboardTabs_(), new Date(), tz_())
+    : { error: 'clave' };
+  return ContentService.createTextOutput(JSON.stringify(body)).setMimeType(ContentService.MimeType.JSON);
 }
 
 /**
