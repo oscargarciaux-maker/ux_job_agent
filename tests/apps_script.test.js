@@ -560,13 +560,12 @@ const allCode = fs.readdirSync(dir).map(f => fs.readFileSync(path.join(dir, f), 
 assert.ok(!/\.send\(|Messages\.send|sendEmail|GmailApp/.test(allCode), 'El agente no debe poder enviar correos');
 
 // Cargador: descarga los .gs listados (aquí desde disco) y expone las funciones públicas
+const fromDisk = (url) => {
+  const name = url.split('/apps_script/')[1];
+  return { getResponseCode: () => 200, getContentText: () => fs.readFileSync(path.join(dir, name), 'utf8') };
+};
 const loaderCtx = {
-  UrlFetchApp: {
-    fetch: (url) => {
-      const name = url.split('/apps_script/')[1];
-      return { getResponseCode: () => 200, getContentText: () => fs.readFileSync(path.join(dir, name), 'utf8') };
-    },
-  },
+  UrlFetchApp: { fetch: fromDisk, fetchAll: (reqs) => reqs.map(r => fromDisk(r.url)) },
 };
 vm.createContext(loaderCtx);
 vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'instalador', 'Cargador.gs'), 'utf8'), loaderCtx);
@@ -576,5 +575,8 @@ for (const fn of ['ejecutarPipeline', 'ejecutarPrueba', 'ejecutarSimulacion', 'c
   assert.strictEqual(typeof api[fn], 'function', 'El cargador debe exponer ' + fn);
   assert.strictEqual(typeof loaderCtx[fn], 'function', 'Cargador.gs debe definir ' + fn + ' (activadores/editor)');
 }
+// El Cargador lee la caché del tablero con el mismo nombre que la escribe Dashboard.gs
+assert.ok(fs.readFileSync(path.join(__dirname, '..', 'instalador', 'Cargador.gs'), 'utf8')
+  .includes("get('" + run('CONFIG').DASHBOARD_CACHE_KEY + "')"), 'Cargador y Config deben usar la misma clave de caché');
 
 console.log('OK: todas las pruebas de apps_script pasaron');
