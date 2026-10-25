@@ -136,6 +136,7 @@ const CONFIG = {
   COLD_EMAILS_FILE: 'Correos.json',
   COLD_DRAFTS_DONE_FILE: 'Borradores.txt',   // Ya se crearon sus borradores: no se repiten
   COLD_ERRORS_FILE: 'Correos_ERRORES.txt',
+  CV_KEYWORDS_CHECKED: 5,                    // keywords principales que la HV debe probar fuera de las habilidades (personalizationErrors)
   COLD_EMAIL_MAX_WORDS: 35,                  // Guía Maestra de Cover Letters (la guía principal de correos del usuario)
   // Skill investigar-empresas (2026-10-24): empresas que contratan diseñadores UX/UI, con correos verificados
   TARGET_COMPANIES_SHEET_NAME: 'Empresas objetivo',

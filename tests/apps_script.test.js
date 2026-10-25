@@ -230,7 +230,8 @@ const contexto = 'Diseñador Industrial. Practicante en Estudio Forma (2023), re
 const marcadores = ['PERFIL_PERSONALIZADO', 'EMPRESA_EXP_1', 'LOGRO_1_1', 'LOGRO_1_2'];
 const cvOk = context.parseCvJson('\uFEFF' + JSON.stringify({
   _idioma: 'es', _keywords: ['Figma'], _gaps: [], _correo_cuerpo: 'Hola, adjunto mi CV.',
-  PERFIL_PERSONALIZADO: 'Diseñador Industrial con foco en UX y costos en $ (literal).',
+  _mapa: [{ keyword: 'Figma', cita: 'rediseño que redujo errores 30%. Figma', donde: 'PERFIL_PERSONALIZADO' }],
+  PERFIL_PERSONALIZADO: 'Diseñador Industrial con foco en UX, Figma y costos en $ (literal).',
   EMPRESA_EXP_1: 'Estudio Forma', LOGRO_1_1: 'Reduje errores en un 30% (2023).', LOGRO_1_2: '',
 }));
 assert.strictEqual(context.validateCvJson(cvOk, contexto, marcadores).errors.length, 0);
@@ -375,12 +376,41 @@ const vacPD = { title: 'Product Designer' };
 assert.strictEqual(context.cargoErrors({ CARGO_EXP_1: 'Product Designer', CARGO_EXP_2: 'UX/UI Design Lead', CARGO_EXP_3: '' }, vacPD).length, 0);
 assert.ok(/mismo cargo/.test(context.cargoErrors({ CARGO_EXP_1: 'UX Designer', CARGO_EXP_2: 'ux  designer' }, vacPD).join()));
 assert.ok(/copian el cargo/.test(context.cargoErrors({ CARGO_EXP_1: 'Product Designer', CARGO_EXP_2: 'Product designer ' , CARGO_EXP_3: 'x' }, vacPD).join()));
-const cvJunior = Object.assign({}, cvOk, { PERFIL_PERSONALIZADO: 'Diseñador junior enfocado en research' });
+const cvJunior = Object.assign({}, cvOk, { PERFIL_PERSONALIZADO: 'Diseñador junior enfocado en research con Figma' });
 assert.strictEqual(context.validateCvJson(cvJunior, contexto, marcadores, { title: 'UX Designer Junior' }).errors.length, 0);
 assert.ok(context.validateCvJson(cvJunior, contexto, marcadores, { title: 'UX Designer' }).errors.length > 0);
 const cvGuia = Object.assign({}, cvOk, { CARGO_EXP_1: 'Aprendiz Universitario', PERFIL_PERSONALIZADO: 'Enfoque: diseño' });
 const erroresGuia = context.validateCvJson(cvGuia, contexto, marcadores).errors.join('\n');
 assert.ok(/CARGO_EXP_1: palabra prohibida/.test(erroresGuia) && /sin dos puntos/.test(erroresGuia), erroresGuia);
+
+// Personalización comprobable (2026-10-25): mapa de evidencia y keywords principales fuera de las habilidades
+{
+  const ctx = 'Realicé investigación UX con el personal de ventas para identificar barreras de adopción y diseñé una vista de administración restringida. Orquesté el desarrollo integral mediante código asistido (*Vibecoding*).';
+  assert.strictEqual(context.keywordCovered('Prototyping', 'Built interactive prototypes in Figma'), true, 'raíz de la palabra');
+  assert.strictEqual(context.keywordCovered('Internal tools', 'Designed an internal admin tool'), true);
+  assert.strictEqual(context.keywordCovered('A/B testing', 'Ran usability testing'), false);
+  assert.strictEqual(context.keywordCovered('UX', 'Lux design'), false, 'las siglas piden la palabra exacta');
+  assert.strictEqual(context.keywordCovered('A/B testing', 'Ran A/B tests'), true);
+  assert.strictEqual(context.keywordCovered('UX/UI Design', 'UX/UI designer for web'), true);
+  assert.strictEqual(context.keywordCovered('Diseño conversacional', 'Diseñé flujos conversacionales con IA'), true);
+  assert.strictEqual(context.keywordCovered('Design systems', 'Built a tokenized design system'), true);
+  assert.strictEqual(context.keywordCovered('Internal tools', 'Ran stakeholder interviews'), false, 'internal no es interviews');
+  const base = { _keywords: ['Internal tools', 'Vibecoding', 'A/B testing'],
+    _mapa: [
+      { keyword: 'Internal tools', cita: 'diseñé una vista de administración restringida', donde: 'LOGRO_1_1' },
+      { keyword: 'Vibecoding', cita: 'Orquesté el desarrollo integral mediante código asistido (Vibecoding)', donde: 'LOGRO_1_2' },
+      { keyword: 'A/B testing', cita: '', donde: 'GAP' },
+    ],
+    PERFIL_PERSONALIZADO: 'Designer who builds internal tools with research.', LOGRO_1_1: 'Designed a restricted internal admin view.',
+    LOGRO_1_2: 'Built the store through AI-assisted vibecoding with Claude and Gemini.', DETALLE_SKILL_1: 'A/B testing' };
+  assert.deepStrictEqual(Array.from(context.personalizationErrors(base, ctx)), [], 'GAP exento; cita con otros signos sí cuenta');
+  const soloSkills = Object.assign({}, base, { LOGRO_1_2: 'Built the store with Claude.', DETALLE_SKILL_1: 'Vibecoding' });
+  assert.ok(/Vibecoding" no aparece/.test(context.personalizationErrors(soloSkills, ctx).join()), 'solo en habilidades no basta');
+  const inventada = Object.assign({}, base, { _mapa: [base._mapa[0], { keyword: 'Vibecoding', cita: 'Lideré un equipo de vibecoding de 10 personas', donde: 'LOGRO_1_2' }, base._mapa[2]] });
+  assert.ok(/cita de "Vibecoding" no está textual/.test(context.personalizationErrors(inventada, ctx).join()));
+  assert.ok(/falta el mapa/.test(context.personalizationErrors(Object.assign({}, base, { _mapa: [] }), ctx).join()));
+  assert.ok(/falta la keyword "A\/B testing"/.test(context.personalizationErrors(Object.assign({}, base, { _mapa: base._mapa.slice(0, 2) }), ctx).join()));
+}
 
 // Carpetas: solo la empresa; con el detalle del cargo si ese día hay dos vacantes de la misma empresa
 assert.strictEqual(context.shortRoleDetail('Product Designer Senior - Remoto LATAM', 'Acme'), 'Product Designer');

@@ -3,10 +3,10 @@
  * y crea el borrador de Gmail. Un activador la corre cada CONFIG.CV_EVERY_MINUTES dentro de la ventana CV_FIRST_HOUR–CV_LAST_HOUR:
  * arma cada HV poco después de que la IA deja su CV_IA.json.
  * Contrato CV_IA.json: una clave por marcador de MASTER_TEMPLATE (sin llaves; "" = eliminar ese párrafo)
- * + metadatos _idioma ('es'/'en'), _keywords, _gaps y _correo_cuerpo.
+ * + metadatos _idioma ('es'/'en'), _keywords, _gaps, _mapa (mapa de evidencia) y _correo_cuerpo.
  */
 
-const CV_META_KEYS_ = ['_idioma', '_keywords', '_gaps', '_correo_cuerpo', '_nombre_archivo'];
+const CV_META_KEYS_ = ['_idioma', '_keywords', '_gaps', '_correo_cuerpo', '_nombre_archivo', '_mapa'];
 const CV_REQUIRED_KEYS_ = ['UBICACION', 'TITULO_SUBTITULO_PROFESIONAL', 'PERFIL_PERSONALIZADO'];
 
 // Rótulos fijos de MASTER_TEMPLATE que se traducen cuando la vacante está en inglés.
@@ -240,10 +240,76 @@ function validateCvJson(cv, contextText, placeholders, vacancy) {
   if (/:/.test(String(cv.PERFIL_PERSONALIZADO || ''))) errors.push('PERFIL_PERSONALIZADO: va en prosa, sin dos puntos');
   cargoErrors(cv, vacancy).forEach(e => errors.push(e));
   targetCompanyErrors(cv, vacancy).forEach(e => errors.push(e));
+  personalizationErrors(cv, contextText).forEach(e => errors.push(e));
   // Guía Maestra de Cover Letters (2026-10-24): el correo de postulación también va en máximo 35 palabras
   const mailWords = countEmailWords(cv._correo_cuerpo);
   if (mailWords > CONFIG.COLD_EMAIL_MAX_WORDS) warnings.push('_correo_cuerpo tiene ' + mailWords + ' palabras (la guía de cover letters pide máximo ' + CONFIG.COLD_EMAIL_MAX_WORDS + ')');
   return { errors: errors.filter((e, i, all) => all.indexOf(e) === i), warnings: warnings };
+}
+
+/** Texto sin mayúsculas, tildes ni signos (palabras separadas por un espacio). */
+function normText_(text) {
+  return String(text || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+const KEYWORD_STOPWORDS_ = ['and', 'the', 'for', 'with', 'from', 'para', 'con', 'del', 'los', 'las', 'una', 'por', 'que', 'sus'];
+
+/**
+ * Una keyword está en el texto si aparece la frase completa o, si no, cada palabra: las de 3 o más letras por su raíz
+ * ("prototyping" cuenta con "prototypes", "tools" con "tool", "diseño" con "diseñé") y las siglas ("UX", "A/B") como
+ * palabra exacta.
+ */
+function keywordCovered(keyword, text) {
+  // Siglas partidas por signos se juntan ("A/B" → "ab", "UX/UI" → "uxui") en la keyword y en el texto
+  const join = x => normText_(x).replace(/\b([a-z0-9]{1,2})((?: [a-z0-9]{1,2}\b)+)/g, (m, a, rest) => a + rest.replace(/ /g, ''));
+  const k = join(keyword);
+  if (!k) return true;
+  const t = ' ' + join(text) + ' ';
+  if (t.indexOf(' ' + k + ' ') !== -1) return true;
+  const stems = {};
+  t.trim().split(' ').forEach(w => { stems[keywordStem_(w)] = true; });
+  return k.split(' ').filter(w => KEYWORD_STOPWORDS_.indexOf(w) === -1)
+    .every(w => w.length < 3 ? t.indexOf(' ' + w + ' ') !== -1 : !!stems[keywordStem_(w)]);
+}
+
+/** Raíz corta de una palabra en inglés o español: "testing"/"tests" → "test", "diseño"/"diseñé" → "disen". */
+function keywordStem_(word) {
+  let w = String(word).replace(/(ings|ing|ers|er|ed|es|s|ciones|cion|ales|al)$/, '');
+  if (w.length < 3) w = String(word);
+  if (w.length > 4) w = w.replace(/[aeiou]$/, '');
+  return w.slice(0, 6);
+}
+
+/**
+ * Personalización comprobable (2026-10-25: el usuario fue a enviar varias HV y "no me convencieron": repetían los mismos
+ * logros y el perfil no hablaba de la vacante). Para las CV_KEYWORDS_CHECKED primeras keywords de la vacante, la IA deja
+ * en `_mapa` dónde cuenta el candidato esa función en CONTEXTO_CV (cita textual, aunque use otras palabras) y en qué parte
+ * de la HV va; las que no son brecha (donde = "GAP") tienen que aparecer en el perfil, un cargo, una descripción o un logro,
+ * no solo en las habilidades.
+ */
+function personalizationErrors(cv, contextText) {
+  const keywords = Array.isArray(cv._keywords) ? cv._keywords.filter(k => typeof k === 'string' && k.trim()) : [];
+  if (!keywords.length) return ['_keywords: faltan las keywords de la vacante, en ranking'];
+  const top = keywords.slice(0, CONFIG.CV_KEYWORDS_CHECKED);
+  const mapa = Array.isArray(cv._mapa) ? cv._mapa.filter(m => m && typeof m === 'object') : null;
+  if (!mapa || !mapa.length) return ['_mapa: falta el mapa de evidencia (por keyword: cita de CONTEXTO_CV y dónde va en la HV)'];
+  const context = normText_(contextText).replace(/ /g, '');
+  const body = Object.keys(cv).filter(k => /^(PERFIL_PERSONALIZADO|CARGO_EXP_\d+|DESC_EXP_\d+|LOGRO_\d+_\d+)$/.test(k))
+    .map(k => String(cv[k] || '')).join(' \n ');
+  const errors = [];
+  top.forEach(keyword => {
+    const entry = mapa.filter(m => normText_(m.keyword) === normText_(keyword))[0];
+    if (!entry) { errors.push('_mapa: falta la keyword "' + keyword + '"'); return; }
+    if (/^gap$/i.test(String(entry.donde || '').trim())) return;
+    const cita = normText_(entry.cita).replace(/ /g, '');
+    if (cita.length < 12 || context.indexOf(cita) === -1) {
+      errors.push('_mapa: la cita de "' + keyword + '" no está textual en ' + CONFIG.CONTEXT_DOC_NAME + ' (copia la frase tal cual)');
+    }
+    if (!keywordCovered(keyword, body)) {
+      errors.push('Keyword "' + keyword + '" no aparece en el perfil, los cargos, las descripciones ni los logros (solo en habilidades no basta)');
+    }
+  });
+  return errors;
 }
 
 /**
