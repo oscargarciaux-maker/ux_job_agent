@@ -140,7 +140,8 @@ const CONFIG = {
   // Palabras que nunca van en una HV ni en su nombre de archivo (guía 2026-10-22). Ojo: "internacional" no cuenta.
   CV_FORBIDDEN_WORDS: /\b(aprendiz\w*|voluntari\w*|practicante\w*|junior|jr|interns?|internships?|volunteer\w*|din'?t)\b/gi,
   CV_DEFAULT_ROLE: 'Product Designer',  // Cargo del nombre de archivo si la vacante no deja uno usable
-  APPLIED_SHEET_HEADERS: ['Grupo (carpeta)', 'Empresa', 'Cargo', 'Estado', 'Color', 'Carpeta', 'Creada'],
+  // 'Semana (carpeta)' (2026-10-25): la carpeta de primer nivel de CV/, la semana tal como la organiza el usuario
+  APPLIED_SHEET_HEADERS: ['Grupo (carpeta)', 'Empresa', 'Cargo', 'Estado', 'Color', 'Carpeta', 'Creada', 'Semana (carpeta)'],
 };
 
 // Nombres de las Propiedades del script

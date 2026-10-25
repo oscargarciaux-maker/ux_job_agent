@@ -272,6 +272,26 @@ assert.strictEqual(verdict('- VEREDICTO: LISTA').verdict, 'LISTA');
 assert.strictEqual(verdict('').verdict, null);
 assert.strictEqual(verdict('Sin veredicto, solo notas: descartar luego').verdict, null);
 
+// Aplicadas (2026-10-25): cada vacante lleva la carpeta de semana de primer nivel, aunque esté dentro de una fecha
+context.Drive = { Files: { list: ({ q }) => {
+  const tree = {
+    cv: [{ id: 'w1', name: 'Primera semana nueva' }, { id: 'w2', name: 'Tercera semana' }],
+    w1: [{ id: 'd1', name: '30-09' }], d1: [{ id: 'v1', name: 'Clara', createdTime: '2026-10-01T10:00:00Z' }],
+    w2: [{ id: 'v2', name: 'Sole_UX UI Designer', createdTime: '2026-10-22T10:00:00Z' }, { id: 'p', name: 'Prueba' }],
+    p: [{ id: 'v3', name: 'Ursus_UX Designer III', createdTime: '2026-10-23T10:00:00Z' }],
+  };
+  return { files: tree[/'([^']+)' in parents/.exec(q)[1]] || [] };
+} } };
+const appliedRows = [];
+context.collectAppliedFolders_('cv', '', appliedRows, false, '');
+assert.deepStrictEqual(JSON.parse(JSON.stringify(appliedRows.map(r => [r.group, r.week, r.company, r.status]))), [
+  ['30-09', 'Primera semana nueva', 'Clara', 'Aplicada'],
+  ['Tercera semana', 'Tercera semana', 'Sole', 'Aplicada'],
+  ['Prueba', 'Tercera semana', 'Ursus', 'Preparada, sin enviar'],
+]);
+assert.strictEqual(run("CONFIG.APPLIED_SHEET_HEADERS[7]"), 'Semana (carpeta)');
+delete context.Drive;
+
 // Mañana compacta (2026-10-25): generarCVsDesdeIA corre cada 10 min, solo trabaja dentro de su ventana
 assert.ok(!context.isWithinCvWindow(6) && context.isWithinCvWindow(7) && context.isWithinCvWindow(22) &&
   !context.isWithinCvWindow(23));
