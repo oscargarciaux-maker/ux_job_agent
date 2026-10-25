@@ -1,7 +1,8 @@
 /**
  * Correos en frío (skill correo-en-frio, decisiones del usuario 2026-10-24). La IA deja en
- * Vacantes con IA/Correos en frío/<Empresa>/ la HV (Google Doc HV_...) y Correos.json; aquí se crea un borrador de
- * Gmail por destinatario con el PDF de la HV adjunto y una fila en la pestaña "Correos en frío". Nunca se envía nada.
+ * Vacantes con IA/Correos en frío/<Empresa>/ la HV (Google Doc HV_..., o CV_IA.json para que Apps Script la arme) y
+ * Correos.json; aquí se crea un borrador de Gmail por destinatario con el PDF de la HV adjunto y una fila en la pestaña
+ * "Correos en frío". Nunca se envía nada.
  * Corre dentro del activador horario de sincronizarAplicadas (no hay que reinstalar activadores) y a mano con
  * crearBorradoresEnFrio. Una carpeta con Borradores.txt ya se procesó; con Correos_ERRORES.txt, la IA debe corregir.
  */
@@ -24,6 +25,14 @@ function crearBorradoresEnFrio() {
     ? sheet.getRange(2, 1, sheet.getLastRow() - 1, CONFIG.COLD_EMAIL_SHEET_HEADERS.length).getValues() : []);
 
   let drafts = null;  // Destinatario -> id de su borrador, solo si alguna carpeta reemplaza borradores
+  let shared = null;  // Plantilla y marcadores, solo si alguna carpeta trae CV_IA.json en vez de la HV
+  const getShared = () => {
+    if (!shared) {
+      const template = getTemplateFile_();
+      shared = { template: template, placeholders: listPlaceholders_(template.getId()).map(p => p.slice(2, -2)) };
+    }
+    return shared;
+  };
   pending.forEach(folder => {
     const label = folder.getName();
     try {
@@ -35,8 +44,14 @@ function crearBorradoresEnFrio() {
       } catch (e) {
         check = { errors: [e.message], warnings: [], recipients: [] };
       }
-      const hv = findColdHv_(folder, data && data.hv);
-      if (!hv) check.errors.push('No hay una HV (Google Doc que empiece por ' + CONFIG.CV_FILE_PREFIX + ') en la carpeta');
+      let hv = findColdHv_(folder, data && data.hv);
+      if (!hv && !check.errors.length && firstFileByName_(folder, CONFIG.CV_JSON_NAME)) {
+        // Decisión del usuario 2026-10-25: la IA deja CV_IA.json (mismo contrato que las vacantes) y Apps Script arma la HV
+        const built = buildColdHv_(folder, data, contextText, getShared);
+        built.errors.forEach(e => check.errors.push(CONFIG.CV_JSON_NAME + ': ' + e));
+        hv = built.hv;
+      }
+      if (!hv && !check.errors.length) check.errors.push('No hay una HV (Google Doc que empiece por ' + CONFIG.CV_FILE_PREFIX + ') ni un ' + CONFIG.CV_JSON_NAME + ' en la carpeta');
       if (check.errors.length) {
         replaceFile_(folder, CONFIG.COLD_ERRORS_FILE, check.errors.join('\n'));
         console.error(label + ' -> Correos.json rechazado:\n  ' + check.errors.join('\n  '));
@@ -131,17 +146,51 @@ function collectColdEmailFolders_(folder, out, depth) {
   while (it.hasNext()) collectColdEmailFolders_(it.next(), out, depth + 1);
 }
 
-/** La HV indicada en Correos.json ("hv") o, si no se indica, el primer Google Doc HV_ de la carpeta. */
+/**
+ * La HV indicada en Correos.json ("hv"); si no se indica o no está con ese nombre exacto, el primer Google Doc HV_ de
+ * la carpeta (las anteriores se renombran "ANTERIOR - HV_…" y no cuentan).
+ */
 function findColdHv_(folder, name) {
   const docs = folder.getFilesByType(MimeType.GOOGLE_DOCS);
+  let first = null;
   while (docs.hasNext()) {
     const doc = docs.next();
-    if (name ? doc.getName() === name : doc.getName().indexOf(CONFIG.CV_FILE_PREFIX) === 0) return doc;
+    if (name && doc.getName() === name) return doc;
+    if (!first && doc.getName().indexOf(CONFIG.CV_FILE_PREFIX) === 0) first = doc;
   }
-  return null;
+  return first;
+}
+
+/**
+ * Arma la HV de una empresa en frío desde CV_IA.json con la misma validación y el mismo llenado de MASTER_TEMPLATE que
+ * las vacantes (validateCvJson + fillCvDocument_): la IA solo escribe el contenido, sin gastar tokens en armar el Doc.
+ * La "vacante" es la empresa: la HV no puede nombrarla. Devuelve { hv, errors }.
+ */
+function buildColdHv_(folder, data, contextText, getShared) {
+  const vacancy = coldCvVacancy(data.empresa);
+  let cv;
+  let check;
+  try {
+    cv = parseCvJson(readTextFile_(firstFileByName_(folder, CONFIG.CV_JSON_NAME)));
+    check = validateCvJson(cv, contextText, getShared().placeholders, vacancy);
+  } catch (e) {
+    return { hv: null, errors: [e.message] };
+  }
+  check.warnings.forEach(w => console.warn(folder.getName() + ' -> aviso: ' + w));
+  if (check.errors.length) return { hv: null, errors: check.errors };
+  const name = buildCvFileName(Object.assign({}, cv, { _nombre_archivo: data.hv || cv._nombre_archivo }), vacancy, '');
+  const copy = getShared().template.makeCopy(name, folder);
+  fillCvDocument_(copy.getId(), cv);
+  console.log(folder.getName() + ' -> HV ' + name + ' armada desde ' + CONFIG.CV_JSON_NAME);
+  return { hv: copy, errors: [] };
 }
 
 // ---------- Lógica pura (probada en tests/apps_script.test.js) ----------
+
+/** La "vacante" de una HV en frío para validateCvJson/buildCvFileName: solo la empresa (sin cargo ni enlace). */
+function coldCvVacancy(company) {
+  return { title: null, company: String(company || '').trim() || null, link: null, email: null, language: 'es' };
+}
 
 /**
  * Misma empresa entre la fila de "Empresas objetivo" y el "empresa" de Correos.json, que suele ser más corto:

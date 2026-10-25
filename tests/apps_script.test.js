@@ -454,6 +454,14 @@ assert.strictEqual(sentAndDraft['x@a.co'], 'usado', 'una dirección ya enviada n
 assert.strictEqual(run('contactedAddresses')([['A', 'y@a.co', '', '', '', 'Enviado, sin rebote (verif. 11:07)', '', '']])['y@a.co'], 'usado');
 assert.strictEqual(run('unsentDraftRowIndex')(coldRows, 'JOBS@movii.com.co'), 2);
 assert.strictEqual(run('unsentDraftRowIndex')(coldRows, 'vlad@blue-storm.co.uk'), -1);
+// HV en frío armada por Apps Script desde CV_IA.json (2026-10-25): la "vacante" es solo la empresa; la HV no la nombra
+const coldVacancy = run('coldCvVacancy')(' Movii ');
+assert.strictEqual(coldVacancy.company, 'Movii');
+assert.strictEqual(coldVacancy.title, null);
+assert.strictEqual(context.targetCompanyErrors({ PERFIL_PERSONALIZADO: 'Quiero aportar a Movii.' }, coldVacancy).length, 1);
+assert.strictEqual(context.buildCvFileName({ _nombre_archivo: 'HV_Oscar_Garcia_Diseñador_UX_UI' }, coldVacancy, ''), 'HV_Oscar_Garcia_Diseñador_UX_UI');
+assert.strictEqual(context.buildCvFileName({ _nombre_archivo: 'HV_Oscar_Garcia_Movii' }, coldVacancy, '').indexOf('Movii'), -1);
+assert.strictEqual(run('coldCvVacancy')('').company, null);
 cold = run('validateColdEmails')(coldData([mail({ cuerpo: 'Soy practicante de diseño. ¿Conversamos?' })]), coldCtx, contacted);
 assert.ok(cold.errors.some(e => /prohibidas/.test(e)));
 assert.ok(run('validateColdEmails')({ empresa: 'X', idioma: 'fr', correos: [] }, '', {}).errors.length >= 3);
