@@ -21,7 +21,7 @@ function sincronizarAplicadas() {
     return;
   }
   const rows = [];
-  collectAppliedFolders_(folders.next().getId(), '', rows);
+  collectAppliedFolders_(folders.next().getId(), '', rows, false, '');
 
   const ss = SpreadsheetApp.openById(getProp_(PROPS.SHEET_ID));
   const sheet = ss.getSheetByName(CONFIG.APPLIED_SHEET_NAME) ||
@@ -29,7 +29,7 @@ function sincronizarAplicadas() {
   sheet.clear();
   const header = CONFIG.APPLIED_SHEET_HEADERS;
   const values = [header].concat(rows.map(r => [r.group, r.company, r.title, r.status, r.color || '',
-    '=HYPERLINK("https://drive.google.com/drive/folders/' + r.id + '","Abrir")', r.created]));
+    '=HYPERLINK("https://drive.google.com/drive/folders/' + r.id + '","Abrir")', r.created, r.week]));
   sheet.getRange(1, 1, values.length, header.length).setValues(values);
   sheet.getRange(1, 1, 1, header.length).setFontWeight('bold');
   sheet.setFrozenRows(1);
@@ -44,20 +44,21 @@ function sincronizarAplicadas() {
 /**
  * Las carpetas sin subcarpetas son vacantes; las demás (fechas, semanas) solo agrupan. Las que están dentro de una
  * carpeta "Prueba" son HV preparadas que el usuario aún no envió: estado "Preparada, sin enviar" (siguen contando para
- * no proponer de nuevo la misma vacante).
+ * no proponer de nuevo la misma vacante). weekName es la carpeta de primer nivel (la semana del usuario: "Primera
+ * semana nueva", "Segunda semana"...), aunque la vacante esté dentro de una subcarpeta por fecha (2026-10-25).
  */
-function collectAppliedFolders_(parentId, groupName, rows, inTest) {
+function collectAppliedFolders_(parentId, groupName, rows, inTest, weekName) {
   listChildFolders_(parentId).forEach(f => {
     const test = inTest || /^prueba$/i.test(String(f.name).trim());
     const children = listChildFolders_(f.id);
     if (children.length) {
-      collectAppliedFolders_(f.id, f.name, rows, test);
+      collectAppliedFolders_(f.id, f.name, rows, test, weekName || f.name);
       return;
     }
     const parsed = parseAppliedFolderName(f.name);
     rows.push({ id: f.id, group: groupName, company: parsed.company, title: parsed.title,
                 status: test ? 'Preparada, sin enviar' : colorToStatus(f.folderColorRgb), color: f.folderColorRgb,
-                created: (f.createdTime || '').slice(0, 10) });
+                created: (f.createdTime || '').slice(0, 10), week: weekName || groupName });
   });
 }
 
