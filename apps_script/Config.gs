@@ -124,6 +124,7 @@ const CONFIG = {
   // Vacantes ya aplicadas por el usuario (carpetas coloreadas: rojo rechazada, verde en proceso, amarillo sin respuesta)
   APPLIED_FOLDER_NAME: 'CV',
   APPLIED_SHEET_NAME: 'Aplicadas',
+  APPLIED_OLD_FOLDER_PATTERN: /^antigu[ao]s?$/i,   // Carpeta de postulaciones antiguas junto a CV/ (2026-10-25)
   COLD_EMAIL_SHEET_NAME: 'Correos en frío',   // Empresas ya contactadas (columna A): no se proponen de nuevo
   COLD_EMAIL_SHEET_HEADERS: ['Empresa', 'Destinatario(s)', 'Fecha y hora envío', 'Asunto', 'CV usado', 'Estado',
                              'Respuesta / info', 'Notas'],

@@ -22,6 +22,9 @@ function sincronizarAplicadas() {
   }
   const rows = [];
   collectAppliedFolders_(folders.next().getId(), '', rows, false, '');
+  // Postulaciones antiguas (2026-10-25): una carpeta "Antigua" (o "Antiguas") junto a CV/ cuenta como una semana más
+  listChildFolders_(root.getId()).filter(f => CONFIG.APPLIED_OLD_FOLDER_PATTERN.test(String(f.name).trim()))
+    .forEach(f => collectAppliedFolders_(f.id, f.name, rows, false, f.name));
 
   const ss = SpreadsheetApp.openById(getProp_(PROPS.SHEET_ID));
   const sheet = ss.getSheetByName(CONFIG.APPLIED_SHEET_NAME) ||
