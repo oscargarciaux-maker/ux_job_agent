@@ -426,7 +426,7 @@ const coldRows = [
 ];
 const contacted = run('contactedAddresses')(coldRows);
 assert.deepStrictEqual(JSON.parse(JSON.stringify(contacted)), { 'contacto@ludussf.com': 'usado', 'info@ludussf.com': 'rebotado', 'talent@ludussf.com': 'rebotado',
-  'vlad@blue-storm.co.uk': 'rebotado', 'jobs@movii.com.co': 'usado' });
+  'vlad@blue-storm.co.uk': 'rebotado', 'jobs@movii.com.co': 'borrador' });
 const coldCtx = 'Logré que el 93% de los casos se resolvieran por canales digitales. Reduje en un 83% las reuniones.';
 const mail = (over) => Object.assign({ para: 'talento@empresa.co', asunto: 'Diseñador UX/UI - Pagos digitales',
   cuerpo: 'Hola, vi que Empresa lanzó pagos con QR para comercios. Llevé al 93% la resolución digital de reclamos en una aseguradora. ¿Conversamos 10 minutos? Adjunto HV, [LinkedIn](https://linkedin.com/in/x) y [Portafolio](https://x.app).',
@@ -445,6 +445,15 @@ cold = run('validateColdEmails')(coldData([mail({ para: 'info@ludussf.com' }), m
 assert.deepStrictEqual(Array.from(cold.errors), []);
 assert.deepStrictEqual(Array.from(cold.recipients.map(r => r.para)), ['talento@empresa.co']);
 assert.strictEqual(cold.warnings.length, 2);
+// Reemplazar borradores sin enviar (2026-10-25): solo con "reemplazar": true y solo si la dirección no se envió
+cold = run('validateColdEmails')(Object.assign(coldData([mail({ para: 'jobs@movii.com.co' }), mail({ para: 'info@ludussf.com' })]), { reemplazar: true }), coldCtx + ' 10', contacted);
+assert.deepStrictEqual(Array.from(cold.recipients.map(r => r.para + ':' + r.reemplaza)), ['jobs@movii.com.co:true']);
+assert.strictEqual(cold.warnings.length, 1);
+const sentAndDraft = run('contactedAddresses')([['A', 'x@a.co', '', '', '', 'Borrador preparado, no enviado', '', ''], ['A', 'x@a.co', '2026-10-21', '', '', 'Enviado, sin rebote', 'Sin respuesta', '']]);
+assert.strictEqual(sentAndDraft['x@a.co'], 'usado', 'una dirección ya enviada nunca se reescribe');
+assert.strictEqual(run('contactedAddresses')([['A', 'y@a.co', '', '', '', 'Enviado, sin rebote (verif. 11:07)', '', '']])['y@a.co'], 'usado');
+assert.strictEqual(run('unsentDraftRowIndex')(coldRows, 'JOBS@movii.com.co'), 2);
+assert.strictEqual(run('unsentDraftRowIndex')(coldRows, 'vlad@blue-storm.co.uk'), -1);
 cold = run('validateColdEmails')(coldData([mail({ cuerpo: 'Soy practicante de diseño. ¿Conversamos?' })]), coldCtx, contacted);
 assert.ok(cold.errors.some(e => /prohibidas/.test(e)));
 assert.ok(run('validateColdEmails')({ empresa: 'X', idioma: 'fr', correos: [] }, '', {}).errors.length >= 3);
