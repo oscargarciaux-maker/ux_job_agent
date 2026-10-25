@@ -160,9 +160,8 @@ footer { margin-top: 28px; font-size: .8125rem; color: var(--muted); }
 
 <script>window.DATA = /*__DATA__*/null;</script>
 <script>
-(function () {
+function dashboardMain(D) {
   'use strict';
-  var D = window.DATA;
   var app = document.getElementById('app');
   var STATUS = {
     proceso: { label: 'En proceso', color: 'var(--s-proceso)' },
@@ -500,6 +499,40 @@ footer { margin-top: 28px; font-size: .8125rem; color: var(--muted); }
       ]);
     }
   });
+}
+
+// Servida por Apps Script, la página trae los datos ya puestos. Servida aparte (GitHub Pages), los pide a la app web con
+// fetch sin cookies: así no choca con varias cuentas de Google abiertas. Enlace: ...dashboard.html#api=<id>&k=<clave>
+(function () {
+  'use strict';
+  if (window.DATA) return dashboardMain(window.DATA);
+  var p = {};
+  location.hash.replace(/^#/, '').split('&').forEach(function (kv) {
+    var i = kv.indexOf('=');
+    if (i > 0) p[decodeURIComponent(kv.slice(0, i))] = decodeURIComponent(kv.slice(i + 1));
+  });
+  function locked() {
+    var app = document.getElementById('app');
+    var h = document.createElement('h2'); h.textContent = 'Este tablero es privado';
+    var t = document.createElement('p'); t.textContent = 'Ábrelo con el enlace completo que te compartieron.';
+    var box = document.createElement('div'); box.className = 'card error'; box.appendChild(h); box.appendChild(t);
+    app.appendChild(box);
+    document.getElementById('updated').textContent = '';
+    document.getElementById('reload').hidden = true;
+  }
+  if (!/^[\w-]+$/.test(p.api || '') || !p.k) return locked();
+  var url = 'https://script.google.com/macros/s/' + p.api + '/exec?formato=json&k=' + encodeURIComponent(p.k);
+  fetch(url, { credentials: 'omit' })
+    .then(function (r) { return r.json(); })
+    .then(function (data) { return data; }, function () { return null; })
+    .then(function (data) {
+      if (data && data.error) return locked();
+      if (data) data.recargar = null;
+      dashboardMain(data);
+      var reload = document.getElementById('reload');
+      reload.hidden = !data;
+      reload.onclick = function (e) { e.preventDefault(); location.reload(); };
+    });
 })();
 </script>
 </body>

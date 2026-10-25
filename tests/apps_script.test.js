@@ -548,6 +548,12 @@ assert.strictEqual(dashModel.seguimiento.length, 1, 'la fila REVISIÓN no es un 
 assert.strictEqual(dashModel.objetivo.porEstado['En lote'], 2);
 assert.strictEqual(dashModel.meta, 50);
 assert.ok(fs.readFileSync(path.join(dir, 'dashboard.html'), 'utf8').includes('/*__DATA__*/null'), 'dashboard.html necesita el marcador de datos');
+{
+  const dashHtml = fs.readFileSync(path.join(dir, 'dashboard.html'), 'utf8');
+  assert.ok(/formato=json/.test(dashHtml) && /credentials: 'omit'/.test(dashHtml),
+    'servida aparte, la página pide los datos sin cookies (varias cuentas de Google abiertas)');
+  assert.ok(fs.existsSync(path.join(__dirname, '..', '.nojekyll')), 'GitHub Pages sirve la rama deploy sin Jekyll');
+}
 
 // HITL: ninguna llamada de envío de correo en el código
 const allCode = fs.readdirSync(dir).map(f => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n');
