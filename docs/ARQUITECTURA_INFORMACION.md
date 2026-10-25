@@ -98,13 +98,17 @@ juego, puede partir de aquí:
   postulaciones: {
     total, rechazada, proceso, sinRespuesta, aplicada, preparadas, tasaRespuesta,   // tasa en %
     semanas: [{ semana, desde, total, rechazada, proceso, sinRespuesta, aplicada }], // en orden
-    lista:   [{ empresa, cargo, estado, clave, semana, creada, carpeta }]           // clave: rechazada|proceso|preparada|sinRespuesta|aplicada
+    lista:   [{ empresa, cargo, estado, clave, semana, creada, carpeta, estadoFecha }] // clave: rechazada|proceso|preparada|sinRespuesta|aplicada
+             // creada: día de creación de la carpeta en hora de Bogotá (≈ fecha de envío); estadoFecha: día del cambio a
+             // proceso/rechazada según Seguimiento, vacío si no hay hallazgo
   },
   correos: { enviados, entregados, rebotados, borradores, empresasContactadas, empresasRespondieron,
-             lista: [{ empresa, para, fecha, asunto, hv, estado, respuesta, notas }] },
+             lista: [{ empresa, para, fecha, asunto, hv, estado, respuesta, notas,
+                       clave, dia, entregadas, rebotadas }] },  // clave: enviado|respondio|borrador; cada dirección cuenta en su primera fila
   vacantes: { ultimos14, porDia: [{ dia, n }] },                                     // 14 días
   porEnviar: [{ fecha, empresa, cargo, verificacion, revision, carpeta, hv }],
   seguimiento: [{ fecha, empresa, cargo, hecho, fechaMensaje, antes, ahora, siguiente }], // últimos 40, recientes primero
+  historial:   [ …mismos campos ],                                                      // completo, en orden cronológico (para el juego)
   objetivo: { total, porEstado: { <estado>: n } }
 }
 ```
@@ -136,7 +140,7 @@ Valores al 2026-10-25, como referencia de escala: 89 postulaciones en 4 semanas 
 | Correo en frío enviado, entregado o rebotado | `Correos en frío` | fecha y hora | sí |
 | Empresa respondió a un correo en frío | `Correos en frío` (Estado) | día | sí |
 | Acción pendiente con plazo | `Seguimiento` (Siguiente acción) | texto libre | sí, sin plazo estructurado |
-| Racha de días con envíos | `Aplicadas` (Creada) | día | **falta calcularla** (dato existe) |
+| Racha de días con envíos | `Aplicadas` (Creada) | día | sí (la calcula el motor del juego) |
 | Meta semanal (50) | `Config.gs` | — | sí (`meta`) |
 
 Todo es de **lectura**: el juego puede premiar lo que pasa en Drive, Gmail y el Sheet, pero no debe enviar nada ni
@@ -156,4 +160,4 @@ cambiar el estado de una postulación (regla de supervisión humana). Si una mec
 En el Figma del usuario, archivo "Tablero búsqueda UX — rediseño":
 - **v1:** tablero de métricas con tokens claro/oscuro y componentes. Correcto pero plano.
 - **v2 · Bento:** estilo Mobbin con una mascota carpeta ("Folio") y un panel negro al final. **Rechazado** (2026-10-25).
-- Dirección nueva pedida por el usuario: **un tipo de juego**. El usuario trae la idea; esta arquitectura es la base de datos y eventos.
+- Dirección nueva del usuario: **El juego laboral** (`docs/JUEGO_LABORAL.md`), construido en `apps_script/juego.html` (v1, 2026-10-25).

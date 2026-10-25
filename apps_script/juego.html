@@ -1,0 +1,1221 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0E1030">
+<title>El juego laboral</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<style>
+:root {
+  --fondo: #0E1030; --ventana: #1B1F5E; --borde: #F2F2F2; --texto: #FFFFFF; --texto-2: #A9AED6;
+  --hp: #3FD16B; --dano: #FF5A5A; --oro: #FFC93C; --poder: #4FD6FF; --sombra: #05061A; --suelo: #24164A;
+  --pixel: 'Press Start 2P', ui-monospace, monospace; --dialogo: 'VT323', ui-monospace, monospace;
+  --nav: 64px; --estado: 48px;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--fondo); color: var(--texto); }
+body { font-family: var(--dialogo); font-size: 22px; line-height: 1.15; -webkit-font-smoothing: none; min-height: 100dvh; }
+button, a { font: inherit; color: inherit; }
+a { color: var(--poder); }
+:focus-visible { outline: 3px solid var(--oro); outline-offset: 2px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.px { font-family: var(--pixel); letter-spacing: 0; }
+.app { max-width: 960px; margin: 0 auto; min-height: 100dvh; display: flex; flex-direction: column; padding-bottom: calc(var(--nav) + env(safe-area-inset-bottom)); }
+
+/* Ventanas: borde doble de 2 px, esquinas rectas y sombra dura hacia abajo */
+.win { background: var(--ventana); border: 2px solid var(--borde); box-shadow: 0 0 0 2px var(--ventana), 0 0 0 4px var(--borde), 0 8px 0 4px var(--sombra);
+  margin: 4px; padding: 12px; }
+.win h2 { font-family: var(--pixel); font-size: 12px; line-height: 1.5; margin: 0 0 10px; color: var(--oro); }
+
+/* Barra de estado */
+.estado { height: var(--estado); display: flex; align-items: center; gap: 8px; padding: 0 12px; font-family: var(--pixel); font-size: 12px; }
+.estado .sem { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.estado .racha { color: var(--oro); background: none; border: 0; padding: 0 6px; min-height: 48px; cursor: pointer; font-family: var(--pixel); font-size: 12px; }
+.iconbtn { min-width: 48px; min-height: 48px; display: grid; place-items: center; background: none; border: 0; cursor: pointer; color: var(--texto-2); }
+.sync { color: var(--poder); font-size: 12px; }
+
+/* Arena */
+.arena { position: relative; display: flex; flex-direction: column; overflow: hidden; border-top: 2px solid var(--sombra); border-bottom: 2px solid var(--sombra); }
+.escenario { position: relative; height: max(300px, 34dvh); background: linear-gradient(var(--fondo) 0 62%, #1A1446 62% 100%); }
+.escenario::after { content: ''; position: absolute; left: 0; right: 0; top: 62%; height: 4px; background: var(--suelo); }
+.lado { position: absolute; bottom: 8px; width: 46%; display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 1; }
+.lado.izq { left: 2%; } .lado.der { right: 2%; }
+.placa { width: 100%; max-width: 190px; background: var(--ventana); border: 2px solid var(--borde); box-shadow: 0 4px 0 var(--sombra); padding: 6px 8px; }
+.placa .nombre { font-family: var(--pixel); font-size: 12px; line-height: 1.4; display: flex; justify-content: space-between; gap: 6px; }
+.placa .nombre span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.barra { position: relative; height: 10px; background: var(--sombra); border: 2px solid var(--borde); margin-top: 6px; }
+.barra i { position: absolute; left: 0; top: 0; bottom: 0; display: block; }
+.barra .rastro { background: var(--texto); transition: width 0s 400ms; }
+.barra .valor { transition: none; }
+.barra.hp .valor { background: var(--hp); } .barra.dano .valor { background: var(--dano); } .barra.poder .valor { background: var(--poder); }
+.barra-txt { font-size: 20px; color: var(--texto-2); display: flex; justify-content: space-between; }
+.sprite { position: relative; width: 128px; height: 160px; image-rendering: pixelated; }
+.sprite svg, .sprite img { width: 128px; height: 160px; display: block; image-rendering: pixelated; }
+.sprite img { object-fit: cover; object-position: 50% 0; border: 2px solid var(--borde); background: var(--suelo); }
+.estrellas { position: absolute; left: 50%; top: -6px; transform: translateX(-50%); color: var(--oro); font-family: var(--pixel); font-size: 12px; white-space: nowrap; }
+.flota { position: absolute; left: 50%; top: 20%; transform: translateX(-50%); font-family: var(--pixel); font-size: 16px; text-shadow: 2px 2px 0 var(--sombra); pointer-events: none; }
+.flota.mala { color: var(--dano); } .flota.buena { color: var(--hp); } .flota.oro { color: var(--oro); }
+.hoja { position: absolute; width: 16px; height: 20px; background: var(--texto); border: 2px solid var(--sombra); top: 40%; pointer-events: none; }
+.dialogo { position: relative; margin: 8px; min-height: 76px; background: var(--ventana); border: 2px solid var(--borde);
+  box-shadow: 0 0 0 2px var(--ventana), 0 0 0 4px var(--borde); padding: 8px 40px 8px 12px; font-size: 22px; z-index: 2; }
+.dialogo button.sig { position: absolute; right: 2px; bottom: 2px; min-width: 48px; min-height: 48px; background: none; border: 0; color: var(--oro); cursor: pointer; font-family: var(--pixel); font-size: 12px; }
+.dialogo .acciones { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+.btn { min-height: 48px; padding: 8px 14px; background: var(--ventana); border: 2px solid var(--borde); box-shadow: 0 4px 0 var(--sombra); cursor: pointer;
+  font-family: var(--pixel); font-size: 12px; color: var(--texto); text-decoration: none; display: inline-flex; align-items: center; gap: 8px; }
+.btn.oro { color: var(--oro); }
+.btn:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--sombra); }
+.banda { position: absolute; left: 8px; right: 8px; top: 8px; z-index: 3; background: var(--sombra); border: 2px solid var(--oro); color: var(--oro);
+  font-family: var(--pixel); font-size: 12px; line-height: 1.5; padding: 8px 10px; text-align: center; }
+
+/* Panel de stats */
+.panel { padding: 6px 4px; display: grid; gap: 10px; }
+.heroe-fila { display: grid; gap: 8px; }
+.heroe-fila .linea { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.cifra-grande { font-family: var(--pixel); font-size: 24px; }
+.bloques { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; }
+.bloques i { height: 16px; border: 2px solid var(--borde); background: var(--sombra); }
+.bloques i.lleno { background: var(--oro); }
+.bloques i.parcial { background: linear-gradient(90deg, var(--oro) 0 var(--p), var(--sombra) var(--p) 100%); }
+.tarjetas { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.tarjeta { font: inherit; color: inherit; text-align: left; cursor: pointer; display: grid; gap: 6px; min-height: 96px; align-content: start; }
+.tarjeta .etq { font-family: var(--pixel); font-size: 12px; line-height: 1.5; color: var(--texto-2); }
+.tarjeta .val { font-family: var(--pixel); font-size: 20px; }
+.tarjeta .sub { font-size: 20px; color: var(--texto-2); }
+.verde { color: var(--hp); } .rojo { color: var(--dano); } .oro-t { color: var(--oro); } .cian { color: var(--poder); }
+.municion { font: inherit; color: inherit; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 10px; min-height: 56px; width: calc(100% - 8px); }
+.municion .val { font-family: var(--pixel); font-size: 16px; color: var(--oro); }
+.ico { display: inline-block; width: 16px; height: 16px; vertical-align: -2px; image-rendering: pixelated; flex: none; }
+.ico svg { width: 16px; height: 16px; display: block; }
+.ico.x2, .ico.x2 svg { width: 32px; height: 32px; }
+
+/* Pestañas */
+.vista { flex: 1; }
+.vista[hidden] { display: none; }
+.vista.entra { animation: persiana 150ms steps(5) both; }
+@keyframes persiana { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }
+nav.tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; height: calc(var(--nav) + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom);
+  background: var(--ventana); border-top: 2px solid var(--borde); display: flex; justify-content: center; }
+nav.tabs .inner { width: 100%; max-width: 960px; display: grid; grid-template-columns: repeat(4, 1fr); }
+nav.tabs button { all: unset; box-sizing: border-box; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  min-height: 48px; color: var(--texto-2); position: relative; font-family: var(--dialogo); font-size: 22px; line-height: 1; }
+nav.tabs button[aria-selected="true"] { color: var(--texto); }
+nav.tabs button[aria-selected="true"] .ico { color: var(--oro); }
+nav.tabs button[aria-selected="true"]::before { content: ''; position: absolute; top: 0; left: 18%; right: 18%; height: 3px; background: var(--oro); }
+nav.tabs button:focus-visible { outline: 3px solid var(--oro); outline-offset: -3px; }
+.insignia { position: absolute; top: 4px; right: 18%; background: var(--dano); color: var(--texto); font-size: 12px; padding: 2px 4px; min-width: 20px; text-align: center; }
+
+/* Listas de las otras pestañas */
+.lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.fila { all: unset; box-sizing: border-box; display: flex; gap: 10px; align-items: flex-start; width: 100%; cursor: pointer; padding: 8px; min-height: 56px; border: 2px solid transparent; }
+.fila:hover, .fila:focus-visible { border-color: var(--borde); }
+.fila .txt { flex: 1; min-width: 0; }
+.fila .t1 { font-size: 22px; overflow-wrap: anywhere; }
+.fila .t2 { font-size: 20px; color: var(--texto-2); overflow-wrap: anywhere; }
+.fila .ef { font-family: var(--pixel); font-size: 12px; line-height: 1.6; margin-top: 2px; }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.chip { min-height: 48px; padding: 8px 12px; background: var(--sombra); border: 2px solid var(--texto-2); color: var(--texto-2); font-family: var(--pixel); font-size: 12px; cursor: pointer; }
+.chip[aria-pressed="true"] { border-color: var(--oro); color: var(--oro); }
+select.sel { min-height: 48px; background: var(--sombra); color: var(--texto); border: 2px solid var(--texto-2); font-family: var(--dialogo); font-size: 22px; padding: 4px 8px; }
+.vacio { color: var(--texto-2); padding: 12px 0; }
+.radar { display: flex; align-items: flex-end; gap: 3px; height: 48px; margin-top: 8px; }
+.radar i { flex: 1; background: var(--poder); min-height: 2px; }
+.grafica { display: grid; gap: 8px; }
+.grafica .fil { display: grid; grid-template-columns: 9ch 1fr 4ch; gap: 8px; align-items: center; font-size: 20px; }
+.grafica .pista { position: relative; height: 16px; background: var(--sombra); border: 2px solid var(--texto-2); }
+.grafica .pista i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--oro); }
+.grafica .pista::after { content: ''; position: absolute; right: -2px; top: -6px; bottom: -6px; width: 2px; background: var(--hp); }
+.retrato { display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 6px 16px; }
+.stats div { display: flex; justify-content: space-between; gap: 6px; }
+.logros { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.logro { border: 2px solid var(--oro); padding: 8px; }
+.logro.bloq { border-color: var(--texto-2); color: var(--texto-2); }
+.logro .n { font-family: var(--pixel); font-size: 12px; line-height: 1.5; }
+
+/* Modales */
+dialog.modal { border: 0; padding: 0; background: transparent; color: var(--texto); max-width: min(560px, calc(100vw - 16px)); width: 100%; }
+dialog.modal::backdrop { background: rgba(5, 6, 26, .78); }
+dialog.modal .win { margin: 8px; }
+dialog.modal h2 { font-size: 16px; line-height: 1.5; text-align: center; }
+dialog.modal.mediano h2 { color: var(--dano); }
+.escena { display: flex; justify-content: center; align-items: flex-end; gap: 16px; height: 176px; margin: 8px 0; position: relative; }
+.escena .sprite { transform: scale(.9); transform-origin: bottom; }
+.dato { font-size: 22px; text-align: center; color: var(--texto-2); }
+.efecto { display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 10px 0; font-family: var(--pixel); font-size: 14px; }
+.cierre { text-align: center; font-size: 22px; margin: 6px 0 10px; }
+.continuar { width: 100%; justify-content: center; margin-top: 8px; }
+.pasos { display: flex; gap: 8px; justify-content: center; margin-top: 8px; flex-wrap: wrap; }
+
+/* Animaciones: por pasos, nunca curvas suaves */
+.respira { animation: respira 1s steps(2) infinite; }
+@keyframes respira { 50% { transform: translateY(1px); } }
+.ataca { animation: ataca 600ms steps(4); }
+@keyframes ataca { 40% { transform: translateX(-16px); } }
+.golpeado { animation: golpeado 400ms steps(2) 2; }
+@keyframes golpeado { 50% { filter: brightness(3) saturate(0); } }
+.herido { animation: herido 500ms steps(2) 2; }
+@keyframes herido { 50% { filter: sepia(1) saturate(6) hue-rotate(-50deg); transform: translateX(6px); } }
+.sube { animation: sube 900ms steps(6) forwards; }
+@keyframes sube { to { transform: translate(-50%, -40px); opacity: 0; } }
+.vuela { animation: vuela 600ms steps(6) forwards; }
+@keyframes vuela { from { right: 30%; } to { right: 70%; opacity: .4; } }
+.gira { display: inline-block; animation: gira 1.2s steps(4) infinite; }
+@keyframes gira { 50% { transform: translateY(-3px); } }
+.baja { animation: baja 1.2s steps(6) both; }
+@keyframes baja { from { transform: translateY(-120%); } }
+.parpadea { animation: parpadea 1s steps(1) infinite; }
+@keyframes parpadea { 50% { opacity: 0; } }
+html.reducido *, html.reducido *::before, html.reducido *::after { animation: none !important; transition: none !important; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+@media (min-width: 760px) {
+  .tarjetas { grid-template-columns: repeat(4, 1fr); }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: start; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="estado" aria-label="Estado de la semana">
+    <span class="sem" id="sem">El juego laboral</span>
+    <span class="sync" id="sync" role="status"></span>
+    <button class="racha" id="racha" type="button" aria-label="Racha"></button>
+    <button class="iconbtn" id="ajustes" type="button" aria-label="Ajustes"></button>
+  </header>
+
+  <main class="vista" id="v-arena" role="tabpanel" aria-labelledby="t-arena">
+    <section class="arena" id="arena" aria-label="Arena">
+      <div class="escenario" id="escenario">
+      <div class="lado izq">
+        <div class="placa"><div class="nombre"><span id="jefe-nombre">Reclutador</span></div>
+          <div class="barra dano" aria-hidden="true"><i class="rastro" id="rec-rastro"></i><i class="valor" id="rec-valor"></i></div>
+          <div class="barra-txt"><span>HP</span><span id="rec-hp">—</span></div></div>
+        <div class="sprite respira" id="spr-jefe" role="img"></div>
+      </div>
+      <div class="lado der">
+        <div class="placa"><div class="nombre"><span>Oscar</span><span id="nivel" class="oro-t">Nv 1</span></div>
+          <div class="barra hp" aria-hidden="true"><i class="rastro" id="osc-rastro"></i><i class="valor" id="osc-valor"></i></div>
+          <div class="barra-txt"><span>HP</span><span id="osc-hp">—</span></div>
+          <div class="barra poder" aria-hidden="true"><i class="valor" id="pod-valor"></i></div>
+          <div class="barra-txt"><span>PODER</span><span id="pod-txt">—</span></div></div>
+        <div class="sprite respira" id="spr-oscar" role="img"></div>
+      </div>
+      </div>
+      <div class="dialogo" id="dialogo" aria-live="polite"><span id="dialogo-txt">Cargando la arena…</span>
+        <div class="acciones" id="dialogo-acciones"></div>
+        <button class="sig" id="dialogo-sig" type="button" aria-label="Siguiente" hidden>▼</button></div>
+    </section>
+    <section class="panel" id="panel" aria-label="Números reales"></section>
+  </main>
+  <main class="vista" id="v-misiones" role="tabpanel" aria-labelledby="t-misiones" hidden></main>
+  <main class="vista" id="v-bitacora" role="tabpanel" aria-labelledby="t-bitacora" hidden></main>
+  <main class="vista" id="v-heroe" role="tabpanel" aria-labelledby="t-heroe" hidden></main>
+</div>
+<nav class="tabs" aria-label="Pestañas"><div class="inner" role="tablist" id="tablist"></div></nav>
+<dialog class="modal" id="modal" aria-labelledby="modal-titulo"><div class="win" id="modal-cuerpo"></div></dialog>
+<div class="sr" id="anuncio" aria-live="polite"></div>
+
+<script id="motor">
+// ===================== MOTOR DEL JUEGO (funciones puras; pruebas en tests/juego.test.js) =====================
+// Traduce el JSON del tablero (buildDashboardModel) en eventos y stats. Nada se guarda: todo se recalcula desde el
+// historial completo, así Oscar y el coach ven lo mismo en cualquier dispositivo (docs/JUEGO_LABORAL.md, secciones 5 y 6).
+
+var REGLAS = {
+  META: 50, HP_INICIAL: 100, HP_MAX: 100, HP_MIN: 1, PODER_MAX: 30,
+  XP: { hv: 10, ko: 100, proceso: 50, rechazo: 5, correo: 5, aliado: 30 },
+  HP: { pocion: 15, proceso: 20, semanaNueva: 20, rechazoBase: 8, rebote: 3, aliado: 10 },
+  POCIONES: [10, 20, 40], AVALANCHA: 30, COMBOS: [3, 6, 9], MAX_MODALES: 5,
+};
+
+// Un jefe distinto cada semana de CV/; rotan en orden (sección 5)
+var JEFES = [
+  { nombre: 'Gerente Gracias por Participar', frase: 'Valoramos mucho tu interés…', ataque: 'Carta de agradecimiento' },
+  { nombre: 'Señor Silencio', frase: '…', ataque: 'Visto y no respondido' },
+  { nombre: 'Doctora Filtro ATS', frase: 'Palabras clave insuficientes.', ataque: 'Escaneo rojo' },
+  { nombre: 'Licenciado Experiencia Requerida', frase: 'Junior, con 5 años de experiencia.', ataque: 'Lluvia de requisitos' },
+  { nombre: 'La Reclutadora Fantasma', frase: 'Te escribimos pronto.', ataque: 'Desaparece (ghosting)' },
+  { nombre: 'El Comité', frase: 'Lo vamos a discutir internamente.', ataque: 'Votación en contra' },
+];
+
+var LOGROS = [
+  { id: 'primeraHv', nombre: 'Primera HV', requisito: 'Enviar 1 HV' },
+  { id: 'primeraPrueba', nombre: 'Primera prueba', requisito: 'Recibir una prueba o entrevista' },
+  { id: 'correos10', nombre: '10 correos entregados', requisito: 'Que lleguen 10 correos en frío' },
+  { id: 'semana30', nombre: 'Semana de 30', requisito: 'Enviar 30 HV en una semana' },
+  { id: 'semana50', nombre: 'Semana de 50', requisito: 'Enviar 50 HV en una semana' },
+  { id: 'racha5', nombre: 'Racha de 5 días', requisito: '5 días hábiles seguidos con envíos' },
+];
+
+// Tamaño de presentación de cada efecto (sección 7)
+var TAMANO = { hv: 'dialogo', correo: 'dialogo', rebote: 'dialogo', semanaNueva: 'pequeno', pocion: 'pequeno', combo: 'pequeno',
+  rechazo: 'mediano', proceso: 'grande', aliado: 'grande', avalancha: 'grande', ko: 'grande', nivel: 'grande', logro: 'grande' };
+var BUENAS = { proceso: 1, aliado: 1, avalancha: 1, ko: 1, nivel: 1, logro: 1, pocion: 1, combo: 1, hv: 1, correo: 1 };
+
+function jefeDeSemana(i) { return JEFES[((i % JEFES.length) + JEFES.length) % JEFES.length]; }
+
+/** Daño de un rechazo con rendimientos decrecientes por Resiliencia (con 10, quita 4 en vez de 8). */
+function golpeRechazo(resiliencia) { return Math.max(2, Math.round(REGLAS.HP.rechazoBase * 10 / (10 + resiliencia))); }
+
+/** XP para pasar del nivel n al siguiente: 100 · n^1,5. */
+function xpParaSubir(n) { return Math.round(100 * Math.pow(n, 1.5)); }
+
+function nivelDeXp(xp) {
+  var n = 1, resto = xp;
+  while (resto >= xpParaSubir(n)) { resto -= xpParaSubir(n); n++; }
+  return { nivel: n, resto: resto, necesita: xpParaSubir(n) };
+}
+
+/** +10 % por cada 3 días de racha, con tope de ×1,5. */
+function multiplicadorRacha(racha) { return Math.min(1.5, 1 + 0.1 * Math.floor(racha / 3)); }
+
+function diaValido(d) { var m = /^\d{4}-\d{2}-\d{2}/.exec(String(d || '')); return m ? m[0] : ''; }
+function esFinDeSemana(dia) { var w = new Date(dia + 'T12:00:00Z').getUTCDay(); return w === 0 || w === 6; }
+function diaAnterior(dia) { var d = new Date(dia + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() - 1); return d.toISOString().slice(0, 10); }
+
+/**
+ * Días hábiles seguidos con al menos un envío, hasta `hoy`. Los fines de semana no suman ni rompen; un día hábil de hoy
+ * todavía sin envíos tampoco rompe (el día no ha terminado).
+ */
+function racha(diasConEnvio, hoy) {
+  var d = hoy, n = 0, primero = true;
+  for (var guarda = 0; guarda < 800 && d; guarda++) {
+    if (esFinDeSemana(d)) { d = diaAnterior(d); continue; }
+    if (diasConEnvio[d]) n++;
+    else if (!primero) break;
+    primero = false;
+    d = diaAnterior(d);
+  }
+  return n;
+}
+
+/** Días hábiles completos sin envíos antes de hoy (para la burla del Reclutador). */
+function diasSinEnvio(diasConEnvio, hoy) {
+  var d = diaAnterior(hoy), n = 0;
+  for (var guarda = 0; guarda < 60; guarda++) {
+    if (esFinDeSemana(d)) { d = diaAnterior(d); continue; }
+    if (diasConEnvio[d]) return n;
+    n++; d = diaAnterior(d);
+  }
+  return n;
+}
+
+function mismoNombre(a, b) {
+  var n = function (x) { return String(x || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim(); };
+  return !!n(a) && n(a) === n(b);
+}
+
+/**
+ * Eventos reales en orden. Cada uno trae la semana del juego (la carpeta de CV/) y su día; los que no tienen fecha
+ * (rechazos o pruebas anteriores al seguimiento) son "historia": cuentan en las stats desde el inicio de su semana,
+ * pero no se reproducen en el replay.
+ */
+function construirEventos(m) {
+  var P = (m && m.postulaciones) || {};
+  var semanas = P.semanas || [];
+  var indice = {}; semanas.forEach(function (w, i) { indice[w.semana] = i; });
+  var desde = semanas.map(function (w) { return diaValido(w.desde); });
+  var semanaDeDia = function (dia) { var k = 0; desde.forEach(function (d, i) { if (d && d <= dia) k = i; }); return k; };
+  var eventos = [];
+  var agregar = function (e) { e.historico = !e.dia; eventos.push(e); };
+  (P.lista || []).forEach(function (a) {
+    if (a.clave === 'preparada') return;
+    var s = indice[a.semana] != null ? indice[a.semana] : 0;
+    var base = { empresa: a.empresa || '', cargo: a.cargo || '', carpeta: a.carpeta || '', postulacion: a.clave };
+    agregar(Object.assign({ tipo: 'hv', dia: diaValido(a.creada), semana: s, n: 1 }, base));
+    if (a.clave === 'proceso' || a.clave === 'rechazada') {
+      var d = diaValido(a.estadoFecha);
+      agregar(Object.assign({ tipo: a.clave === 'proceso' ? 'proceso' : 'rechazo', dia: d, semana: d ? Math.max(s, semanaDeDia(d)) : s, n: 1 }, base));
+    }
+  });
+  var historial = (m && m.historial) || [];
+  var aliados = {};
+  ((m && m.correos && m.correos.lista) || []).forEach(function (c) {
+    if (!c.clave || c.clave === 'borrador') return;
+    var d = diaValido(c.dia || c.fecha);
+    var s = d ? semanaDeDia(d) : 0;
+    var base = { empresa: c.empresa || '', cargo: '', carpeta: '' };
+    if (c.entregadas) agregar(Object.assign({ tipo: 'correo', dia: d, semana: s, n: c.entregadas }, base));
+    if (c.rebotadas) agregar(Object.assign({ tipo: 'rebote', dia: d, semana: s, n: c.rebotadas }, base));
+    if (c.clave === 'respondio' && !aliados[String(c.empresa || '').toLowerCase()]) {
+      aliados[String(c.empresa || '').toLowerCase()] = true;  // una empresa que respondió es un solo aliado, aunque tenga varias filas
+      var r = historial.filter(function (h) { return mismoNombre(h.empresa, c.empresa) && /respondi/i.test(h.ahora); })
+        .map(function (h) { return diaValido(h.fechaMensaje) || diaValido(h.fecha); }).filter(Boolean).sort().pop() || d;
+      agregar(Object.assign({ tipo: 'aliado', dia: r, semana: r ? semanaDeDia(r) : s, n: 1 }, base));
+    }
+  });
+  var orden = { hv: 1, correo: 2, rebote: 3, proceso: 4, aliado: 5, rechazo: 6 };
+  eventos.forEach(function (e, i) { e._i = i; e._fecha = e.dia || desde[e.semana] || ''; });
+  eventos.sort(function (a, b) {
+    return (a._fecha < b._fecha ? -1 : a._fecha > b._fecha ? 1 : 0) || (a.historico === b.historico ? 0 : a.historico ? -1 : 1) ||
+      (orden[a.tipo] - orden[b.tipo]) || (a.empresa < b.empresa ? -1 : a.empresa > b.empresa ? 1 : 0) || (a._i - b._i);
+  });
+  var vistos = {};
+  eventos.forEach(function (e) {
+    var clave = [e.tipo, e.semana, e.dia || 'sin-fecha', e.empresa, e.cargo].join('|');
+    vistos[clave] = (vistos[clave] || 0) + 1;
+    e.id = clave + '#' + vistos[clave];
+    delete e._i; delete e._fecha;
+  });
+  return eventos;
+}
+
+/**
+ * Recorre los eventos en orden y devuelve el estado final y cada efecto (con el estado después de aplicarlo).
+ * Regla de honestidad: el HP del Reclutador de cada semana es la meta menos las HV reales de esa semana.
+ */
+function simular(eventos, m) {
+  var meta = (m && m.meta) || REGLAS.META;
+  var hoy = diaValido(m && m.hoy) || '';
+  var nSemanas = Math.max(((m && m.postulaciones && m.postulaciones.semanas) || []).length, 1);
+  var est = { hp: REGLAS.HP_INICIAL, xp: 0, resiliencia: 0, procesos: 0, rechazos: 0, hvTotal: 0, correosEntregados: 0, aliados: 0 };
+  var semanas = [];
+  for (var i = 0; i < nSemanas; i++) semanas.push({ hv: 0, poder: 0, avalancha: false, ko: false, pociones: {} });
+  var diasEnvio = {}, logros = {}, efectos = [], semanaActual = -1, ultimoProceso = '', comboAnunciado = {};
+  var snapshot = function (s) {
+    var nv = nivelDeXp(est.xp);
+    return { hp: est.hp, xp: est.xp, nivel: nv.nivel, resiliencia: est.resiliencia, poder: semanas[s].poder,
+      reclutadorHp: Math.max(0, meta - semanas[s].hv), semana: s };
+  };
+  var cambiarHp = function (d) { var antes = est.hp; est.hp = Math.min(REGLAS.HP_MAX, Math.max(REGLAS.HP_MIN, est.hp + d)); return est.hp - antes; };
+  var efecto = function (e, tipo, delta, extra) {
+    var f = Object.assign({ id: tipo === e.tipo ? e.id : e.id + ':' + tipo + (extra && extra.marca ? ':' + extra.marca : ''), tipo: tipo,
+      dia: e.dia, semana: e.semana, historico: !!e.historico, empresa: e.empresa, cargo: e.cargo, carpeta: e.carpeta, n: e.n,
+      postulacion: e.postulacion || '', tamano: TAMANO[tipo], delta: delta }, extra || {});
+    delete f.marca;
+    f.despues = snapshot(e.semana);
+    efectos.push(f);
+    return f;
+  };
+  var revisarNivelYLogros = function (e, nivelAntes) {
+    var nv = nivelDeXp(est.xp).nivel;
+    if (nv > nivelAntes) efecto(e, 'nivel', { hp: 0, xp: 0 }, { nivel: nv, marca: nv });
+    var alcanzados = {
+      primeraHv: est.hvTotal >= 1, primeraPrueba: est.procesos >= 1, correos10: est.correosEntregados >= 10,
+      semana30: semanas.some(function (w) { return w.hv >= 30; }), semana50: semanas.some(function (w) { return w.hv >= 50; }),
+      racha5: e.dia ? racha(diasEnvio, e.dia) >= 5 : false,
+    };
+    LOGROS.forEach(function (l) {
+      if (alcanzados[l.id] && !logros[l.id]) { logros[l.id] = e.dia || 'historia'; efecto(e, 'logro', { hp: 0, xp: 0 }, { logro: l.id, marca: l.id }); }
+    });
+  };
+  eventos.forEach(function (e) {
+    while (e.semana > semanaActual) {
+      semanaActual++;
+      if (semanaActual > 0) {
+        var inicio = { id: 'semana|' + semanaActual, dia: e.dia, semana: semanaActual, historico: e.historico, empresa: '', cargo: '', carpeta: '', n: 1 };
+        var dh = cambiarHp(REGLAS.HP.semanaNueva);
+        efecto(inicio, 'semanaNueva', { hp: dh, xp: 0 }, { jefe: jefeDeSemana(semanaActual) });
+      }
+    }
+    var W = semanas[e.semana];
+    var nivelAntes = nivelDeXp(est.xp).nivel;
+    if (e.tipo === 'hv' && e.dia) diasEnvio[e.dia] = true;
+    var r = e.dia ? racha(diasEnvio, e.dia) : 0;
+    var mult = multiplicadorRacha(r) * (W.avalancha ? 2 : 1);
+    var xp = function (base) { var v = Math.round(base * mult); est.xp += v; return v; };
+    if (e.tipo === 'hv') {
+      W.hv++; est.hvTotal++; W.poder = Math.min(REGLAS.PODER_MAX, W.hv);
+      efecto(e, 'hv', { hp: 0, xp: xp(REGLAS.XP.hv), reclutador: W.hv <= meta ? -1 : 0, poder: W.hv <= REGLAS.PODER_MAX ? 1 : 0 });
+      if (REGLAS.POCIONES.indexOf(W.hv) !== -1 && !W.pociones[W.hv]) {
+        W.pociones[W.hv] = true;
+        efecto(e, 'pocion', { hp: cambiarHp(REGLAS.HP.pocion), xp: 0 }, { hvSemana: W.hv, marca: W.hv });
+      }
+      if (W.hv === REGLAS.AVALANCHA && !W.avalancha) { W.avalancha = true; efecto(e, 'avalancha', { hp: 0, xp: 0 }, { hvSemana: W.hv }); }
+      if (W.hv === meta && !W.ko) { W.ko = true; efecto(e, 'ko', { hp: 0, xp: xp(REGLAS.XP.ko) }, { hvSemana: W.hv, jefe: jefeDeSemana(e.semana) }); }
+      if (e.dia && REGLAS.COMBOS.indexOf(r) !== -1 && !comboAnunciado[e.dia]) {
+        comboAnunciado[e.dia] = true;
+        efecto(e, 'combo', { hp: 0, xp: 0 }, { racha: r, multiplicador: multiplicadorRacha(r), marca: r });
+      }
+    } else if (e.tipo === 'proceso') {
+      est.procesos++; if (e.dia && e.dia > ultimoProceso) ultimoProceso = e.dia;
+      efecto(e, 'proceso', { hp: cambiarHp(REGLAS.HP.proceso), xp: xp(REGLAS.XP.proceso) });
+    } else if (e.tipo === 'rechazo') {
+      var golpe = golpeRechazo(est.resiliencia);
+      if (W.avalancha) golpe = Math.ceil(golpe / 2);
+      est.rechazos++; est.resiliencia++;
+      efecto(e, 'rechazo', { hp: cambiarHp(-golpe), xp: xp(REGLAS.XP.rechazo), resiliencia: 1 }, { jefe: jefeDeSemana(e.semana), golpe: golpe });
+    } else if (e.tipo === 'correo') {
+      est.correosEntregados += e.n;
+      efecto(e, 'correo', { hp: 0, xp: xp(REGLAS.XP.correo * e.n) });
+    } else if (e.tipo === 'rebote') {
+      efecto(e, 'rebote', { hp: cambiarHp(-REGLAS.HP.rebote * e.n), xp: 0 });
+    } else if (e.tipo === 'aliado') {
+      est.aliados++;
+      efecto(e, 'aliado', { hp: cambiarHp(REGLAS.HP.aliado), xp: xp(REGLAS.XP.aliado) });
+    }
+    revisarNivelYLogros(e, nivelAntes);
+  });
+  // Semanas sin ningún evento al final (una carpeta nueva y vacía)
+  while (semanaActual < nSemanas - 1) {
+    semanaActual++;
+    var vacia = { id: 'semana|' + semanaActual, dia: hoy, semana: semanaActual, historico: false, empresa: '', cargo: '', carpeta: '', n: 1 };
+    efecto(vacia, 'semanaNueva', { hp: cambiarHp(REGLAS.HP.semanaNueva), xp: 0 }, { jefe: jefeDeSemana(semanaActual) });
+  }
+  var actual = nSemanas - 1;
+  var nv = nivelDeXp(est.xp);
+  var nombres = ((m && m.postulaciones && m.postulaciones.semanas) || []).map(function (w) { return w.semana; });
+  return {
+    estado: {
+      hp: est.hp, xp: est.xp, nivel: nv.nivel, xpNivel: nv.resto, xpNecesita: nv.necesita, resiliencia: est.resiliencia,
+      poder: semanas[actual].poder, avalancha: semanas[actual].avalancha, semanaActual: actual,
+      reclutadorHp: Math.max(0, meta - semanas[actual].hv), meta: meta, ko: semanas[actual].ko,
+      jefe: jefeDeSemana(actual), racha: hoy ? racha(diasEnvio, hoy) : 0,
+      aturdido: !!ultimoProceso && !!hoy && (ultimoProceso === hoy || ultimoProceso === diaAnterior(hoy)),
+      burla: hoy ? diasSinEnvio(diasEnvio, hoy) >= 2 : false,
+      semanasGanadas: semanas.filter(function (w) { return w.ko; }).length,
+      logros: logros,
+      semanas: semanas.map(function (w, i) {
+        return { nombre: nombres[i] || 'Semana ' + (i + 1), jefe: jefeDeSemana(i), hv: w.hv, reclutadorHp: Math.max(0, meta - w.hv), ko: w.ko, avalancha: w.avalancha };
+      }),
+    },
+    efectos: efectos,
+  };
+}
+
+/**
+ * Cola del replay: los efectos nuevos desde el último visto, sin la historia sin fecha. Agrupa lo repetido del mismo día
+ * (5 HV = una ráfaga, en el lugar de la primera), deja como máximo 5 modales (los más recientes; el resto va al resumen) y, si hay una buena noticia,
+ * cierra con ella. `visto` es { id, dia } del último efecto visto; sin él (primera visita) no hay replay.
+ */
+function colaReplay(efectos, visto, maxModales) {
+  maxModales = maxModales || REGLAS.MAX_MODALES;
+  if (!visto || !visto.id) return { items: [], resumen: 0, primeraVisita: true };
+  var idx = -1;
+  for (var i = efectos.length - 1; i >= 0; i--) if (efectos[i].id === visto.id) { idx = i; break; }
+  var nuevos = (idx >= 0 ? efectos.slice(idx + 1) : efectos.filter(function (f) { return f.dia && f.dia > (visto.dia || ''); }))
+    .filter(function (f) { return !f.historico; });
+  var items = [], grupos = {};
+  nuevos.forEach(function (f) {
+    var prev = f.tamano === 'dialogo' ? grupos[f.tipo + '|' + f.dia] : null;
+    if (prev) {
+      prev.n += f.n; prev.ids.push(f.id);
+      ['hp', 'xp', 'reclutador', 'poder'].forEach(function (k) { if (f.delta[k]) prev.delta[k] = (prev.delta[k] || 0) + f.delta[k]; });
+      if (f.empresa && prev.empresas.indexOf(f.empresa) === -1) prev.empresas.push(f.empresa);
+      prev.despues = f.despues;
+      return;
+    }
+    var it = Object.assign({}, f, { ids: [f.id], delta: Object.assign({}, f.delta), empresas: f.empresa ? [f.empresa] : [] });
+    if (f.tamano === 'dialogo') grupos[f.tipo + '|' + f.dia] = it;
+    items.push(it);
+  });
+  var esModal = function (it) { return it.tamano === 'mediano' || it.tamano === 'grande'; };
+  var modales = items.filter(esModal);
+  var resumen = 0;
+  if (modales.length > maxModales) {
+    var fuera = modales.slice(0, modales.length - maxModales);
+    resumen = fuera.length;
+    items = items.filter(function (it) { return fuera.indexOf(it) === -1; });
+  }
+  var ultimoModal = -1, ultimaBuena = -1;
+  items.forEach(function (it, i) { if (esModal(it)) { ultimoModal = i; if (BUENAS[it.tipo]) ultimaBuena = i; } });
+  if (ultimoModal >= 0 && !BUENAS[items[ultimoModal].tipo] && ultimaBuena >= 0) items.push(items.splice(ultimaBuena, 1)[0]);
+  return { items: items, resumen: resumen, primeraVisita: false };
+}
+
+/** Lo que muestra el panel al terminar el replay, se vea o se salte: siempre el estado final del motor. */
+function estadoAlTerminar(resultado, cola, saltado) {
+  void cola; void saltado;
+  return resultado.estado;
+}
+
+function ultimoVistoDe(efectos) {
+  for (var i = efectos.length - 1; i >= 0; i--) if (!efectos[i].historico) return { id: efectos[i].id, dia: efectos[i].dia };
+  return efectos.length ? { id: efectos[efectos.length - 1].id, dia: efectos[efectos.length - 1].dia } : null;
+}
+// ===================== FIN DEL MOTOR =====================
+</script>
+<script>
+(function () {
+  'use strict';
+  // ===================== UTILIDADES =====================
+  var NF = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 1 });
+  var MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  var DIAS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+  var $ = function (id) { return document.getElementById(id); };
+  function el(tag, attrs, kids) {
+    var n = document.createElement(tag);
+    if (attrs) Object.keys(attrs).forEach(function (k) {
+      var v = attrs[k];
+      if (v == null || v === false) return;
+      if (k === 'text') n.textContent = v; else if (k === 'class') n.className = v;
+      else if (k.slice(0, 2) === 'on') n.addEventListener(k.slice(2), v); else n.setAttribute(k, v);
+    });
+    (kids || []).forEach(function (c) { if (c != null) n.appendChild(typeof c === 'string' ? document.createTextNode(c) : c); });
+    return n;
+  }
+  function fecha(d) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(d || ''); return m ? Number(m[3]) + ' ' + MESES[Number(m[2]) - 1] : 'sin fecha'; }
+  function diasEntre(a, b) { return Math.round((new Date(b + 'T12:00:00Z') - new Date(a + 'T12:00:00Z')) / 86400000); }
+  function safeUrl(u) { return /^https:\/\//.test(String(u || '')) ? u : ''; }
+  function signo(n) { return (n > 0 ? '+' : n < 0 ? '−' : '') + NF.format(Math.abs(n)); }
+  function guardar(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* almacenamiento lleno o bloqueado */ } }
+  function leer(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } }
+  var reducido = function () { return document.documentElement.classList.contains('reducido') || matchMedia('(prefers-reduced-motion: reduce)').matches; };
+  function espera(ms) { return new Promise(function (r) { setTimeout(r, reducido() ? Math.min(ms, 250) : ms); }); }
+
+  // ===================== PÍXELES =====================
+  // Pintor de píxeles con contorno automático: arte provisional hasta tener los sprites de la v2.
+  function lienzo(w, h) {
+    var g = []; for (var y = 0; y < h; y++) { g.push([]); for (var x = 0; x < w; x++) g[y].push('.'); }
+    var c = {
+      g: g, w: w, h: h,
+      set: function (x, y, k) { if (x >= 0 && y >= 0 && x < w && y < h) g[y][x] = k; return c; },
+      rect: function (x, y, rw, rh, k) { for (var j = y; j < y + rh; j++) for (var i = x; i < x + rw; i++) c.set(i, j, k); return c; },
+      elipse: function (cx, cy, rx, ry, k) { for (var j = 0; j < h; j++) for (var i = 0; i < w; i++) if (Math.pow((i - cx) / rx, 2) + Math.pow((j - cy) / ry, 2) <= 1) c.set(i, j, k); return c; },
+      si: function (de, k, fn) { for (var j = 0; j < h; j++) for (var i = 0; i < w; i++) if (g[j][i] === de && fn(i, j)) g[j][i] = k; return c; },
+      contorno: function (k) {
+        var marcar = [];
+        for (var j = 0; j < h; j++) for (var i = 0; i < w; i++) if (g[j][i] === '.') {
+          var vec = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(function (d) { var r = g[j + d[1]] && g[j + d[1]][i + d[0]]; return r && r !== '.' && r !== k; });
+          if (vec) marcar.push([i, j]);
+        }
+        marcar.forEach(function (p) { g[p[1]][p[0]] = k; });
+        return c;
+      },
+    };
+    return c;
+  }
+  function svgPixel(g, pal, px) {
+    var NS = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', '0 0 ' + g[0].length + ' ' + g.length);
+    svg.setAttribute('shape-rendering', 'crispEdges'); svg.setAttribute('aria-hidden', 'true'); svg.setAttribute('focusable', 'false');
+    if (px) { svg.setAttribute('width', g[0].length * px); svg.setAttribute('height', g.length * px); }
+    g.forEach(function (fila, y) {
+      var x = 0;
+      while (x < fila.length) {
+        var k = fila[x], x0 = x;
+        while (x < fila.length && fila[x] === k) x++;
+        if (k === '.' || !pal[k]) continue;
+        var r = document.createElementNS(NS, 'rect');
+        r.setAttribute('x', x0); r.setAttribute('y', y); r.setAttribute('width', x - x0); r.setAttribute('height', 1); r.setAttribute('fill', pal[k]);
+        svg.appendChild(r);
+      }
+    });
+    return svg;
+  }
+  function spriteOscar() {
+    var c = lienzo(32, 40);
+    c.elipse(16, 13, 11, 11, 'h').rect(5, 12, 5, 12, 'h').rect(22, 12, 5, 12, 'h');
+    c.elipse(16, 15, 7, 8, 's').rect(9, 6, 14, 3, 'h');
+    [[11, 6], [12, 5], [19, 6], [7, 14], [24, 16], [6, 19]].forEach(function (p) { c.set(p[0], p[1], 'H'); });
+    c.si('s', 'S', function (x) { return x >= 21; });
+    c.rect(10, 12, 5, 3, 'l').rect(17, 12, 5, 3, 'l').rect(9, 11, 14, 1, 'g').set(15, 13, 'g').set(16, 13, 'g');
+    c.rect(12, 17, 8, 1, 'S').rect(12, 18, 8, 2, 'w').set(9, 17, 'k').set(16, 21, 'k');
+    c.rect(14, 22, 4, 2, 'S');
+    c.elipse(16, 30, 12, 6, 'p').rect(4, 27, 24, 13, 'p').rect(23, 27, 5, 13, 'P');
+    c.rect(14, 24, 4, 2, 'n').rect(15, 26, 2, 14, 'n').set(15, 28, 'b').set(16, 37, 'b');
+    c.set(12, 24, 'p').set(13, 25, 'p').set(19, 24, 'p').set(18, 25, 'p');
+    c.rect(4, 30, 24, 6, 'p').rect(8, 31, 16, 3, 's').rect(8, 34, 16, 1, 'S').rect(5, 30, 3, 5, 'P').rect(24, 30, 3, 5, 'P');
+    c.contorno('o');
+    return svgPixel(c.g, { o: '#2A1640', h: '#3B2A20', H: '#5A4030', s: '#C98E6B', S: '#A8714F', g: '#1A1A2E', l: '#6B6FD6', w: '#FFFFFF',
+      p: '#B48CE6', P: '#9468C8', n: '#1E2A5A', b: '#5B2A86', k: '#111111' });
+  }
+  function spriteJefe() {
+    var c = lienzo(32, 40);
+    c.elipse(16, 26, 11, 5, 'u').rect(5, 24, 22, 16, 'u').si('u', 'U', function (x) { return x >= 22; });
+    c.rect(14, 20, 4, 7, 'w').rect(15, 21, 2, 10, 't').rect(15, 20, 2, 1, 't');
+    c.rect(4, 26, 3, 9, 'u').rect(0, 32, 8, 7, 'c').rect(2, 30, 4, 1, 'c').rect(0, 35, 8, 1, 'C');
+    c.elipse(16, 11, 7, 8, 's').si('s', 'S', function (x) { return x >= 21; });
+    c.rect(9, 3, 14, 4, 'k').rect(9, 7, 2, 3, 'k').rect(21, 7, 2, 3, 'k').set(17, 3, 'K');
+    c.set(13, 11, 'k').set(19, 11, 'k').rect(12, 9, 3, 1, 'k').rect(18, 9, 3, 1, 'k');
+    c.rect(13, 15, 7, 1, 'w').set(12, 14, 'k').set(20, 14, 'k').rect(14, 18, 4, 1, 'S');
+    c.contorno('o');
+    return svgPixel(c.g, { o: '#120A24', s: '#D9A27E', S: '#B5835F', k: '#1B1B2B', K: '#3A3A55', w: '#F2F2F2', u: '#4A4E69', U: '#363A52', t: '#E04848', c: '#8B5A2B', C: '#5E3A18' });
+  }
+  var ICONOS = {
+    arena: ['......##', '.....###', '....###.', '#..###..', '.####...', '..##....', '.#.##...', '#.......'],
+    misiones: ['########', '#......#', '#.####.#', '#......#', '#.####.#', '#......#', '#.##...#', '########'],
+    bitacora: ['.######.', '#.....##', '#.###.##', '#.....##', '#.###.##', '#.....##', '.######.', '........'],
+    heroe: ['.##.##..', '#######.', '#######.', '.#####..', '..###...', '...#....', '........', '........'],
+    ajustes: ['.#.##.#.', '########', '.##..##.', '##....##', '##....##', '.##..##.', '########', '.#.##.#.'],
+    racha: ['...#....', '..##....', '..###.#.', '.#####..', '.######.', '########', '###..###', '.######.'],
+    espada: ['......##', '.....###', '....###.', '#..###..', '.####...', '..##....', '.#.##...', '#.......'],
+    escudo: ['#######.', '#.....#.', '#..#..#.', '#.#.#.#.', '.#...#..', '..#.#...', '...#....', '........'],
+    carpeta: ['###.....', '#..####.', '#######.', '#.....#.', '#.....#.', '#.....#.', '#######.', '........'],
+    correo: ['########', '##....##', '#.#..#.#', '#..##..#', '#......#', '#......#', '########', '........'],
+    hoja: ['#####...', '#...##..', '#.....#.', '#.###.#.', '#.....#.', '#.###.#.', '#######.', '........'],
+    reloj: ['..###...', '.#...#..', '#..#..#.', '#..##.#.', '#.....#.', '.#...#..', '..###...', '........'],
+  };
+  function icono(nombre, grande) {
+    var g = ICONOS[nombre].map(function (f) { return f.split(''); });
+    var svg = svgPixel(g, { '#': 'currentColor' });
+    return el('span', { class: 'ico' + (grande ? ' x2' : ''), 'aria-hidden': 'true' }, [svg]);
+  }
+
+  // ===================== ESTADO DE LA PÁGINA =====================
+  var params = {};
+  location.hash.replace(/^#/, '').split('&').forEach(function (kv) {
+    var i = kv.indexOf('='); if (i > 0) params[decodeURIComponent(kv.slice(0, i))] = decodeURIComponent(kv.slice(i + 1));
+  });
+  var MODO_COACH = params.modo === 'coach';
+  var CLAVE = 'juego:' + (params.api || 'sin-api');
+  var modelo = null, resultado = null, mostrado = null, pestana = 'arena', replayActivo = false;
+  var prefs = leer(CLAVE + ':prefs') || {};
+  if (prefs.reducido) document.documentElement.classList.add('reducido');
+  var RETRATO = 'juego/oscar.png';  // Retrato de referencia (128×160 o mayor); si falta, se usa el sprite provisional
+  var retratoOk = null;
+  (function () { var im = new Image(); im.onload = function () { retratoOk = true; pintarSprites(); }; im.onerror = function () { retratoOk = false; }; im.src = RETRATO; })();
+
+  function anunciar(t) { $('anuncio').textContent = ''; setTimeout(function () { $('anuncio').textContent = t; }, 50); }
+
+  // ===================== MODALES =====================
+  var foco = null, alCerrar = null;
+  var modal = $('modal');
+  function abrirModal(tamano, contenido, cerrar) {
+    foco = document.activeElement;
+    modal.className = 'modal ' + (tamano || 'mediano');
+    var cuerpo = $('modal-cuerpo'); cuerpo.textContent = '';
+    contenido.forEach(function (n) { if (n) cuerpo.appendChild(n); });
+    alCerrar = cerrar || null;
+    if (typeof modal.showModal === 'function') modal.showModal(); else modal.setAttribute('open', '');
+    var primero = cuerpo.querySelector('button, a[href]'); if (primero) primero.focus();
+  }
+  function cerrarModal() {
+    if (modal.open && typeof modal.close === 'function') modal.close(); else modal.removeAttribute('open');
+  }
+  modal.addEventListener('close', function () {
+    var f = alCerrar; alCerrar = null;
+    if (foco && foco.focus) foco.focus();
+    if (f) f();
+  });
+  modal.addEventListener('keydown', function (e) {
+    if (e.key !== 'Tab') return;
+    var it = Array.prototype.slice.call(modal.querySelectorAll('button, a[href], select'));
+    if (!it.length) return;
+    var i = it.indexOf(document.activeElement);
+    if (e.shiftKey && i <= 0) { it[it.length - 1].focus(); e.preventDefault(); }
+    else if (!e.shiftKey && i === it.length - 1) { it[0].focus(); e.preventDefault(); }
+  });
+  function botonContinuar(texto) { return el('button', { class: 'btn oro continuar', type: 'button', text: (texto || 'Continuar') + ' ▶', onclick: cerrarModal }); }
+  function modalInfo(titulo, parrafos, extra) {
+    abrirModal('mediano', [el('h2', { id: 'modal-titulo', text: titulo })]
+      .concat(parrafos.map(function (t) { return el('p', { class: 'cierre', text: t }); }))
+      .concat(extra || []).concat([botonContinuar('Cerrar')]));
+  }
+
+  // ===================== ARENA =====================
+  function pintarSprites() {
+    var o = $('spr-oscar'); o.textContent = '';
+    if (retratoOk) o.appendChild(el('img', { src: RETRATO, alt: '' })); else o.appendChild(spriteOscar());
+    var j = $('spr-jefe'); j.textContent = ''; j.appendChild(spriteJefe());
+    if (mostrado) actualizarAlt();
+  }
+  function actualizarAlt() {
+    var d = mostrado;
+    $('spr-jefe').setAttribute('aria-label', d.jefe.nombre + (d.ko ? ', derrotado' : d.aturdido ? ', aturdido' : '') + ', ' + d.reclutadorHp + ' de ' + d.meta + ' HP');
+    $('spr-oscar').setAttribute('aria-label', 'Oscar, nivel ' + d.nivel + ', ' + d.hp + ' de 100 HP' + (d.avalancha ? ', con Avalancha' : ''));
+  }
+  function barra(idValor, idRastro, antes, ahora, max) {
+    var v = $(idValor), r = idRastro && $(idRastro);
+    var pa = Math.max(0, Math.min(100, 100 * ahora / max)), pb = Math.max(0, Math.min(100, 100 * antes / max));
+    v.style.width = pa + '%';
+    if (!r) return;
+    if (pa < pb && !reducido()) { r.style.transition = 'none'; r.style.width = pb + '%'; void r.offsetWidth; r.style.transition = ''; requestAnimationFrame(function () { r.style.width = pa + '%'; }); }
+    else r.style.width = pa + '%';
+  }
+  function contar(nodo, desde, hasta, fmt) {
+    fmt = fmt || function (x) { return NF.format(x); };
+    if (reducido() || desde === hasta) { nodo.textContent = fmt(hasta); return; }
+    var pasos = 8, i = 0;
+    var t = setInterval(function () { i++; nodo.textContent = fmt(Math.round(desde + (hasta - desde) * i / pasos)); if (i >= pasos) clearInterval(t); }, 50);
+  }
+  function verArena(d, anterior) {
+    var a = anterior || d;
+    $('jefe-nombre').textContent = d.jefe.nombre;
+    $('jefe-nombre').parentNode.setAttribute('title', d.jefe.nombre);
+    barra('rec-valor', 'rec-rastro', a.reclutadorHp, d.reclutadorHp, d.meta);
+    barra('osc-valor', 'osc-rastro', a.hp, d.hp, 100);
+    barra('pod-valor', null, a.poder, d.poder, 30);
+    contar($('rec-hp'), a.reclutadorHp, d.reclutadorHp, function (x) { return x + '/' + d.meta; });
+    contar($('osc-hp'), a.hp, d.hp, function (x) { return x + '/100'; });
+    $('pod-txt').textContent = d.poder + '/30';
+    $('nivel').textContent = 'Nv ' + d.nivel;
+    var jefe = $('spr-jefe');
+    var est = jefe.querySelector('.estrellas');
+    if (d.aturdido && !d.ko && !est) jefe.appendChild(el('span', { class: 'estrellas', 'aria-hidden': 'true' }, [el('span', { class: 'gira', text: '★ ✦ ★' })]));
+    if ((!d.aturdido || d.ko) && est) est.remove();
+    jefe.style.transform = d.ko ? 'rotate(-90deg) translateX(-30px)' : '';
+    mostrado = d;
+    actualizarAlt();
+  }
+  function flotar(spriteId, texto, clase) {
+    var n = el('span', { class: 'flota ' + clase + (reducido() ? '' : ' sube'), 'aria-hidden': 'true', text: texto });
+    $(spriteId).appendChild(n);
+    setTimeout(function () { n.remove(); }, 1000);
+  }
+  function claseTemporal(id, clase, ms) { if (reducido()) return; var n = $(id); n.classList.remove(clase); void n.offsetWidth; n.classList.add(clase); setTimeout(function () { n.classList.remove(clase); }, ms); }
+  function lanzarHojas(n) {
+    if (reducido()) return;
+    var arena = $('escenario');
+    for (var i = 0; i < Math.min(n, 5); i++) {
+      var h = el('i', { class: 'hoja vuela', 'aria-hidden': 'true', style: 'top:' + (36 + i * 6) + '%; animation-delay:' + (i * 60) + 'ms' });
+      arena.appendChild(h);
+      (function (x) { setTimeout(function () { x.remove(); }, 900); })(h);
+    }
+  }
+  function banda(texto, ms) {
+    var b = el('div', { class: 'banda' + (reducido() ? '' : ' baja'), role: 'status', text: texto });
+    $('escenario').appendChild(b);
+    anunciar(texto);
+    return espera(ms || 3000).then(function () { b.remove(); });
+  }
+  function decir(texto, acciones) {
+    $('dialogo-txt').textContent = texto;
+    var ac = $('dialogo-acciones'); ac.textContent = '';
+    (acciones || []).forEach(function (a) { ac.appendChild(a); });
+  }
+
+  // ===================== PANEL Y VISTAS =====================
+  function tarjeta(etq, val, sub, clase, ico, alTocar) {
+    return el('button', { class: 'tarjeta win', type: 'button', onclick: alTocar, 'aria-label': etq + ': ' + val + '. ' + sub }, [
+      el('span', { class: 'etq' }, [ico ? icono(ico) : null, ico ? ' ' : null, etq]),
+      el('span', { class: 'val ' + (clase || ''), text: val }),
+      el('span', { class: 'sub', text: sub }),
+    ]);
+  }
+  function listaModal(titulo, filas, vacio) {
+    var ul = el('ul', { class: 'lista' });
+    filas.forEach(function (f) {
+      var url = safeUrl(f.url);
+      ul.appendChild(el('li', null, [el('div', { class: 'fila', style: 'cursor:default' }, [
+        el('div', { class: 'txt' }, [el('div', { class: 't1', text: f.t1 }), el('div', { class: 't2', text: f.t2 || '' })]),
+        url ? el('a', { class: 'btn', href: url, target: '_blank', rel: 'noopener', 'aria-label': 'Ver carpeta de ' + f.t1 }, [icono('carpeta'), 'Ver']) : null,
+      ])]));
+    });
+    abrirModal('mediano', [el('h2', { id: 'modal-titulo', text: titulo }), filas.length ? ul : el('p', { class: 'vacio', text: vacio || 'No hay nada aquí todavía.' }), botonContinuar('Cerrar')]);
+  }
+  function verPanel() {
+    var m = modelo, P = m.postulaciones, sem = P.semanas[P.semanas.length - 1] || { total: 0, semana: '' }, meta = m.meta || 50;
+    var panel = $('panel'); panel.textContent = '';
+    var bloques = el('div', { class: 'bloques', 'aria-hidden': 'true' });
+    for (var i = 0; i < 10; i++) {
+      var lleno = Math.max(0, Math.min(5, sem.total - i * 5));
+      bloques.appendChild(el('i', { class: lleno >= 5 ? 'lleno' : lleno > 0 ? 'parcial' : '', style: lleno > 0 && lleno < 5 ? '--p:' + (lleno * 20) + '%' : null }));
+    }
+    var faltan = Math.max(0, meta - sem.total);
+    panel.appendChild(el('section', { class: 'win heroe-fila', 'aria-label': 'HV esta semana' }, [
+      el('div', { class: 'linea' }, [el('span', { class: 'px', style: 'font-size:12px;color:var(--texto-2)', text: 'HV esta semana' }),
+        el('span', { class: 'cifra-grande' }, [el('span', { class: 'oro-t', text: String(sem.total) }), '/' + meta])]),
+      bloques,
+      el('div', { class: 'sub', style: 'font-size:20px;color:var(--texto-2)', text: faltan ? 'Faltan ' + faltan + ' para la meta: es el HP del Reclutador. Cada bloque son 5 HV.' : '¡Meta cumplida! El Reclutador está KO.' }),
+    ]));
+    var lista = P.lista || [];
+    var de = function (clave) { return lista.filter(function (a) { return a.clave === clave; }).map(function (a) { return { t1: a.empresa, t2: (a.cargo || 'Sin cargo') + ' · ' + a.semana + (a.estadoFecha ? ' · ' + fecha(a.estadoFecha) : ''), url: a.carpeta }; }); };
+    var respondieron = P.proceso + P.rechazada;
+    panel.appendChild(el('div', { class: 'tarjetas' }, [
+      tarjeta('Enviadas', NF.format(P.total), 'en ' + P.semanas.length + ' semanas', '', 'hoja', function () {
+        listaModal('Enviadas por semana', P.semanas.map(function (w) { return { t1: w.semana, t2: w.total + ' HV · ' + w.proceso + ' en proceso · ' + w.rechazada + ' rechazadas' }; }));
+      }),
+      tarjeta('En proceso', NF.format(P.proceso), 'entrevistas o pruebas', 'verde', 'espada', function () { listaModal('En proceso', de('proceso'), 'Todavía ninguna. Las respuestas llegan solas.'); }),
+      tarjeta('Rechazadas', NF.format(P.rechazada), '+' + P.rechazada + ' de Resiliencia', 'rojo', 'escudo', function () { listaModal('Rechazadas', de('rechazada')); }),
+      tarjeta('Respuesta', NF.format(P.tasaRespuesta) + ' %', respondieron + ' de ' + P.total + ' respondieron', 'cian', null, function () {
+        modalInfo('Tasa de respuesta', ['De ' + P.total + ' HV enviadas, ' + respondieron + ' tuvieron respuesta (' + P.proceso + ' en proceso y ' + P.rechazada + ' rechazos).',
+          'El silencio no resta nada en el juego.']);
+      }),
+    ]));
+    var mun = (m.porEnviar || []).length;
+    panel.appendChild(el('button', { class: 'municion win', type: 'button', onclick: function () { irA('misiones'); }, 'aria-label': 'Munición: ' + mun + ' HV listas para enviar. Ir a Misiones' }, [
+      icono('hoja', true), el('span', { class: 'val', text: String(mun) }), el('span', { style: 'flex:1', text: mun === 1 ? 'HV lista para enviar' : 'HV listas para enviar' }), el('span', { class: 'px oro-t', style: 'font-size:12px', text: '▶' }),
+    ]));
+  }
+  function verEstado(sync) {
+    var m = modelo, P = m.postulaciones, sem = P.semanas[P.semanas.length - 1] || { semana: '' }, e = resultado.estado;
+    var hoy = m.hoy || '';
+    var d = hoy ? new Date(hoy + 'T12:00:00Z') : null;
+    $('sem').textContent = 'Sem ' + (e.semanaActual + 1) + (d ? ' · ' + DIAS[d.getUTCDay()] + ' ' + d.getUTCDate() : '');
+    $('sem').setAttribute('title', sem.semana + ' · ' + (hoy ? fecha(hoy) : ''));
+    $('sem').setAttribute('aria-label', 'Semana ' + (e.semanaActual + 1) + ' del juego: ' + sem.semana + (hoy ? ', ' + fecha(hoy) : ''));
+    var r = $('racha'); r.textContent = ''; r.appendChild(icono('racha')); r.appendChild(document.createTextNode(' ' + e.racha));
+    r.setAttribute('aria-label', 'Racha: ' + e.racha + ' días hábiles seguidos con envíos. Ver cómo se cuenta');
+    if (sync != null) $('sync').textContent = sync;
+  }
+
+  function verMisiones() {
+    var m = modelo, v = $('v-misiones'); v.textContent = '';
+    var hoy = m.hoy || '';
+    var mun = (m.porEnviar || []).slice().sort(function (a, b) { return (a.fecha || '') < (b.fecha || '') ? -1 : 1; });
+    var segs = (m.historial || []).filter(function (h) { return h.siguiente && h.siguiente !== '—' && !/^ninguna/i.test(h.siguiente); }).slice(-10).reverse();
+    var col = el('div', { class: 'cols' });
+    var w1 = el('section', { class: 'win', 'aria-labelledby': 'h-mun' }, [el('h2', { id: 'h-mun', text: 'Munición lista · ' + mun.length })]);
+    if (!mun.length && !segs.length) w1.appendChild(el('p', { class: 'vacio', text: 'Sin misiones por hoy. La próxima búsqueda llega a las 7:00.' }));
+    else if (!mun.length) w1.appendChild(el('p', { class: 'vacio', text: 'No hay HV listas. Mañana a las 7:00 llegan vacantes nuevas.' }));
+    var ul = el('ul', { class: 'lista' });
+    mun.forEach(function (p) {
+      var dias = hoy && p.fecha ? diasEntre(p.fecha.slice(0, 10), hoy) : 0;
+      var lista = /lista/i.test(p.revision || '');
+      ul.appendChild(el('li', null, [el('div', { class: 'fila', style: 'cursor:default' }, [
+        icono('hoja', true),
+        el('div', { class: 'txt' }, [
+          el('div', { class: 't1', text: p.empresa }),
+          el('div', { class: 't2', text: (p.cargo || 'Sin cargo') + ' · lista hace ' + dias + (dias === 1 ? ' día' : ' días') }),
+          el('div', { class: 't2' }, [el('span', { class: lista ? 'verde' : 'oro-t', text: (lista ? '✔ Lista' : '! Revisar') }),
+            dias > 3 ? el('span', { class: 'oro-t', text: '  ¡Se enfría!' }) : null]),
+        ]),
+        safeUrl(p.carpeta) ? el('a', { class: 'btn', href: safeUrl(p.carpeta), target: '_blank', rel: 'noopener', 'aria-label': 'Abrir la carpeta de ' + p.empresa }, [icono('carpeta'), 'Abrir']) : null,
+      ])]));
+    });
+    if (mun.length) w1.appendChild(ul);
+    var w2 = el('section', { class: 'win', 'aria-labelledby': 'h-seg' }, [el('h2', { id: 'h-seg', text: 'Seguimientos' })]);
+    if (!segs.length) w2.appendChild(el('p', { class: 'vacio', text: 'Nada pendiente del correo. El seguimiento corre a las 18:13.' }));
+    var ul2 = el('ul', { class: 'lista' });
+    segs.forEach(function (h) {
+      ul2.appendChild(el('li', null, [el('div', { class: 'fila', style: 'cursor:default' }, [icono('reloj', true),
+        el('div', { class: 'txt' }, [el('div', { class: 't1', text: h.siguiente }), el('div', { class: 't2', text: h.empresa + (h.cargo ? ' · ' + h.cargo : '') + ' · ' + fecha(h.fechaMensaje || h.fecha) })])])]));
+    });
+    if (segs.length) w2.appendChild(ul2);
+    var radar = el('div', { class: 'radar', 'aria-hidden': 'true' });
+    var maxV = Math.max.apply(null, (m.vacantes.porDia || []).map(function (x) { return x.n; }).concat([1]));
+    (m.vacantes.porDia || []).forEach(function (x) { radar.appendChild(el('i', { style: 'height:' + Math.max(4, 100 * x.n / maxV) + '%', title: fecha(x.dia) + ': ' + x.n })); });
+    var w3 = el('section', { class: 'win', 'aria-labelledby': 'h-radar' }, [el('h2', { id: 'h-radar', text: 'Radar' }),
+      el('p', { text: NF.format(m.vacantes.ultimos14) + ' vacantes encontradas en 14 días.' }), radar]);
+    col.appendChild(el('div', null, [w1])); col.appendChild(el('div', null, [w2, w3]));
+    v.appendChild(col);
+  }
+
+  var filtroBit = 'todo', semanaBit = 'todas';
+  var REAL = { hv: 1, proceso: 1, rechazo: 1, correo: 1, rebote: 1, aliado: 1 };
+  function textoEfecto(f) {
+    var p = [];
+    if (f.delta.hp) p.push(signo(f.delta.hp) + ' HP');
+    if (f.delta.xp) p.push(signo(f.delta.xp) + ' XP');
+    if (f.delta.resiliencia) p.push('+' + f.delta.resiliencia + ' RES');
+    return p.join(' ') || '—';
+  }
+  var NOMBRE_TIPO = { hv: 'HV enviada', proceso: 'Prueba o entrevista', rechazo: 'Rechazo', correo: 'Correo en frío entregado', rebote: 'Correo en frío rebotado', aliado: 'Respuesta a correo en frío' };
+  var ICONO_TIPO = { hv: 'hoja', proceso: 'espada', rechazo: 'escudo', correo: 'correo', rebote: 'correo', aliado: 'correo' };
+  function verBitacora() {
+    var v = $('v-bitacora'); v.textContent = '';
+    var w = el('section', { class: 'win', 'aria-labelledby': 'h-bit' }, [el('h2', { id: 'h-bit', text: 'Bitácora' })]);
+    var chips = el('div', { class: 'chips', role: 'group', 'aria-label': 'Filtrar' });
+    [['todo', 'Todo'], ['proceso', 'En proceso'], ['rechazada', 'Rechazadas'], ['sin', 'Sin respuesta'], ['correos', 'Correos']].forEach(function (c) {
+      chips.appendChild(el('button', { class: 'chip', type: 'button', 'aria-pressed': String(filtroBit === c[0]), text: c[1], onclick: function () { filtroBit = c[0]; verBitacora(); } }));
+    });
+    var sel = el('select', { class: 'sel', 'aria-label': 'Semana', onchange: function (e) { semanaBit = e.target.value; verBitacora(); } });
+    sel.appendChild(el('option', { value: 'todas', text: 'Todas las semanas' }));
+    resultado.estado.semanas.forEach(function (s, i) { var o = el('option', { value: String(i), text: s.nombre }); if (semanaBit === String(i)) o.selected = true; sel.appendChild(o); });
+    chips.appendChild(sel);
+    w.appendChild(chips);
+    var filas = resultado.efectos.filter(function (f) {
+      if (!REAL[f.tipo]) return false;
+      if (semanaBit !== 'todas' && String(f.semana) !== semanaBit) return false;
+      if (filtroBit === 'proceso') return f.tipo === 'proceso' || (f.tipo === 'hv' && f.postulacion === 'proceso');
+      if (filtroBit === 'rechazada') return f.tipo === 'rechazo' || (f.tipo === 'hv' && f.postulacion === 'rechazada');
+      if (filtroBit === 'sin') return f.tipo === 'hv' && (f.postulacion === 'sinRespuesta' || f.postulacion === 'aplicada');
+      if (filtroBit === 'correos') return f.tipo === 'correo' || f.tipo === 'rebote' || f.tipo === 'aliado';
+      return true;
+    }).slice().reverse();
+    var ul = el('ul', { class: 'lista' });
+    filas.slice(0, 200).forEach(function (f) {
+      var malo = f.tipo === 'rechazo' || f.tipo === 'rebote';
+      ul.appendChild(el('li', null, [el('button', { class: 'fila', type: 'button', onclick: function () { detalleEvento(f); },
+        'aria-label': NOMBRE_TIPO[f.tipo] + ': ' + f.empresa + ', ' + fecha(f.dia) + '. Efecto ' + textoEfecto(f) }, [
+        el('span', { class: malo ? 'rojo' : f.tipo === 'proceso' || f.tipo === 'aliado' ? 'verde' : 'oro-t' }, [icono(ICONO_TIPO[f.tipo], true)]),
+        el('div', { class: 'txt' }, [el('div', { class: 't1', text: f.empresa || NOMBRE_TIPO[f.tipo] }),
+          el('div', { class: 't2', text: NOMBRE_TIPO[f.tipo] + (f.n > 1 ? ' ×' + f.n : '') + (f.cargo ? ' · ' + f.cargo : '') + ' · ' + fecha(f.dia) }),
+          el('div', { class: 'ef ' + (malo ? 'rojo' : 'verde'), text: textoEfecto(f) })]),
+      ])]));
+    });
+    w.appendChild(filas.length ? ul : el('p', { class: 'vacio', text: 'No hay eventos con este filtro.' }));
+    if (filas.length > 200) w.appendChild(el('p', { class: 'vacio', text: 'Se muestran los 200 más recientes de ' + filas.length + '.' }));
+    v.appendChild(w);
+  }
+  function detalleEvento(f) {
+    var url = safeUrl(f.carpeta);
+    abrirModal('mediano', [el('h2', { id: 'modal-titulo', text: NOMBRE_TIPO[f.tipo] || f.tipo }),
+      el('p', { class: 'dato', text: [f.empresa, f.cargo, fecha(f.dia)].filter(Boolean).join(' · ') }),
+      el('div', { class: 'efecto' }, [el('span', { class: (f.delta.hp || 0) < 0 ? 'rojo' : 'verde', text: textoEfecto(f) })]),
+      f.historico ? el('p', { class: 'cierre', text: 'Sin fecha exacta: cuenta en las stats desde el inicio de su semana.' }) : null,
+      url ? el('a', { class: 'btn continuar', href: url, target: '_blank', rel: 'noopener' }, [icono('carpeta'), 'Ver carpeta']) : null,
+      botonContinuar('Cerrar')]);
+  }
+
+  function verHeroe() {
+    var e = resultado.estado, m = modelo, v = $('v-heroe'); v.textContent = '';
+    var ret = el('div', { class: 'sprite', role: 'img', 'aria-label': 'Retrato de Oscar' }, [retratoOk ? el('img', { src: RETRATO, alt: '' }) : spriteOscar()]);
+    var xpPct = Math.round(100 * e.xpNivel / e.xpNecesita);
+    var w1 = el('section', { class: 'win', 'aria-labelledby': 'h-heroe' }, [el('h2', { id: 'h-heroe', text: 'Héroe' }),
+      el('div', { class: 'retrato' }, [ret, el('div', { style: 'flex:1;min-width:180px' }, [
+        el('div', { class: 'cifra-grande oro-t', text: 'Nivel ' + e.nivel }),
+        el('div', { class: 'barra poder', 'aria-hidden': 'true' }, [el('i', { class: 'valor', style: 'width:' + xpPct + '%;background:var(--oro)' })]),
+        el('div', { class: 'barra-txt' }, [el('span', { text: 'XP' }), el('span', { text: NF.format(e.xpNivel) + '/' + NF.format(e.xpNecesita) })]),
+        el('div', { class: 'stats', style: 'margin-top:10px' }, [
+          el('div', null, [el('span', { text: 'HP' }), el('span', { class: 'verde', text: e.hp + '/100' })]),
+          el('div', null, [el('span', { text: 'Resiliencia' }), el('span', { class: 'oro-t', text: String(e.resiliencia) })]),
+          el('div', null, [el('span', { text: 'Poder' }), el('span', { class: 'cian', text: e.poder + '/30' })]),
+          el('div', null, [el('span', { text: 'Racha' }), el('span', { class: 'oro-t', text: e.racha + ' días' })]),
+          el('div', null, [el('span', { text: 'Semanas ganadas' }), el('span', { text: String(e.semanasGanadas) })]),
+          el('div', null, [el('span', { text: 'XP total' }), el('span', { text: NF.format(e.xp) })]),
+        ]),
+      ])]),
+    ]);
+    var graf = el('div', { class: 'grafica' });
+    e.semanas.forEach(function (s) {
+      graf.appendChild(el('div', { class: 'fil' }, [el('span', { text: s.nombre.replace(/ semana( nueva)?/i, ''), title: s.nombre }),
+        el('div', { class: 'pista', role: 'img', 'aria-label': s.nombre + ': ' + s.hv + ' HV de ' + e.meta + (s.ko ? ', jefe vencido' : '') }, [el('i', { style: 'width:' + Math.min(100, 100 * s.hv / e.meta) + '%' })]),
+        el('span', { text: String(s.hv) })]));
+    });
+    var w2 = el('section', { class: 'win', 'aria-labelledby': 'h-sem' }, [el('h2', { id: 'h-sem', text: 'HV por semana · meta ' + e.meta }), graf,
+      el('p', { class: 'vacio', text: 'La línea verde al final de cada barra es la meta de ' + e.meta + '. Jefes: ' + e.semanas.map(function (s) { return s.jefe.nombre + (s.ko ? ' (vencido)' : ' (sobrevivió)'); }).join(', ') + '.' })]);
+    var C = m.correos;
+    var w3 = el('section', { class: 'win', 'aria-labelledby': 'h-cor' }, [el('h2', { id: 'h-cor', text: 'Correos en frío' }), el('div', { class: 'stats' }, [
+      el('div', null, [el('span', { text: 'Enviados' }), el('span', { text: String(C.enviados) })]),
+      el('div', null, [el('span', { text: 'Entregados' }), el('span', { class: 'verde', text: String(C.entregados) })]),
+      el('div', null, [el('span', { text: 'Rebotados' }), el('span', { class: 'rojo', text: String(C.rebotados) })]),
+      el('div', null, [el('span', { text: 'Respondieron' }), el('span', { class: 'oro-t', text: String(C.empresasRespondieron) })]),
+    ])]);
+    var lg = el('div', { class: 'logros' });
+    LOGROS.forEach(function (l) {
+      var ok = !!e.logros[l.id];
+      lg.appendChild(el('div', { class: 'logro' + (ok ? '' : ' bloq') }, [el('div', { class: 'n', text: (ok ? '★ ' : '🔒 ') + l.nombre }),
+        el('div', { text: ok ? (e.logros[l.id] === 'historia' ? 'Desbloqueado' : 'Desbloqueado el ' + fecha(e.logros[l.id])) : l.requisito })]));
+    });
+    var w4 = el('section', { class: 'win', 'aria-labelledby': 'h-log' }, [el('h2', { id: 'h-log', text: 'Logros' }), lg]);
+    v.appendChild(el('div', { class: 'cols' }, [el('div', null, [w1, w4]), el('div', null, [w2, w3])]));
+  }
+
+  // ===================== PESTAÑAS =====================
+  var TABS = [['arena', 'Arena'], ['misiones', 'Misiones'], ['bitacora', 'Bitácora'], ['heroe', 'Héroe']];
+  function pintarTabs() {
+    var tl = $('tablist'); tl.textContent = '';
+    var pend = modelo ? (modelo.porEnviar || []).length + (modelo.historial || []).filter(function (h) { return h.siguiente && h.siguiente !== '—' && !/^ninguna/i.test(h.siguiente); }).slice(-10).length : 0;
+    TABS.forEach(function (t) {
+      var b = el('button', { id: 't-' + t[0], role: 'tab', type: 'button', 'aria-selected': String(pestana === t[0]), 'aria-controls': 'v-' + t[0], tabindex: pestana === t[0] ? '0' : '-1',
+        onclick: function () { irA(t[0]); } }, [icono(t[0], true), t[1]]);
+      if (t[0] === 'misiones' && pend) { b.appendChild(el('span', { class: 'insignia', text: String(pend) })); b.setAttribute('aria-label', 'Misiones, ' + pend + ' pendientes'); }
+      tl.appendChild(b);
+    });
+  }
+  $('tablist').addEventListener('keydown', function (e) {
+    var i = TABS.findIndex(function (t) { return t[0] === pestana; });
+    if (e.key === 'ArrowRight') i = (i + 1) % TABS.length; else if (e.key === 'ArrowLeft') i = (i + TABS.length - 1) % TABS.length;
+    else if (e.key === 'Home') i = 0; else if (e.key === 'End') i = TABS.length - 1; else return;
+    e.preventDefault(); irA(TABS[i][0]); $('t-' + TABS[i][0]).focus();
+  });
+  function irA(nombre) {
+    if (replayActivo && nombre !== 'arena') return;
+    pestana = nombre;
+    TABS.forEach(function (t) {
+      var v = $('v-' + t[0]); var activa = t[0] === nombre;
+      v.hidden = !activa; v.classList.remove('entra');
+      if (activa && !reducido()) { void v.offsetWidth; v.classList.add('entra'); }
+    });
+    if (modelo) { if (nombre === 'misiones') verMisiones(); if (nombre === 'bitacora') verBitacora(); if (nombre === 'heroe') verHeroe(); }
+    pintarTabs();
+    window.scrollTo(0, 0);
+  }
+
+  // ===================== REPLAY (sección 7) =====================
+  var saltar = false, avanzar = null;
+  function esperarClic(ms) {
+    return new Promise(function (resolve) {
+      var hecho = false;
+      var fin = function () { if (hecho) return; hecho = true; avanzar = null; $('dialogo-sig').hidden = true; resolve(); };
+      avanzar = fin;
+      $('dialogo-sig').hidden = false;
+      if (ms) setTimeout(fin, reducido() ? Math.min(ms, 1500) : ms);
+    });
+  }
+  $('dialogo-sig').addEventListener('click', function () { if (avanzar) avanzar(); });
+  function modalEvento(it) {
+    var titulos = { proceso: '¡Golpe crítico!', rechazo: '¡Te atacan!', aliado: '¡Un aliado se une!', avalancha: '¡Avalancha!', ko: '¡Semana ganada!', nivel: '¡Subes de nivel!', logro: '¡Logro desbloqueado!' };
+    var cuerpo = {
+      proceso: it.empresa + ' te invitó a una prueba o entrevista. El Reclutador queda aturdido.',
+      rechazo: it.empresa + ' dijo gracias por participar.',
+      aliado: it.empresa + ' respondió tu correo en frío.',
+      avalancha: '30 HV esta semana. XP doble y escudo hasta que termine la semana.',
+      ko: (it.hvSemana || 50) + ' HV enviadas. ' + ((it.jefe && it.jefe.nombre) || 'El Reclutador') + ' cae.',
+      nivel: 'Ahora eres nivel ' + it.nivel + '.',
+      logro: ((LOGROS.find(function (l) { return l.id === it.logro; }) || {}).nombre || '') + '.',
+    }[it.tipo] || '';
+    var escena = el('div', { class: 'escena', 'aria-hidden': 'true' });
+    var o = el('div', { class: 'sprite' + (reducido() ? '' : ' respira') }, [retratoOk ? el('img', { src: RETRATO, alt: '' }) : spriteOscar()]);
+    if (it.tipo !== 'nivel' && it.tipo !== 'logro') {
+      var j = el('div', { class: 'sprite' + (it.tipo === 'rechazo' || reducido() ? '' : ' golpeado') }, [spriteJefe()]);
+      if (it.tipo === 'proceso') j.appendChild(el('span', { class: 'estrellas' }, [el('span', { class: 'gira', text: '★ ✦ ★' })]));
+      escena.appendChild(j);
+      if (it.tipo === 'rechazo' && !reducido()) o.classList.add('herido');
+    }
+    escena.appendChild(o);
+    var efs = [];
+    if (it.delta.hp) efs.push(el('span', { class: it.delta.hp < 0 ? 'rojo' : 'verde', text: signo(it.delta.hp) + ' HP' }));
+    if (it.delta.xp) efs.push(el('span', { class: 'oro-t', text: signo(it.delta.xp) + ' XP' }));
+    if (it.delta.resiliencia) efs.push(el('span', { class: 'oro-t', text: '+' + it.delta.resiliencia + ' Resiliencia' }));
+    var url = safeUrl(it.carpeta);
+    return new Promise(function (resolve) {
+      abrirModal(it.tamano, [
+        el('h2', { id: 'modal-titulo', text: titulos[it.tipo] || it.tipo }), escena,
+        it.empresa ? el('p', { class: 'dato', text: [it.empresa, it.cargo, fecha(it.dia)].filter(Boolean).join(' · ') }) : el('p', { class: 'dato', text: fecha(it.dia) }),
+        el('p', { class: 'cierre', text: cuerpo }),
+        efs.length ? el('div', { class: 'efecto' }, efs) : null,
+        it.tipo === 'rechazo' ? el('p', { class: 'cierre', text: 'Cada rechazo te hace más duro.' }) : null,
+        url ? el('a', { class: 'btn continuar', href: url, target: '_blank', rel: 'noopener' }, [icono('carpeta'), 'Ver carpeta']) : null,
+        botonContinuar(),
+      ], resolve);
+      anunciar((titulos[it.tipo] || '') + ' ' + cuerpo);
+    });
+  }
+  function textoDialogo(it) {
+    var n = it.n || 1;
+    if (it.tipo === 'hv') return n > 1 ? '¡Enviaste ' + n + ' HV! El Reclutador pierde ' + n + ' HP.' : '¡Enviaste 1 HV' + (it.empresa ? ' a ' + it.empresa : '') + '! El Reclutador pierde 1 HP.';
+    if (it.tipo === 'correo') return 'Tus correos en frío llegaron a ' + n + (n === 1 ? ' buzón' : ' buzones') + '. Ganas ' + signo(it.delta.xp) + ' XP.';
+    if (it.tipo === 'rebote') return n + (n === 1 ? ' correo rebotó' : ' correos rebotaron') + '. Pierdes ' + Math.abs(it.delta.hp) + ' HP.';
+    return '';
+  }
+  function textoBanda(it) {
+    if (it.tipo === 'pocion') return '¡Encontraste una poción! ' + it.hvSemana + ' HV esta semana. +' + it.delta.hp + ' HP';
+    if (it.tipo === 'combo') return '¡Combo! Racha de ' + it.racha + ' días: XP ×' + NF.format(it.multiplicador);
+    if (it.tipo === 'semanaNueva') return 'Semana ' + (it.semana + 1) + ': entra ' + it.jefe.nombre + '. «' + it.jefe.frase + '»';
+    return '';
+  }
+  function estadoDe(snap, base) {
+    return Object.assign({}, base, { hp: snap.hp, nivel: snap.nivel, poder: snap.poder, reclutadorHp: snap.reclutadorHp,
+      jefe: jefeDeSemana(snap.semana), ko: snap.reclutadorHp === 0 });
+  }
+  function reproducir(cola, desde, final) {
+    replayActivo = true; saltar = false;
+    var base = { meta: final.meta, aturdido: false, avalancha: false };
+    var actual = desde ? estadoDe(desde, base) : final;
+    verArena(actual);
+    var total = cola.items.length;
+    decir('¡Pasaron ' + total + (total === 1 ? ' cosa' : ' cosas') + ' desde tu última visita!', [
+      el('button', { class: 'btn oro', type: 'button', text: 'Ver ▶', onclick: function () { if (avanzar) avanzar(); } }),
+      el('button', { class: 'btn', type: 'button', text: 'Saltar todo', onclick: function () { saltar = true; if (avanzar) avanzar(); cerrarModal(); } }),
+    ]);
+    anunciar('Pasaron ' + total + ' cosas desde tu última visita.');
+    var i = 0;
+    var paso = function () {
+      if (saltar || i >= cola.items.length) return Promise.resolve();
+      var it = cola.items[i++];
+      var sig = estadoDe(it.despues, base);
+      if (it.tipo === 'proceso') sig.aturdido = true;
+      var prev = actual; actual = sig;
+      var pr;
+      if (it.tamano === 'dialogo') {
+        decir(textoDialogo(it), [el('button', { class: 'btn', type: 'button', text: 'Saltar todo', onclick: function () { saltar = true; if (avanzar) avanzar(); } })]);
+        anunciar(textoDialogo(it));
+        if (it.tipo === 'hv') { claseTemporal('spr-oscar', 'ataca', 600); lanzarHojas(it.n); setTimeout(function () { claseTemporal('spr-jefe', 'golpeado', 800); flotar('spr-jefe', '−' + it.n, 'mala'); }, reducido() ? 0 : 300); }
+        if (it.tipo === 'correo') flotar('spr-oscar', signo(it.delta.xp) + ' XP', 'oro');
+        if (it.tipo === 'rebote') { claseTemporal('spr-oscar', 'herido', 1000); flotar('spr-oscar', signo(it.delta.hp), 'mala'); }
+        verArena(sig, prev);
+        pr = esperarClic(2200);
+      } else if (it.tamano === 'pequeno') {
+        verArena(sig, prev);
+        if (it.delta.hp > 0) flotar('spr-oscar', '+' + it.delta.hp + ' HP', 'buena');
+        pr = Promise.race([banda(textoBanda(it), 3000), esperarClic(0)]);
+      } else {
+        verArena(sig, prev);
+        if (it.tipo === 'rechazo') { claseTemporal('spr-oscar', 'herido', 1000); flotar('spr-oscar', signo(it.delta.hp), 'mala'); }
+        if (it.tipo === 'proceso') { claseTemporal('spr-jefe', 'golpeado', 800); flotar('spr-jefe', '¡Crítico!', 'oro'); }
+        if (it.tipo === 'nivel') banda('Nivel ' + it.nivel, 1200);
+        pr = modalEvento(it);
+      }
+      return pr.then(paso);
+    };
+    return esperarClic(0).then(function () { if (!saltar) decir('', []); return paso(); }).then(function () {
+      replayActivo = false;
+      verArena(final, saltar ? undefined : actual);
+      var resumen = cola.resumen ? (cola.resumen === 1 ? 'Y 1 evento más: velo en la Bitácora.' : 'Y ' + cola.resumen + ' eventos más: velos en la Bitácora.') : '';
+      decir(textoReposo(final) + (resumen ? ' ' + resumen : ''), cola.resumen ? [el('button', { class: 'btn', type: 'button', text: 'Bitácora ▶', onclick: function () { irA('bitacora'); } })] : []);
+      guardar(CLAVE + ':visto', ultimoVistoDe(resultado.efectos));
+    });
+  }
+  function textoReposo(e) {
+    if (e.ko) return '¡Semana ganada! ' + e.jefe.nombre + ' queda KO hasta la próxima semana.';
+    var mun = (modelo.porEnviar || []).length;
+    if (e.burla) return e.jefe.nombre + ' mira su reloj y se ríe: van varios días sin envíos. Tienes ' + mun + ' HV listas en Misiones.';
+    if (e.aturdido) return e.jefe.nombre + ' sigue aturdido por tu golpe crítico. Faltan ' + e.reclutadorHp + ' HV para la meta.';
+    return e.jefe.nombre + ': «' + e.jefe.frase + '» Faltan ' + e.reclutadorHp + ' HV para dejarlo KO' + (mun ? '; tienes ' + mun + ' listas.' : '.');
+  }
+  function intro() {
+    var pasos = [
+      ['Bienvenido a la arena', 'Cada semana de tu carpeta CV es una pelea contra un jefe. Su HP son las HV que faltan para la meta de ' + (modelo.meta || 50) + '.'],
+      ['Las reglas', 'Tus HV le quitan vida al jefe; las respuestas te curan; los rechazos te hacen más fuerte.'],
+      ['Todo es real', 'Cada golpe es un evento con fecha y empresa. Al abrir, verás lo que pasó desde tu última visita.'],
+    ];
+    var i = 0;
+    return new Promise(function (resolve) {
+      var mostrar = function () {
+        var p = pasos[i];
+        abrirModal('grande', [el('h2', { id: 'modal-titulo', text: p[0] }), el('div', { class: 'escena', 'aria-hidden': 'true' }, [
+          el('div', { class: 'sprite' }, [spriteJefe()]), el('div', { class: 'sprite' }, [retratoOk ? el('img', { src: RETRATO, alt: '' }) : spriteOscar()])]),
+          el('p', { class: 'cierre', text: p[1] }), el('p', { class: 'dato', text: 'Paso ' + (i + 1) + ' de ' + pasos.length }),
+          botonContinuar(i < pasos.length - 1 ? 'Siguiente' : 'A pelear')], function () { i++; if (i < pasos.length) setTimeout(mostrar, 0); else resolve(); });
+      };
+      mostrar();
+    });
+  }
+
+  // ===================== AJUSTES =====================
+  $('ajustes').appendChild(icono('ajustes', true));
+  $('ajustes').addEventListener('click', function () {
+    var activo = document.documentElement.classList.contains('reducido');
+    modalInfo('Ajustes', ['Movimiento reducido: ' + (activo ? 'activado' : 'desactivado') + '. El sonido llega en la v2.'], [
+      el('button', { class: 'btn continuar', type: 'button', text: activo ? 'Activar animaciones' : 'Reducir movimiento', onclick: function () {
+        document.documentElement.classList.toggle('reducido'); prefs.reducido = document.documentElement.classList.contains('reducido'); guardar(CLAVE + ':prefs', prefs); cerrarModal();
+      } }),
+      el('button', { class: 'btn continuar', type: 'button', text: 'Ver la introducción', onclick: function () { cerrarModal(); setTimeout(function () { if (modelo) intro(); }, 0); } }),
+    ]);
+  });
+  $('racha').addEventListener('click', function () {
+    modalInfo('Racha', ['Días hábiles seguidos con al menos un envío. Los fines de semana no suman ni la rompen, y hoy cuenta hasta que termine el día.',
+      'Cada 3 días de racha la XP sube 10 %, hasta ×1,5.']);
+  });
+
+  // ===================== DATOS =====================
+  function bloqueado() {
+    decir('Este juego es privado. Ábrelo con el enlace completo que te compartieron.', []);
+    $('panel').textContent = '';
+    $('sync').textContent = '';
+  }
+  function pintarTodo(m, sync, conReplay) {
+    modelo = m;
+    resultado = simular(construirEventos(m), m);
+    pintarSprites();
+    verEstado(sync);
+    verPanel();
+    pintarTabs();
+    if (pestana !== 'arena') irA(pestana);
+    if (!conReplay || replayActivo) { if (!replayActivo) { verArena(resultado.estado); decir(textoReposo(resultado.estado), []); } return; }
+    var visto = leer(CLAVE + ':visto');
+    if (MODO_COACH) { verArena(resultado.estado); decir(textoReposo(resultado.estado), []); return; }
+    if (!visto) {
+      verArena(resultado.estado); decir(textoReposo(resultado.estado), []);
+      intro().then(function () { guardar(CLAVE + ':visto', ultimoVistoDe(resultado.efectos)); });
+      return;
+    }
+    var cola = colaReplay(resultado.efectos, visto);
+    if (!cola.items.length) { verArena(resultado.estado); decir(textoReposo(resultado.estado), []); guardar(CLAVE + ':visto', ultimoVistoDe(resultado.efectos)); return; }
+    var desde = null;
+    for (var i = 0; i < resultado.efectos.length; i++) if (resultado.efectos[i].id === visto.id) { desde = resultado.efectos[i].despues; break; }
+    reproducir(cola, desde, resultado.estado);
+  }
+  function arrancar() {
+    if (!/^[\w-]+$/.test(params.api || '') || !params.k) { pintarTabs(); return bloqueado(); }
+    var foto = leer(CLAVE + ':modelo');
+    var fotoValida = foto && foto.postulaciones;
+    if (fotoValida) pintarTodo(foto, '▶ Actualizando…', false);
+    var url = 'https://script.google.com/macros/s/' + params.api + '/exec?formato=json&k=' + encodeURIComponent(params.k);
+    var pedir = function (fresco) { return fetch(url + (fresco ? '&fresco=1' : ''), { credentials: 'omit' }).then(function (r) { return r.json(); }); };
+    pedir(false).then(function (d) { return d && !d.error && !('historial' in d) ? pedir(true) : d; })
+      .then(function (d) {
+        if (d && d.error) return bloqueado();
+        if (!d || !d.postulaciones) throw new Error('sin datos');
+        guardar(CLAVE + ':modelo', d);
+        pintarTodo(d, '', true);
+      })
+      .catch(function () {
+        if (fotoValida) { var g = /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/.exec(foto.generado || ''); verEstado('Sin conexión · datos del ' + (g ? fecha(g[1]) + ', ' + g[2] : '')); pintarTodo(foto, null, true); }
+        else { pintarTabs(); decir('No se pudieron cargar los datos. Revisa la conexión y vuelve a abrir el juego.', []); }
+      });
+  }
+  pintarTabs();
+  pintarSprites();
+  arrancar();
+})();
+</script>
+</body>
+</html>

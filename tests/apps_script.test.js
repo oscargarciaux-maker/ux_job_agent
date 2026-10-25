@@ -12,7 +12,12 @@ const context = {
     Charset: { UTF_8: 'utf8' },
     getUuid: () => 'uuid',
     base64Encode: (data) => Buffer.from(typeof data === 'string' ? data : Buffer.from(data)).toString('base64'),
+    formatDate: (d, tz, fmt) => {  // Bogotá (UTC-5), suficiente para las pruebas
+      const b = new Date(d.getTime() - 5 * 3600000).toISOString();
+      return fmt === 'yyyy-MM-dd' ? b.slice(0, 10) : b.slice(0, 16);
+    },
   },
+  Session: { getScriptTimeZone: () => 'America/Bogota' },
 };
 vm.createContext(context);
 for (const file of fs.readdirSync(dir).filter(f => f.endsWith('.gs')).sort()) {
@@ -546,6 +551,20 @@ assert.strictEqual(dashModel.vacantes.ultimos14, 1);
 assert.strictEqual(dashModel.vacantes.porDia.length, 14);
 assert.strictEqual(dashModel.seguimiento.length, 1, 'la fila REVISIÓN no es un movimiento');
 assert.strictEqual(dashModel.objetivo.porEstado['En lote'], 2);
+// Campos para el juego (2026-10-25)
+assert.strictEqual(run('localDay')('2026-10-21T03:30:00.000Z', 'America/Bogota'), '2026-10-20', 'una carpeta creada de noche en Bogotá es de ese día');
+assert.strictEqual(run('localDay')('', 'America/Bogota'), '');
+{
+  const byCompany = Object.fromEntries(dashModel.postulaciones.lista.map(a => [a.empresa, a.estadoFecha]));
+  assert.strictEqual(byCompany.Kanguro, '2026-10-24', 'fecha del cambio de estado: la del mensaje en Seguimiento');
+  assert.strictEqual(byCompany.Belcorp, '', 'un rechazo sin hallazgo en Seguimiento queda sin fecha');
+  assert.strictEqual(byCompany.Mind, '');
+  assert.strictEqual(dashModel.historial.length, 1);
+  assert.strictEqual(dashModel.historial[0].empresa, 'Kanguro');
+  const cold = Object.fromEntries(dashModel.correos.lista.map(c => [c.empresa, c]));
+  assert.deepStrictEqual([cold.Ludus.entregadas, cold.Ludus.rebotadas, cold.Ludus.clave, cold.Ludus.dia], [1, 1, 'enviado', '2026-10-20']);
+  assert.deepStrictEqual([cold.Ceiba.clave, cold.Movii.clave, cold.Movii.entregadas, cold.Movii.dia], ['respondio', 'borrador', 0, '']);
+}
 assert.strictEqual(dashModel.meta, 50);
 assert.ok(fs.readFileSync(path.join(dir, 'dashboard.html'), 'utf8').includes('/*__DATA__*/null'), 'dashboard.html necesita el marcador de datos');
 {
