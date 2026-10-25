@@ -30,6 +30,8 @@ const listed = JSON.parse(fs.readFileSync(path.join(dir, 'files.json'), 'utf8'))
 const actual = fs.readdirSync(dir).filter(f => f.endsWith('.gs') || f === 'appsscript.json').sort();
 assert.deepStrictEqual(listed, actual, 'apps_script/files.json no coincide con los archivos de apps_script/');
 const run = (expr) => vm.runInContext(expr, context);
+// Todo el texto de apps_script/ (sin carpetas como juego/, que guarda imágenes)
+const textFiles = () => fs.readdirSync(dir).filter(f => fs.statSync(path.join(dir, f)).isFile());
 
 const es = run('SAMPLE_VACANCIES_[0]');
 const en = run('SAMPLE_VACANCIES_[1]');
@@ -320,7 +322,7 @@ assert.ok(!context.isWithinCvWindow(6) && context.isWithinCvWindow(7) && context
 const setupCode = fs.readFileSync(path.join(dir, 'Setup.gs'), 'utf8');
 assert.ok(/'generarCVsDesdeIA'\)\.timeBased\(\)\.everyMinutes\(CONFIG\.CV_EVERY_MINUTES\)/.test(setupCode));
 assert.ok(/atHour\(CONFIG\.PIPELINE_HOUR\)\.nearMinute\(0\)/.test(setupCode));
-assert.ok(!/CV_HOUR\b/.test(fs.readdirSync(dir).map(f => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n')));
+assert.ok(!/CV_HOUR\b/.test(textFiles().map(f => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n')));
 
 // Guía de búsqueda y HV (2026-10-22): filtros nuevos, avisos cerrados y reglas de la HV
 const ex = d => context.exclusionReason({ title: 'UX Designer', description: d });
@@ -575,7 +577,7 @@ assert.ok(fs.readFileSync(path.join(dir, 'dashboard.html'), 'utf8').includes('/*
 }
 
 // HITL: ninguna llamada de envío de correo en el código
-const allCode = fs.readdirSync(dir).map(f => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n');
+const allCode = textFiles().map(f => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n');
 assert.ok(!/\.send\(|Messages\.send|sendEmail|GmailApp/.test(allCode), 'El agente no debe poder enviar correos');
 
 // Cargador: descarga los .gs listados (aquí desde disco) y expone las funciones públicas
