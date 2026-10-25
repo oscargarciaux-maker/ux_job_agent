@@ -65,8 +65,11 @@ baja ni un poco** por hacer muchas.
 
 ## Paso 2. La HV
 
-Aplica la skill `crear-hv` en **modo B (empresa en frío)** en la misma carpeta y después `revisar-hv`. Una HV por
-empresa (no una por correo). Debe quedar un solo Google Doc `HV_...` en la carpeta: Apps Script lo adjunta en PDF.
+Aplica la skill `crear-hv` en **modo B (empresa en frío)** en la misma carpeta. Una HV por empresa (no una por
+correo). Desde 2026-10-25 se deja solo `CV_IA.json` (no el Google Doc): Apps Script arma la HV desde la plantilla en la
+misma corrida que crea los borradores y adjunta su PDF. Si ya hay un Google Doc `HV_...` en la carpeta, se usa ese.
+Después de la corrida, `revisar-hv` (revisión visual) al menos a una HV por tanda; si hay que corregir una HV cuyos
+borradores ya existen, corrige el Doc y reescribe los borradores con `"reemplazar": true`.
 
 ## Paso 3. Direcciones (al menos 3 por empresa, cada una con fuente)
 

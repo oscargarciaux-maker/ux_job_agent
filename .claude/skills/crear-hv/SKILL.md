@@ -138,6 +138,16 @@ marcador de `MASTER_TEMPLATE` (sin llaves; `""` = se borra ese párrafo) más `_
 `""`).
 Apps Script lo valida y arma la HV en su siguiente pasada (cada 10 minutos, de 7:00 a 22:59).
 
+### Modo B (empresa en frío): solo `CV_IA.json` (desde 2026-10-25)
+No armes el Google Doc a mano (gasta muchos tokens por HV). Escribe `CV_IA.json` en `Correos en frío/<…>/<Empresa>/`
+con el mismo contrato que en la tarea diaria (`_nombre_archivo` = `HV_Oscar_Garcia_<Cargo>`, `_correo_cuerpo` = `""`).
+Antes de subirlo, revisa tú las reglas duras y estima el largo: perfil de 3 a 5 líneas y ningún logro, perfil ni línea de
+habilidades que termine con una línea de 1 a 3 palabras. Cuando la carpeta tiene también `Correos.json` (skill
+`correo-en-frio`), Apps Script valida el `CV_IA.json` con las mismas reglas que las vacantes, copia `MASTER_TEMPLATE`,
+la llena, exporta el PDF y crea los borradores en su corrida horaria; si el JSON no pasa, deja los errores en
+`Correos_ERRORES.txt`. Después de esa corrida aplica `revisar-hv` (revisión visual) al menos a una HV por tanda y a las
+que tu estimación marcó en riesgo.
+
 ### En una conversación (inmediato)
 Cuando el usuario la pide en el chat, arma la HV en ese momento (con los conectores de Google Drive y Google Docs; lee
 antes la skill `google-workspace` si está disponible):
