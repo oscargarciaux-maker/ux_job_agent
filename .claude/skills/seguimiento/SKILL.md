@@ -31,7 +31,9 @@ empresa, reconstruir cada proceso, separar hechos de dudas, dejar evidencia y ce
 ## Paso 2. Cobertura por fecha (Gmail)
 
 1. **Todo lo recibido en la ventana:** `after:<desde> before:<hasta+1>` (con `pageSize` 50 y todas las páginas), sin
-   filtrar por empresa. Incluye archivados, Promociones, Actualizaciones y Social.
+   filtrar por empresa. Incluye archivados, Promociones, Actualizaciones y Social: **nunca uses `-category:` para
+   ahorrar páginas**. El 25 oct 2026 la primera prueba excluyó Promociones y Social y no vio el rechazo de Experian,
+   que Gmail había puesto en Promociones; la carpeta se pasó a verde por error.
 2. **Segunda pasada por Spam y Papelera:** `in:spam` e `in:trash` (`includeTrash`) en la misma ventana.
 3. **Enviados de la ventana:** `in:sent` en la misma ventana (postulaciones y correos en frío enviados, pruebas
    entregadas).
@@ -67,7 +69,12 @@ Para cada hilo relevante:
 
 - Un estado **nunca baja** sin evidencia nueva: un proceso `En proceso` no vuelve a amarillo por silencio, y uno
   `Rechazada` solo cambia si la empresa reabre el proceso.
-- Si los correos de una misma empresa se contradicen, gana el más reciente; cita los dos en Notas. Si la carpeta dice
+- Si los correos de una misma empresa se contradicen, gana el más reciente; cita los dos en Notas.
+- **Antes de cambiar el color de una carpeta**, busca el nombre de la empresa (y el dominio de su portal o ATS) en
+  todo el correo de la ventana y hasta hoy, con `in:anywhere` (incluye Promociones, Spam y Papelera), y lee el mensaje
+  más reciente. Así un rechazo que llegó después, o a otra pestaña, no se pasa por alto. Si la carpeta está roja,
+  solo la cambias si la empresa reabre el proceso **después** del rechazo; preguntarle al candidato no reemplaza esta
+  búsqueda. Si la carpeta dice
   algo que los correos de la ventana contradicen y el motivo pudo quedar fuera de la ventana (p. ej. carpeta roja y una
   invitación a evaluación más reciente), no lo cambies: va a "falta confirmar contigo".
 
