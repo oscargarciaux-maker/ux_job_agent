@@ -53,7 +53,7 @@ Estados: ✅ hecho y probado · 🟡 parcial · ⏳ pendiente · ❓ falta una d
 | Colores: rojo rechazada, verde en proceso, amarillo aplicada sin respuesta | ✅ | `colorToStatus` lee los colores; el agente ya no pinta carpetas |
 | Publicaciones de LinkedIn sin carpeta propia ni color: un documento "Posts" del día con todos los enlaces (decisión del usuario 2026-10-24) | ✅ | `addPostsToDailyDoc_`, `postEntry` |
 | Hoja 1, Aplicadas, Correos en frío | 🟡 | Hoja 1 y Aplicadas ✅; Correos en frío solo se lee |
-| Actualizar estados y colores con los correos de respuesta | ⏳ | requiere leer Gmail (nuevo permiso `gmail.readonly` en el manifiesto) |
+| Actualizar estados y colores con los correos de respuesta | ✅ | skill `seguimiento` (conector de Gmail en solo lectura, cuenta laboral; tarea "Seguimiento diario"); colores con `folderColorRgb`, evidencia en la pestaña `Seguimiento`. Apps Script no lee Gmail |
 
 ## Hoja de vida (guía §7)
 
