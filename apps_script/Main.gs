@@ -6,7 +6,7 @@
 /** Funciones públicas que expone el agente al Cargador (instalador/Cargador.gs). */
 function exports_() {
   return { ejecutarPipeline, ejecutarPrueba, ejecutarSimulacion, configurarAgente, generarCVsDesdeIA, probarCVsDesdeIA,
-           sincronizarAplicadas, crearBorradoresEnFrio };
+           sincronizarAplicadas, crearBorradoresEnFrio, doGet, configurarTablero };
 }
 
 const SAMPLE_VACANCIES_ = [

@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="color-scheme" content="light dark">
+<title>Búsqueda UX · Oscar Garcia</title>
+<style>
+:root {
+  --bg: #f6f7f9; --surface: #ffffff; --surface-2: #f0f2f5; --fg: #111827; --muted: #5b6472; --line: #e3e6eb;
+  --accent: #3b5bdb; --accent-soft: #e7ecfd; --focus: #3b5bdb;
+  --s-proceso: #1f8a4c; --s-proceso-bg: #e3f4ea; --s-rechazada: #c9372c; --s-rechazada-bg: #fbe7e5;
+  --s-sin: #a86a00; --s-sin-bg: #fdf1d8; --s-aplicada: #6b7280; --s-aplicada-bg: #eef0f3;
+  --s-prep: #5b4bd1; --s-prep-bg: #ece9fb;
+  --radius: 14px; --shadow: 0 1px 2px rgba(17, 24, 39, .06), 0 1px 1px rgba(17, 24, 39, .04);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1218; --surface: #171b23; --surface-2: #1e232d; --fg: #eef1f5; --muted: #a2abb8; --line: #2a303b;
+    --accent: #8ea6ff; --accent-soft: #232b45; --focus: #8ea6ff;
+    --s-proceso: #5cc98b; --s-proceso-bg: #16301f; --s-rechazada: #ff8a80; --s-rechazada-bg: #3a1c1a;
+    --s-sin: #f2b84b; --s-sin-bg: #3a2c10; --s-aplicada: #aab2bf; --s-aplicada-bg: #262b34;
+    --s-prep: #b3a8ff; --s-prep-bg: #29244a; --shadow: none;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+.wrap { max-width: 960px; margin: 0 auto; padding: 16px 16px 48px; }
+a { color: var(--accent); }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 6px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+header.top { display: flex; gap: 12px; align-items: flex-start; justify-content: space-between; padding: 8px 0 16px; }
+header.top h1 { font-size: 1.25rem; line-height: 1.3; margin: 0; letter-spacing: -.01em; }
+header.top p { margin: 2px 0 0; color: var(--muted); font-size: .875rem; }
+.btn {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 8px 14px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--fg); font: inherit; font-size: .875rem;
+  text-decoration: none; cursor: pointer; white-space: nowrap;
+}
+.btn:hover { background: var(--surface-2); }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+.hero { padding: 20px; display: grid; gap: 16px; grid-template-columns: auto 1fr; align-items: center; }
+.hero h2 { margin: 0; font-size: .8125rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.hero .big { font-size: 2rem; font-weight: 700; line-height: 1.1; margin: 4px 0; }
+.hero .big small { font-size: 1rem; font-weight: 500; color: var(--muted); }
+.hero p.sum { margin: 0; color: var(--fg); }
+.ring { width: 96px; height: 96px; }
+.ring .track { stroke: var(--surface-2); }
+.ring .value { stroke: var(--accent); transition: stroke-dashoffset .6s ease; }
+.ring text { fill: var(--fg); font-weight: 700; font-size: 20px; }
+
+.kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 12px 0 20px; }
+@media (min-width: 720px) { .kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.kpi { padding: 14px 16px; }
+.kpi .label { font-size: .8125rem; color: var(--muted); }
+.kpi .value { font-size: 1.625rem; font-weight: 700; line-height: 1.2; margin-top: 2px; }
+.kpi .hint { font-size: .8125rem; color: var(--muted); margin-top: 2px; }
+
+nav.tabs {
+  position: sticky; top: 0; z-index: 5; background: var(--bg); padding: 8px 0; margin: 0 -16px; padding-left: 16px;
+  padding-right: 16px; overflow-x: auto; scrollbar-width: none; display: flex; gap: 6px; border-bottom: 1px solid var(--line);
+}
+nav.tabs::-webkit-scrollbar { display: none; }
+@media (min-width: 992px) { nav.tabs { margin: 0; padding-left: 0; padding-right: 0; } }
+nav.tabs button {
+  flex: none; min-height: 40px; padding: 8px 14px; border-radius: 999px; border: 1px solid transparent; background: none;
+  color: var(--muted); font: inherit; font-size: .9375rem; cursor: pointer;
+}
+nav.tabs button[aria-selected="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+nav.tabs .count { font-size: .75rem; margin-left: 4px; opacity: .8; }
+
+section.panel { padding-top: 16px; }
+section.panel[hidden] { display: none; }
+.grid2 { display: grid; gap: 12px; }
+@media (min-width: 720px) { .grid2 { grid-template-columns: 1fr 1fr; } }
+.box { padding: 16px; }
+.box h3 { margin: 0 0 4px; font-size: 1rem; }
+.box p.sub { margin: 0 0 12px; color: var(--muted); font-size: .875rem; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0 0 10px; padding: 0; list-style: none; font-size: .8125rem; color: var(--muted); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.weeks { display: grid; gap: 10px; }
+.week { display: grid; grid-template-columns: minmax(84px, 30%) 1fr auto; grid-template-areas: "name bar n"; gap: 10px; align-items: center; font-size: .875rem; }
+.week .name { grid-area: name; } .week .bar { grid-area: bar; } .week .n { grid-area: n; }
+@media (max-width: 559px) { .week { grid-template-columns: 1fr auto; grid-template-areas: "name n" "bar bar"; gap: 4px 10px; } }
+.week .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.week .bar { display: flex; height: 14px; border-radius: 7px; overflow: hidden; background: var(--surface-2); }
+.week .bar span { display: block; height: 100%; }
+.week .n { font-weight: 600; min-width: 2ch; text-align: right; }
+.goal-line { font-size: .75rem; color: var(--muted); margin-top: 8px; }
+
+.funnel { display: grid; gap: 8px; }
+.step { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; font-size: .875rem; }
+.step .track { grid-column: 1 / -1; height: 10px; border-radius: 5px; background: var(--surface-2); overflow: hidden; }
+.step .track span { display: block; height: 100%; background: var(--accent); border-radius: 5px; }
+.step b { font-weight: 600; }
+
+.spark { display: flex; align-items: flex-end; gap: 3px; height: 64px; }
+.spark span { flex: 1; background: var(--accent); opacity: .85; border-radius: 3px 3px 0 0; min-height: 2px; }
+.spark-axis { display: flex; justify-content: space-between; font-size: .75rem; color: var(--muted); margin-top: 4px; }
+
+.next { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.next li { display: grid; gap: 2px; padding: 10px 12px; border-radius: 10px; background: var(--surface-2); font-size: .875rem; }
+.next li b { font-weight: 600; }
+
+.toolbar { display: grid; gap: 10px; margin-bottom: 12px; }
+.search {
+  width: 100%; min-height: 44px; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--fg); font: inherit;
+}
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  min-height: 36px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface);
+  color: var(--fg); font: inherit; font-size: .8125rem; cursor: pointer;
+}
+.chip[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.results { font-size: .8125rem; color: var(--muted); margin: 0 0 8px; }
+
+.list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.item { padding: 12px 14px; display: grid; gap: 4px; }
+.item .row { display: flex; gap: 8px; align-items: baseline; justify-content: space-between; }
+.item .title { font-weight: 600; overflow-wrap: anywhere; }
+.item .meta { font-size: .8125rem; color: var(--muted); overflow-wrap: anywhere; }
+.item .note { font-size: .8125rem; overflow-wrap: anywhere; }
+.item a { font-size: .8125rem; }
+.badge { flex: none; font-size: .75rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.b-proceso { color: var(--s-proceso); background: var(--s-proceso-bg); }
+.b-rechazada { color: var(--s-rechazada); background: var(--s-rechazada-bg); }
+.b-sinRespuesta { color: var(--s-sin); background: var(--s-sin-bg); }
+.b-aplicada { color: var(--s-aplicada); background: var(--s-aplicada-bg); }
+.b-preparada { color: var(--s-prep); background: var(--s-prep-bg); }
+.more { margin-top: 12px; }
+.empty { padding: 24px 16px; text-align: center; color: var(--muted); }
+.error { padding: 24px; }
+footer { margin-top: 28px; font-size: .8125rem; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Búsqueda de empleo UX/UI · Oscar Garcia</h1>
+      <p id="updated">Cargando…</p>
+    </div>
+    <a class="btn" id="reload" href="#" target="_top" aria-label="Actualizar los datos">↻ Actualizar</a>
+  </header>
+
+  <main id="app" aria-live="polite"></main>
+  <footer>
+    Datos en vivo desde el registro de la búsqueda (Google Sheets). Las postulaciones se cuentan por la semana en que
+    Oscar las organiza; los correos en frío, por dirección.
+  </footer>
+</div>
+
+<script>window.DATA = /*__DATA__*/null;</script>
+<script>
+(function () {
+  'use strict';
+  var D = window.DATA;
+  var app = document.getElementById('app');
+  var STATUS = {
+    proceso: { label: 'En proceso', color: 'var(--s-proceso)' },
+    sinRespuesta: { label: 'Sin respuesta', color: 'var(--s-sin)' },
+    aplicada: { label: 'Aplicada', color: 'var(--s-aplicada)' },
+    rechazada: { label: 'Rechazada', color: 'var(--s-rechazada)' },
+    preparada: { label: 'Preparada, sin enviar', color: 'var(--s-prep)' }
+  };
+  var MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+
+  function el(tag, attrs, children) {
+    var node = document.createElement(tag);
+    if (attrs) Object.keys(attrs).forEach(function (k) {
+      if (k === 'text') node.textContent = attrs[k];
+      else if (k === 'class') node.className = attrs[k];
+      else if (k === 'style') node.setAttribute('style', attrs[k]);
+      else node.setAttribute(k, attrs[k]);
+    });
+    (children || []).forEach(function (c) { if (c != null) node.appendChild(typeof c === 'string' ? document.createTextNode(c) : c); });
+    return node;
+  }
+  function fmtDate(iso) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || ''));
+    return m ? Number(m[3]) + ' ' + MONTHS[Number(m[2]) - 1] : String(iso || '');
+  }
+  function pct(a, b) { return b ? Math.round(100 * a / b) : 0; }
+  function safeUrl(u) { return /^https:\/\//.test(String(u || '')) ? u : ''; }
+  function link(url, text) {
+    var u = safeUrl(url);
+    return u ? el('a', { href: u, target: '_blank', rel: 'noopener', text: text }) : null;
+  }
+  function badge(key, text) { return el('span', { class: 'badge b-' + key, text: text || STATUS[key].label }); }
+
+  if (!D) {
+    app.appendChild(el('div', { class: 'card error' }, [
+      el('h2', { text: 'No se pudieron cargar los datos' }),
+      el('p', { text: 'Recarga la página en unos segundos. Si sigue igual, avísale a Oscar.' })
+    ]));
+    document.getElementById('updated').textContent = '';
+    return;
+  }
+
+  var g = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(D.generado || '');
+  document.getElementById('updated').textContent = g
+    ? 'Datos en vivo · actualizado el ' + Number(g[3]) + ' de ' + MONTHS[Number(g[2]) - 1] + ', ' + g[4] + ':' + g[5]
+    : 'Datos en vivo';
+  var reload = document.getElementById('reload');
+  if (safeUrl(D.recargar)) reload.href = D.recargar; else reload.hidden = true;
+
+  var P = D.postulaciones, C = D.correos;
+  var weeks = P.semanas || [];
+  var current = weeks.length ? weeks[weeks.length - 1] : null;
+
+  // ---------- Esta semana ----------
+  var thisWeek = current ? current.total : 0;
+  var goal = D.meta || 50;
+  var ratio = Math.min(1, thisWeek / goal);
+  var R = 40, CIRC = 2 * Math.PI * R;
+  var svgNS = 'http://www.w3.org/2000/svg';
+  function svg(tag, attrs) {
+    var n = document.createElementNS(svgNS, tag);
+    Object.keys(attrs).forEach(function (k) { n.setAttribute(k, attrs[k]); });
+    return n;
+  }
+  var ring = svg('svg', { class: 'ring', viewBox: '0 0 96 96', role: 'img',
+    'aria-label': thisWeek + ' de ' + goal + ' postulaciones esta semana' });
+  ring.appendChild(svg('circle', { class: 'track', cx: 48, cy: 48, r: R, fill: 'none', 'stroke-width': 10 }));
+  var arc = svg('circle', { class: 'value', cx: 48, cy: 48, r: R, fill: 'none', 'stroke-width': 10, 'stroke-linecap': 'round',
+    'stroke-dasharray': CIRC, 'stroke-dashoffset': CIRC * (1 - ratio), transform: 'rotate(-90 48 48)' });
+  ring.appendChild(arc);
+  var t = svg('text', { x: 48, y: 55, 'text-anchor': 'middle' });
+  t.textContent = pct(thisWeek, goal) + '%';
+  ring.appendChild(t);
+
+  var summary = current
+    ? (current.proceso ? current.proceso + ' en proceso · ' : '') + (current.rechazada ? current.rechazada + ' rechazadas · ' : '') +
+      'faltan ' + Math.max(0, goal - thisWeek) + ' para la meta.'
+    : 'Todavía no hay postulaciones registradas.';
+  app.appendChild(el('section', { class: 'card hero', 'aria-labelledby': 'h-week' }, [
+    ring,
+    el('div', null, [
+      el('h2', { id: 'h-week', text: current ? 'Semana actual · ' + current.semana : 'Esta semana' }),
+      el('div', { class: 'big' }, [String(thisWeek), el('small', { text: ' / ' + goal + ' postulaciones' })]),
+      el('p', { class: 'sum', text: summary })
+    ])
+  ]));
+
+  // ---------- Cifras clave ----------
+  function kpi(label, value, hint) {
+    return el('div', { class: 'card kpi' }, [el('div', { class: 'label', text: label }), el('div', { class: 'value', text: value }),
+      hint ? el('div', { class: 'hint', text: hint }) : null]);
+  }
+  app.appendChild(el('div', { class: 'kpis' }, [
+    kpi('Postulaciones enviadas', String(P.total), weeks.length + (weeks.length === 1 ? ' semana' : ' semanas')),
+    kpi('Tasa de respuesta', P.tasaRespuesta + '%', (P.proceso + P.rechazada) + ' respondieron'),
+    kpi('En proceso', String(P.proceso), 'entrevistas o pruebas'),
+    kpi('Correos en frío entregados', String(C.entregados), 'de ' + C.enviados + ' enviados · ' + C.rebotados + ' rebotes')
+  ]));
+
+  // ---------- Pestañas ----------
+  var TABS = [
+    { id: 'resumen', label: 'Resumen' },
+    { id: 'postulaciones', label: 'Postulaciones', count: P.lista.length },
+    { id: 'correos', label: 'Correos en frío', count: C.lista.length },
+    { id: 'pendientes', label: 'Por enviar', count: (D.porEnviar || []).length },
+    { id: 'actividad', label: 'Actividad', count: (D.seguimiento || []).length }
+  ];
+  var nav = el('nav', { class: 'tabs', role: 'tablist', 'aria-label': 'Secciones del tablero' });
+  var panels = {};
+  TABS.forEach(function (tab, i) {
+    var b = el('button', { role: 'tab', id: 'tab-' + tab.id, 'aria-controls': 'panel-' + tab.id,
+      'aria-selected': i === 0 ? 'true' : 'false', tabindex: i === 0 ? '0' : '-1' },
+      [tab.label, tab.count != null ? el('span', { class: 'count', text: String(tab.count) }) : null]);
+    b.addEventListener('click', function () { select(tab.id, false); });
+    nav.appendChild(b);
+    panels[tab.id] = el('section', { class: 'panel', role: 'tabpanel', id: 'panel-' + tab.id, 'aria-labelledby': 'tab-' + tab.id,
+      tabindex: '0' });
+    if (i) panels[tab.id].hidden = true;
+  });
+  nav.addEventListener('keydown', function (e) {
+    var idx = TABS.map(function (t) { return 'tab-' + t.id; }).indexOf(document.activeElement.id);
+    if (idx < 0) return;
+    var next = e.key === 'ArrowRight' ? idx + 1 : e.key === 'ArrowLeft' ? idx - 1 : e.key === 'Home' ? 0 : e.key === 'End' ? TABS.length - 1 : null;
+    if (next == null) return;
+    e.preventDefault();
+    select(TABS[(next + TABS.length) % TABS.length].id, true);
+  });
+  function select(id, focus) {
+    TABS.forEach(function (t) {
+      var on = t.id === id, b = document.getElementById('tab-' + t.id);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+      b.tabIndex = on ? 0 : -1;
+      panels[t.id].hidden = !on;
+      if (on && focus) b.focus();
+    });
+  }
+  app.appendChild(nav);
+  TABS.forEach(function (t) { app.appendChild(panels[t.id]); });
+
+  // ---------- Resumen ----------
+  var order = ['proceso', 'sinRespuesta', 'aplicada', 'rechazada'];
+  var legend = el('ul', { class: 'legend', 'aria-hidden': 'true' }, order.map(function (k) {
+    return el('li', null, [el('i', { style: 'background:' + STATUS[k].color }), STATUS[k].label]);
+  }));
+  var maxWeek = Math.max(goal, Math.max.apply(null, weeks.map(function (w) { return w.total; }).concat([1])));
+  var weekRows = weeks.slice(-8).map(function (w) {
+    var bar = el('div', { class: 'bar', role: 'img', 'aria-label': w.semana + ': ' + w.total + ' postulaciones; ' +
+      order.map(function (k) { return w[k] + ' ' + STATUS[k].label.toLowerCase(); }).join(', ') });
+    order.forEach(function (k) {
+      if (w[k]) bar.appendChild(el('span', { style: 'width:' + (100 * w[k] / maxWeek) + '%;background:' + STATUS[k].color }));
+    });
+    return el('div', { class: 'week' }, [el('span', { class: 'name', title: w.semana, text: w.semana }), bar,
+      el('span', { class: 'n', text: String(w.total) })]);
+  });
+  var weeksBox = el('div', { class: 'card box' }, [
+    el('h3', { text: 'Postulaciones por semana' }),
+    el('p', { class: 'sub', text: 'Barra completa = meta de ' + goal + '. Color = estado actual de cada postulación.' }),
+    legend,
+    weekRows.length ? el('div', { class: 'weeks' }, weekRows) : el('p', { class: 'empty', text: 'Aún no hay semanas registradas.' })
+  ]);
+
+  function step(label, n, of) {
+    return el('div', { class: 'step' }, [el('span', { text: label }), el('b', { text: n + (of ? ' (' + pct(n, of) + '%)' : '') }),
+      el('div', { class: 'track', 'aria-hidden': 'true' }, [el('span', { style: 'width:' + (of ? pct(n, of) : 100) + '%' })])]);
+  }
+  var funnelBox = el('div', { class: 'card box' }, [
+    el('h3', { text: 'De postulación a entrevista' }),
+    el('p', { class: 'sub', text: 'Cuántas postulaciones avanzan en cada etapa.' }),
+    el('div', { class: 'funnel' }, [
+      step('Enviadas', P.total, 0),
+      step('Con respuesta de la empresa', P.proceso + P.rechazada, P.total),
+      step('En proceso (entrevista o prueba)', P.proceso, P.total)
+    ])
+  ]);
+
+  var days = (D.vacantes && D.vacantes.porDia) || [];
+  var maxDay = Math.max.apply(null, days.map(function (d) { return d.n; }).concat([1]));
+  var spark = el('div', { class: 'spark', role: 'img', 'aria-label': 'Vacantes nuevas por día, últimos 14 días: ' +
+    days.map(function (d) { return fmtDate(d.dia) + ' ' + d.n; }).join(', ') }, days.map(function (d) {
+    return el('span', { title: fmtDate(d.dia) + ': ' + d.n, style: 'height:' + Math.max(3, 100 * d.n / maxDay) + '%' });
+  }));
+  var vacBox = el('div', { class: 'card box' }, [
+    el('h3', { text: 'Vacantes que encuentra el agente' }),
+    el('p', { class: 'sub', text: (D.vacantes ? D.vacantes.ultimos14 : 0) + ' vacantes nuevas en 14 días, ya filtradas y verificadas.' }),
+    spark,
+    days.length ? el('div', { class: 'spark-axis', 'aria-hidden': 'true' }, [el('span', { text: fmtDate(days[0].dia) }),
+      el('span', { text: 'hoy' })]) : null
+  ]);
+
+  var actions = (D.seguimiento || []).filter(function (r) { return r.siguiente && !/^(esperar|ninguna|no aplica|-|—)/i.test(r.siguiente.trim()); }).slice(0, 5);
+  var nextBox = el('div', { class: 'card box' }, [
+    el('h3', { text: 'Lo que viene' }),
+    el('p', { class: 'sub', text: 'Acciones pendientes según el seguimiento del correo.' }),
+    actions.length ? el('ul', { class: 'next' }, actions.map(function (r) {
+      return el('li', null, [el('b', { text: r.empresa + (r.cargo ? ' · ' + r.cargo : '') }), el('span', { text: r.siguiente }),
+        el('span', { class: 'meta', style: 'color:var(--muted);font-size:.8125rem', text: r.ahora + (r.fecha ? ' · ' + fmtDate(r.fecha) : '') })]);
+    })) : el('p', { class: 'empty', text: 'No hay acciones pendientes: todo está a la espera de respuesta.' })
+  ]);
+  panels.resumen.appendChild(el('div', { class: 'grid2' }, [weeksBox, funnelBox, vacBox, nextBox]));
+
+  // ---------- Listas con búsqueda ----------
+  function norm(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
+  function searchableList(panel, opts) {
+    var state = { q: '', filter: 'all', limit: 30 };
+    var input = el('input', { class: 'search', type: 'search', placeholder: opts.placeholder, 'aria-label': opts.placeholder });
+    var chips = opts.filters ? el('div', { class: 'chips', role: 'group', 'aria-label': 'Filtrar por estado' },
+      opts.filters.map(function (f) {
+        var c = el('button', { class: 'chip', type: 'button', 'aria-pressed': f.id === 'all' ? 'true' : 'false',
+          text: f.label + ' (' + f.count + ')' });
+        c.addEventListener('click', function () {
+          state.filter = f.id; state.limit = 30;
+          Array.prototype.forEach.call(chips.children, function (x) { x.setAttribute('aria-pressed', x === c ? 'true' : 'false'); });
+          render();
+        });
+        return c;
+      })) : null;
+    var results = el('p', { class: 'results', role: 'status' });
+    var list = el('ul', { class: 'list' });
+    var more = el('button', { class: 'btn more', type: 'button', text: 'Ver más' });
+    more.addEventListener('click', function () { state.limit += 30; render(); });
+    input.addEventListener('input', function () { state.q = norm(input.value); state.limit = 30; render(); });
+    panel.appendChild(el('div', { class: 'toolbar' }, [input, chips]));
+    panel.appendChild(results);
+    panel.appendChild(list);
+    panel.appendChild(more);
+    function render() {
+      var rows = opts.rows.filter(function (r) {
+        return (state.filter === 'all' || opts.match(r, state.filter)) && (!state.q || norm(opts.text(r)).indexOf(state.q) !== -1);
+      });
+      results.textContent = rows.length === 1 ? '1 resultado' : rows.length + ' resultados';
+      list.textContent = '';
+      if (!rows.length) list.appendChild(el('li', { class: 'empty', text: opts.empty }));
+      rows.slice(0, state.limit).forEach(function (r) { list.appendChild(opts.item(r)); });
+      more.hidden = rows.length <= state.limit;
+    }
+    render();
+  }
+
+  var appRows = P.lista.slice().sort(function (a, b) { return String(b.creada).localeCompare(String(a.creada)); });
+  var counts = { all: appRows.length };
+  appRows.forEach(function (a) { counts[a.clave] = (counts[a.clave] || 0) + 1; });
+  searchableList(panels.postulaciones, {
+    placeholder: 'Buscar empresa o cargo',
+    rows: appRows,
+    filters: [{ id: 'all', label: 'Todas', count: counts.all }].concat(['proceso', 'sinRespuesta', 'aplicada', 'rechazada', 'preparada']
+      .filter(function (k) { return counts[k]; }).map(function (k) { return { id: k, label: STATUS[k].label, count: counts[k] }; })),
+    match: function (r, f) { return r.clave === f; },
+    text: function (r) { return r.empresa + ' ' + r.cargo + ' ' + r.semana; },
+    empty: 'No hay postulaciones con ese filtro.',
+    item: function (r) {
+      return el('li', { class: 'card item' }, [
+        el('div', { class: 'row' }, [el('span', { class: 'title', text: r.empresa || 'Sin empresa' }), badge(r.clave)]),
+        r.cargo ? el('div', { class: 'note', text: r.cargo }) : null,
+        el('div', { class: 'meta', text: r.semana + (r.creada ? ' · ' + fmtDate(r.creada) : '') }),
+        link(r.carpeta, 'Abrir carpeta en Drive')
+      ]);
+    }
+  });
+
+  // ---------- Correos en frío ----------
+  var coldPanel = panels.correos;
+  coldPanel.appendChild(el('div', { class: 'card box', style: 'margin-bottom:12px' }, [
+    el('h3', { text: 'Correos en frío' }),
+    el('p', { class: 'sub', text: 'Contados por dirección de correo. Un rebote es una dirección que no existe o no recibe correo.' }),
+    el('div', { class: 'funnel' }, [
+      step('Enviados', C.enviados, 0),
+      step('Entregados', C.entregados, C.enviados),
+      step('Rebotados', C.rebotados, C.enviados)
+    ]),
+    el('p', { class: 'sub', style: 'margin:12px 0 0', text: C.empresasContactadas + ' empresas contactadas · ' + C.empresasRespondieron +
+      ' respondieron · ' + C.borradores + ' borradores listos sin enviar.' })
+  ]));
+  function coldKey(r) {
+    var s = norm(r.estado);
+    if (/respondi/.test(s)) return 'respondio';
+    if (/rebot/.test(s) && !/sin rebote/.test(s)) return 'rebote';
+    if (/^borrador/.test(s)) return 'borrador';
+    return 'enviado';
+  }
+  var COLD = { respondio: ['Respondió', 'proceso'], enviado: ['Enviado', 'aplicada'], rebote: ['Rebote', 'rechazada'],
+    borrador: ['Borrador sin enviar', 'preparada'] };
+  var coldCounts = { all: C.lista.length };
+  C.lista.forEach(function (r) { var k = coldKey(r); coldCounts[k] = (coldCounts[k] || 0) + 1; });
+  searchableList(coldPanel, {
+    placeholder: 'Buscar empresa, correo o asunto',
+    rows: C.lista.slice().reverse(),
+    filters: [{ id: 'all', label: 'Todos', count: coldCounts.all }].concat(['respondio', 'enviado', 'rebote', 'borrador']
+      .filter(function (k) { return coldCounts[k]; }).map(function (k) { return { id: k, label: COLD[k][0], count: coldCounts[k] }; })),
+    match: function (r, f) { return coldKey(r) === f; },
+    text: function (r) { return r.empresa + ' ' + r.para + ' ' + r.asunto + ' ' + r.respuesta; },
+    empty: 'No hay correos con ese filtro.',
+    item: function (r) {
+      var k = coldKey(r);
+      return el('li', { class: 'card item' }, [
+        el('div', { class: 'row' }, [el('span', { class: 'title', text: r.empresa }), badge(COLD[k][1], r.estado || COLD[k][0])]),
+        el('div', { class: 'note', text: r.para }),
+        r.asunto ? el('div', { class: 'meta', text: 'Asunto: ' + r.asunto }) : null,
+        el('div', { class: 'meta', text: (r.fecha && r.fecha !== '—' ? fmtDate(r.fecha) + ' · ' : '') + (r.hv ? 'HV: ' + r.hv : '') }),
+        r.respuesta && !/^sin respuesta$/i.test(r.respuesta) ? el('div', { class: 'note', text: r.respuesta }) : null
+      ]);
+    }
+  });
+
+  // ---------- Por enviar ----------
+  searchableList(panels.pendientes, {
+    placeholder: 'Buscar empresa o cargo',
+    rows: D.porEnviar || [],
+    match: function () { return true; },
+    text: function (r) { return r.empresa + ' ' + r.cargo; },
+    empty: 'No hay hojas de vida preparadas pendientes de enviar.',
+    item: function (r) {
+      return el('li', { class: 'card item' }, [
+        el('div', { class: 'row' }, [el('span', { class: 'title', text: r.empresa }), badge('preparada', 'Lista para enviar')]),
+        r.cargo ? el('div', { class: 'note', text: r.cargo }) : null,
+        el('div', { class: 'meta', text: [fmtDate(r.fecha), r.verificacion, r.revision].filter(Boolean).join(' · ') }),
+        link(r.hv, 'Ver hoja de vida')
+      ]);
+    }
+  });
+
+  // ---------- Actividad ----------
+  searchableList(panels.actividad, {
+    placeholder: 'Buscar empresa',
+    rows: D.seguimiento || [],
+    match: function () { return true; },
+    text: function (r) { return r.empresa + ' ' + r.cargo + ' ' + r.hecho; },
+    empty: 'Todavía no hay movimientos registrados.',
+    item: function (r) {
+      return el('li', { class: 'card item' }, [
+        el('div', { class: 'row' }, [el('span', { class: 'title', text: r.empresa }),
+          el('span', { class: 'meta', text: fmtDate(r.fechaMensaje || r.fecha) })]),
+        r.cargo ? el('div', { class: 'note', text: r.cargo }) : null,
+        el('div', { class: 'note', text: r.hecho }),
+        r.antes || r.ahora ? el('div', { class: 'meta', text: (r.antes ? r.antes + ' → ' : '') + r.ahora }) : null
+      ]);
+    }
+  });
+})();
+</script>
+</body>
+</html>
