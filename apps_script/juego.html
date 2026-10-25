@@ -55,7 +55,10 @@ a { color: var(--poder); }
 .barra-txt { font-size: 20px; color: var(--texto-2); display: flex; justify-content: space-between; }
 .sprite { position: relative; width: 128px; height: 160px; image-rendering: pixelated; }
 .sprite svg, .sprite img { width: 128px; height: 160px; display: block; image-rendering: pixelated; }
-.sprite img { object-fit: cover; object-position: 50% 0; border: 2px solid var(--borde); background: var(--suelo); }
+.sprite img { object-fit: cover; object-position: 50% 0; }
+/* En la arena y en los modales, el retrato va recortado de la cintura hacia arriba (sección 13) */
+.lado .sprite, .escena .sprite { overflow: hidden; }
+.lado .sprite img, .escena .sprite img { width: 172px; height: 220px; max-width: none; margin-left: -22px; }
 .estrellas { position: absolute; left: 50%; top: -6px; transform: translateX(-50%); color: var(--oro); font-family: var(--pixel); font-size: 12px; white-space: nowrap; }
 .flota { position: absolute; left: 50%; top: 20%; transform: translateX(-50%); font-family: var(--pixel); font-size: 16px; text-shadow: 2px 2px 0 var(--sombra); pointer-events: none; }
 .flota.mala { color: var(--dano); } .flota.buena { color: var(--hp); } .flota.oro { color: var(--oro); }
