@@ -51,6 +51,8 @@ assert.strictEqual(sinFecha, 20 - modelo.postulaciones.lista.filter(a => a.estad
   'rechazos y pruebas sin fecha quedan como historia');
 const entregadas = modelo.correos.lista.reduce((s, c) => s + (c.entregadas || 0), 0);
 assert.strictEqual(eventos.filter(e => e.tipo === 'correo').reduce((s, e) => s + e.n, 0), entregadas);
+assert.strictEqual(cuenta('aliado'), new Set(modelo.correos.lista.filter(c => c.clave === 'respondio').map(c => c.empresa.toLowerCase())).size,
+  'una empresa que respondió es un solo aliado');
 
 // ---------- Simulación ----------
 const { estado, efectos } = J('simular')(eventos, modelo);
