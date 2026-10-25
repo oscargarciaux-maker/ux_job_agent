@@ -22,7 +22,7 @@ ningún dato fuera de LinkedIn y del contexto). Nunca se envía nada.
 - **Nunca** borres ni reemplaces la HV, ni toques una HV que ya está en `Vacantes con IA/CV/` (ya enviada) sin que el
   usuario lo pida en esa conversación. En la tarea diaria solo se revisan las HV de hoy sin `Revision.txt`.
 
-## Fuentes (Google Drive, carpeta `Vacantes con IA`; nunca copiar su contenido a este repositorio público)
+## Fuentes (Google Drive, carpeta `Vacantes con IA/Recursos`, búscalas por nombre; nunca copiar su contenido a este repositorio público)
 
 `CONTEXTO_CV` (los datos), `REGLAS_CV` y `GUIA_CV` (las reglas), `MASTER_TEMPLATE` (el formato y los **enlaces del
 encabezado**: son la referencia de cómo deben quedar), la guía "Guia busqueda de vacantes y creacion de HV.md"

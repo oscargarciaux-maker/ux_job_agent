@@ -155,8 +155,9 @@ criterios leyendo el aviso completo, que es lo que el código no puede juzgar bi
   - Mismo enlace, mismo cargo o mismas funciones → **repetida** (ya aplicada o ya preparada).
   - Otro cargo con otras funciones → **vacante nueva**; avisa que ya hay una postulación a esa empresa.
   - La carpeta no tiene información para comparar → dilo y deja que el usuario decida.
-- Las carpetas dentro de `Prueba` son HV **preparadas sin enviar**: cuentan como repetidas (no se propone de nuevo la
-  misma vacante), pero no como aplicadas.
+- Las HV **preparadas sin enviar** viven en `Vacantes con IA/Sin revisar/<fecha>/` (desde el 25 oct 2026; antes en
+  `CV/Tercera semana/Prueba`) y están listadas en la pestaña `Por enviar`: cuentan como repetidas (no se propone de
+  nuevo la misma vacante), pero no como aplicadas.
 - Si la empresa está en la pestaña `Correos en frío`, avisa que ya se le escribió (no la descarta).
 - Revisa también las otras carpetas de `Sin revisar` (días anteriores) y los `Posts` anteriores: la misma vacante o el
   mismo reclutador pueden volver a aparecer días después con otro enlace.

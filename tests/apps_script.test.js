@@ -295,6 +295,20 @@ assert.ok(['Antigua', 'antiguas', 'Antiguo', ' ANTIGUA '].every(n => run('CONFIG
 assert.ok(!['Antigua semana', 'CV', 'Primera semana'].some(n => run('CONFIG.APPLIED_OLD_FOLDER_PATTERN').test(n)));
 delete context.Drive;
 
+// Por enviar (2026-10-25): HV de Sin revisar con su verificación y su revisión
+const pcr = (...a) => JSON.parse(JSON.stringify(context.pendingCvRecord(...a)));
+assert.deepStrictEqual(pcr('2026-10-24', 'PadSplit_Senior Product Designer', ['HV_Oscar_Garcia_Senior_Product_Designer'],
+  'VEREDICTO: MENOR_PRIORIDAD\nMOTIVO: senior', 'VEREDICTO: LISTA_PARA_ENVIAR\nPAGINAS: 2'),
+  { fecha: '2026-10-24', empresa: 'PadSplit', cargo: 'Senior Product Designer', hv: 'HV_Oscar_Garcia_Senior_Product_Designer',
+    verificacion: 'Menor prioridad', revision: 'Lista para enviar' });
+assert.strictEqual(pcr('2026-10-23', 'Ursus_UX Designer III', ['HV_x'], '', 'VEREDICTO: REVISAR').verificacion, 'Sin verificación');
+assert.strictEqual(pcr('2026-10-23', 'Ursus_UX Designer III', ['HV_x'], '', 'VEREDICTO: REVISAR').revision, 'Revisar');
+assert.strictEqual(context.pendingCvRecord('2026-10-23', 'Mercor', [], '', ''), null);
+assert.ok(context.isCvFile_({ name: 'HV_Oscar', mimeType: 'application/vnd.google-apps.document' }));
+assert.ok(context.isCvFile_({ name: 'CV_Oscar.pdf', mimeType: 'application/pdf' }));
+assert.ok(!context.isCvFile_({ name: 'CV_IA.json', mimeType: 'application/vnd.google-apps.document' }));
+assert.ok(!context.isCvFile_({ name: 'HV_notas.txt', mimeType: 'text/plain' }));
+
 // Mañana compacta (2026-10-25): generarCVsDesdeIA corre cada 10 min, solo trabaja dentro de su ventana
 assert.ok(!context.isWithinCvWindow(6) && context.isWithinCvWindow(7) && context.isWithinCvWindow(22) &&
   !context.isWithinCvWindow(23));
