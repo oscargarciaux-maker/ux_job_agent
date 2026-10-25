@@ -23,6 +23,7 @@ function crearBorradoresEnFrio() {
   const contacted = contactedAddresses(sheet.getLastRow() > 1
     ? sheet.getRange(2, 1, sheet.getLastRow() - 1, CONFIG.COLD_EMAIL_SHEET_HEADERS.length).getValues() : []);
 
+  let drafts = null;  // Destinatario -> id de su borrador, solo si alguna carpeta reemplaza borradores
   pending.forEach(folder => {
     const label = folder.getName();
     try {
@@ -43,17 +44,33 @@ function crearBorradoresEnFrio() {
       }
       const pdf = hv.getAs(MimeType.PDF).setName(hv.getName() + '.pdf');
       const done = check.warnings.map(w => 'AVISO: ' + w);
+      let made = 0;
       check.recipients.forEach(r => {
-        const id = createApplicationDraft_(r.para, coldDraftSubject(data.empresa, r.asunto), r.cuerpo + '\n\n' + data.firma, pdf);
-        sheet.appendRow([data.empresa, r.para, '—', r.asunto, pdf.getName(), 'Borrador preparado, no enviado', '',
-                         [r.fuente, r.fecha_fuente, r.nota].filter(Boolean).join(' | ')]);
-        contacted[r.para.toLowerCase()] = 'borrador';
-        done.push(r.para + ' -> borrador ' + id);
+        const subject = coldDraftSubject(data.empresa, r.asunto);
+        const body = r.cuerpo + '\n\n' + data.firma;
+        if (r.reemplaza) {
+          // Borrador anterior sin enviar (decisión del usuario 2026-10-25): se reescribe el mismo borrador con la HV
+          // nueva; si ya no está (lo envió o lo borró), no se crea otro para no escribirle dos veces.
+          drafts = drafts || draftIdsByRecipient_();
+          const draftId = drafts[r.para.toLowerCase()];
+          if (!draftId) { done.push('AVISO: ' + r.para + ' -> no encontré su borrador anterior; no se crea otro (¿ya lo enviaste o lo borraste?)'); return; }
+          const raw = Utilities.base64EncodeWebSafe(buildMimeMessage(r.para, subject, body, pdf));
+          Gmail.Users.Drafts.update({ id: draftId, message: { raw: raw } }, 'me', draftId);
+          updateColdEmailRow_(sheet, r.para, r.asunto, pdf.getName());
+          done.push(r.para + ' -> borrador ' + draftId + ' reescrito con la HV nueva');
+        } else {
+          const id = createApplicationDraft_(r.para, subject, body, pdf);
+          sheet.appendRow([data.empresa, r.para, '—', r.asunto, pdf.getName(), 'Borrador preparado, no enviado', '',
+                           [r.fuente, r.fecha_fuente, r.nota].filter(Boolean).join(' | ')]);
+          contacted[r.para.toLowerCase()] = 'borrador';
+          done.push(r.para + ' -> borrador ' + id);
+        }
+        made++;
       });
       removeFiles_(folder, CONFIG.COLD_ERRORS_FILE);
       replaceFile_(folder, CONFIG.COLD_DRAFTS_DONE_FILE, done.join('\n'));
-      if (check.recipients.length) markTargetCompany_(ss, data.empresa, 'Borradores creados');
-      console.log(label + ' -> ' + check.recipients.length + ' borradores con ' + pdf.getName());
+      if (made) markTargetCompany_(ss, data.empresa, 'Borradores creados');
+      console.log(label + ' -> ' + made + ' borradores con ' + pdf.getName());
     } catch (e) {
       console.error(label + ' -> ERROR: ' + e.message);
     }
@@ -69,6 +86,38 @@ function markTargetCompany_(ss, company, status) {
   names.forEach((row, i) => {
     if (targetCompanyMatches(row[0], company)) sheet.getRange(i + 2, headers.indexOf('Estado') + 1).setValue(status);
   });
+}
+
+/** Destinatario (en minúsculas) -> id de su borrador de Gmail; si hay varios, el más reciente. */
+function draftIdsByRecipient_() {
+  const out = {};
+  let pageToken;
+  do {
+    const page = Gmail.Users.Drafts.list('me', { maxResults: 100, pageToken: pageToken });
+    (page.drafts || []).forEach(d => {
+      const msg = Gmail.Users.Drafts.get('me', d.id, { format: 'metadata', metadataHeaders: ['To'] }).message;
+      const to = ((msg.payload && msg.payload.headers) || []).filter(h => /^to$/i.test(h.name)).map(h => h.value).join(',');
+      (to.match(/[^\s<>,;"]+@[^\s<>,;"]+/g) || []).forEach(addr => {
+        const key = addr.toLowerCase();
+        if (!out[key]) out[key] = d.id;  // drafts.list devuelve primero los más recientes
+      });
+    });
+    pageToken = page.nextPageToken;
+  } while (pageToken);
+  return out;
+}
+
+/** En "Correos en frío", la fila sin enviar de esa dirección: asunto, HV usada y una nota de la actualización. */
+function updateColdEmailRow_(sheet, address, subject, pdfName) {
+  const last = sheet.getLastRow();
+  if (last < 2) return;
+  const rows = sheet.getRange(2, 1, last - 1, CONFIG.COLD_EMAIL_SHEET_HEADERS.length).getValues();
+  const i = unsentDraftRowIndex(rows, address);
+  if (i < 0) return;
+  const note = String(rows[i][7] || '');
+  const stamp = 'HV y correo actualizados ' + Utilities.formatDate(new Date(), tz_(), 'yyyy-MM-dd');
+  sheet.getRange(i + 2, 4, 1, 2).setValues([[subject, pdfName]]);
+  sheet.getRange(i + 2, 8).setValue(note ? note + ' | ' + stamp : stamp);
 }
 
 /** Carpetas (hasta 3 niveles: Correos en frío/<grupo>/<Empresa>) con Correos.json y sin Borradores.txt. */
@@ -109,21 +158,36 @@ function targetCompanyMatches(rowName, company) {
 
 /**
  * Direcciones ya usadas en la pestaña "Correos en frío" (columna B, varias separadas por ";", con "(BCC)"):
- * { correo: 'rebotado' | 'usado' }. Un correo que rebotó nunca se vuelve a usar; uno ya usado tampoco se repite.
+ * { correo: 'rebotado' | 'usado' | 'borrador' }. Un correo que rebotó nunca se vuelve a usar; uno ya usado tampoco se
+ * repite. 'borrador' = solo tiene un borrador sin enviar: Correos.json con "reemplazar": true puede reescribirlo.
  */
 function contactedAddresses(rows) {
   const out = {};
+  const rank = { borrador: 1, usado: 2, rebotado: 3 };
   rows.forEach(row => {
-    const bounced = /rebot/i.test(String(row[5]) + ' ' + String(row[6]));
+    const status = String(row[5] || '');
+    const bounced = /rebot/i.test(status + ' ' + String(row[6])) && !/sin rebote/i.test(status);
     const info = String(row[6] || '');
+    const unsent = /^\s*borrador preparado/i.test(status);
     (String(row[1] || '').match(/[^\s;,()]+@[^\s;,()]+/g) || []).forEach(addr => {
       const key = addr.toLowerCase();
       // En un "rebotado parcialmente", solo rebotaron las direcciones que nombra la columna de respuesta
-      const thisBounced = bounced && (!/parcial/i.test(String(row[5])) || info.toLowerCase().indexOf(key.split('@')[0] + '@') !== -1);
-      out[key] = thisBounced ? 'rebotado' : (out[key] === 'rebotado' ? 'rebotado' : 'usado');
+      const thisBounced = bounced && (!/parcial/i.test(status) || info.toLowerCase().indexOf(key.split('@')[0] + '@') !== -1);
+      const value = thisBounced ? 'rebotado' : (unsent ? 'borrador' : 'usado');
+      if (!out[key] || rank[value] > rank[out[key]]) out[key] = value;
     });
   });
   return out;
+}
+
+/** Índice (0 = primera fila de datos) de la fila con un borrador sin enviar para esa dirección, o -1. */
+function unsentDraftRowIndex(rows, address) {
+  const key = String(address || '').toLowerCase();
+  for (let i = rows.length - 1; i >= 0; i--) {
+    const addrs = (String(rows[i][1] || '').match(/[^\s;,()]+@[^\s;,()]+/g) || []).map(a => a.toLowerCase());
+    if (addrs.indexOf(key) !== -1 && /^\s*borrador preparado/i.test(String(rows[i][5] || ''))) return i;
+  }
+  return -1;
 }
 
 /**
@@ -150,7 +214,8 @@ function coldDraftSubject(company, subject) {
  * Valida Correos.json: { empresa, idioma, firma, hv?, correos: [{ para, nombre?, asunto, cuerpo, fuente, fecha_fuente?,
  * nota? }] }. Reglas: cuerpo de máximo CONFIG.COLD_EMAIL_MAX_WORDS palabras (Guía Maestra de Cover Letters), cada
  * dirección con su fuente, cifras que existan en CONTEXTO_CV, sin palabras prohibidas, y nunca una dirección que ya
- * rebotó o ya se usó (esas se omiten con aviso). Devuelve { errors, warnings, recipients }.
+ * rebotó o ya se usó (esas se omiten con aviso). Con "reemplazar": true, una dirección que solo tiene un borrador sin
+ * enviar sale con reemplaza: true (se reescribe ese borrador). Devuelve { errors, warnings, recipients }.
  */
 function validateColdEmails(data, contextText, contacted) {
   const errors = [];
@@ -173,7 +238,8 @@ function validateColdEmails(data, contextText, contacted) {
     if (seen[key]) { warnings.push(para + ' está repetido en Correos.json; se usa una vez'); return; }
     seen[key] = true;
     if (contacted && contacted[key] === 'rebotado') { warnings.push(para + ' ya rebotó antes: se omite'); return; }
-    if (contacted && contacted[key]) { warnings.push(para + ' ya está en "Correos en frío": se omite para no escribir dos veces'); return; }
+    const replaces = data.reemplazar === true && contacted && contacted[key] === 'borrador';
+    if (contacted && contacted[key] && !replaces) { warnings.push(para + ' ya está en "Correos en frío": se omite para no escribir dos veces'); return; }
     ['asunto', 'cuerpo', 'fuente'].forEach(f => {
       if (!String((c && c[f]) || '').trim()) errors.push(who + ': falta "' + f + '"' + (f === 'fuente' ? ' (de dónde sale la dirección)' : ''));
     });
@@ -195,7 +261,7 @@ function validateColdEmails(data, contextText, contacted) {
     if (firstName && !new RegExp('^[^\\n]{0,40}' + escapeRegex_(firstName), 'iu').test(body.trim())) errors.push(who + ': el saludo debe ir a ' + firstName + ' (la dirección es de esa persona)');
     if (company && !companyPattern_(company).test(body)) warnings.push(who + ': el cuerpo no menciona a ' + company);
     recipients.push({ para: para, nombre: String(c.nombre || '').trim(), asunto: String(c.asunto || '').trim(), cuerpo: body.trim(), fuente: String(c.fuente || '').trim(),
-                      fecha_fuente: String(c.fecha_fuente || '').trim(), nota: String(c.nota || '').trim() });
+                      fecha_fuente: String(c.fecha_fuente || '').trim(), nota: String(c.nota || '').trim(), reemplaza: replaces });
   });
   if (!errors.length && !recipients.length) warnings.push('Todos los destinatarios ya estaban usados o rebotados: no se crea ningún borrador');
   return { errors, warnings, recipients: errors.length ? [] : recipients };

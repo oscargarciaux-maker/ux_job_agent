@@ -145,6 +145,12 @@ contenido). Si ya hay `Borradores.txt`, esos borradores ya existen: para agregar
 - Un objeto por destinatario (un borrador por destinatario, para que nadie vea a los demás). El cuerpo puede variar
   solo en el saludo.
 - `hv` es el nombre exacto del Google Doc de la HV en la carpeta (si se omite, Apps Script usa el primer `HV_...`).
+- **Rehacer borradores que aún no se enviaron** (2026-10-25): agrega `"reemplazar": true`. Las direcciones cuya fila en
+  `Correos en frío` dice "Borrador preparado, no enviado" no se omiten: Apps Script reescribe **ese mismo borrador**
+  (asunto, cuerpo y la HV nueva adjunta) y actualiza asunto, HV y Notas de su fila; no crea otro. Si el borrador ya no
+  está en Gmail (se envió o se borró), no hace nada con esa dirección y lo anota en `Borradores.txt`. Una dirección ya
+  enviada o rebotada nunca se reescribe. En la carpeta deja un solo Doc `HV_...` (renombra la HV vieja a
+  `ANTERIOR - HV_...`; no la borres).
 
 **Qué hace Apps Script** (`crearBorradoresEnFrio`, cada hora dentro de `sincronizarAplicadas`; el candidato también
 puede ejecutarlo a mano): valida `Correos.json` (≤35 palabras, fuente en cada dirección, cifras de `CONTEXTO_CV`,
