@@ -30,7 +30,11 @@ empresa, reconstruir cada proceso, separar hechos de dudas, dejar evidencia y ce
 
 ## Paso 2. Cobertura por fecha (Gmail)
 
-1. **Todo lo recibido en la ventana:** `after:<desde> before:<hasta+1>` (con `pageSize` 50 y todas las páginas), sin
+0. **Las fechas de Gmail van en UTC y el candidato vive en Bogotá (UTC−5):** lo que pasa después de las 7 p. m. de un
+   día queda en el día siguiente para Gmail. Busca siempre con `before:<hasta+2>` y quédate con los mensajes cuya fecha
+   en hora de Bogotá cae en la ventana. El 25 oct 2026 la revisión hasta el 24 no vio las respuestas del candidato a
+   Ceiba (24 oct, 7:26 p. m.) ni la verificación de Allinsoft (24 oct, 8:02 p. m.) y las dejó como pendientes suyos.
+1. **Todo lo recibido en la ventana:** `after:<desde> before:<hasta+2>` (con `pageSize` 50 y todas las páginas), sin
    filtrar por empresa. Incluye archivados, Promociones, Actualizaciones y Social: **nunca uses `-category:` para
    ahorrar páginas**. El 25 oct 2026 la primera prueba excluyó Promociones y Social y no vio el rechazo de Experian,
    que Gmail había puesto en Promociones; la carpeta se pasó a verde por error.
@@ -47,6 +51,14 @@ Los resultados de búsqueda muestran solo los mensajes más antiguos de cada hil
 (`get_thread`) hasta su mensaje más reciente.
 
 ## Paso 3. Reconstruir cada proceso
+
+**Primero, los pendientes del candidato que quedaron abiertos.** En `Seguimiento`, toma la fila más reciente de cada
+empresa (una fila nueva corrige a las anteriores; así leen la pestaña el tablero y el juego: `pendingFollowups`) y, de
+las que tienen `Quién` = `candidato`, busca en su hilo y en Enviados **hasta hoy** (no solo en la ventana) si ya lo hizo.
+Si lo hizo, agrega una fila nueva con lo hecho, su fecha y "Esperar respuesta — empresa". Lo que se hace fuera del
+correo (pruebas en un portal, videos de Spark Hire, formularios) no se puede comprobar: va a "Falta confirmar contigo"
+con la pregunta concreta, y si el candidato ya lo confirmó en una conversación, se registra con `Fuente` = "Oscar (chat
+<fecha>)". El 25 oct 2026 Pavago, Ceiba, Allinsoft y Somewhere seguían como pendientes del candidato después de hechos.
 
 Para cada hilo relevante:
 - **Empresa + cargo** (no solo la empresa: una misma empresa puede tener dos procesos). Relaciónalo con su carpeta de
@@ -122,6 +134,8 @@ para confirmar que quedó.
    - `Siguiente acción` y `Quién` (`candidato` o `empresa`): p. ej. "Enviar la prueba — candidato" o "Esperar respuesta
      — empresa".
    - `Plazo`: solo si la empresa lo dice (copia su fecha); si no, vacío.
+   - Para corregir una fila no la edites: agrega otra para la misma empresa con `Notas` = "CORRIGE la fila de …". La más
+     reciente es la que cuenta.
    - Al final de cada revisión, una fila `REVISIÓN` en `Empresa`, con la cobertura en `Hecho` ("Cuenta laboral,
      <desde>–<hasta>, recibidos + Spam + Papelera + Enviados") y en `Notas` lo que quedó sin acceso. Es la marca desde
      donde empieza la siguiente.
