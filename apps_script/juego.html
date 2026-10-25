@@ -409,7 +409,25 @@ var TAMANO = { hv: 'dialogo', correo: 'dialogo', rebote: 'dialogo', semanaNueva:
   rechazo: 'mediano', proceso: 'grande', aliado: 'grande', avalancha: 'grande', ko: 'grande', nivel: 'grande', logro: 'grande' };
 var BUENAS = { proceso: 1, aliado: 1, avalancha: 1, ko: 1, nivel: 1, logro: 1, pocion: 1, combo: 1, hv: 1, correo: 1 };
 
-function jefeDeSemana(i) { return JEFES[((i % JEFES.length) + JEFES.length) % JEFES.length]; }
+/** El juego empezó en la Tercera semana y su jefe es el primero de la lista, el único con arte (decisión del usuario, 2026-10-25). */
+var SEMANA_DEL_PRIMER_JEFE = 3;
+/** Jefe de la semana número `n` (como la nombra el candidato): rotan en orden desde la Tercera semana. */
+function jefeDeSemana(n) { var i = n - SEMANA_DEL_PRIMER_JEFE; return JEFES[((i % JEFES.length) + JEFES.length) % JEFES.length]; }
+
+var ORDINALES = { primera: 1, primer: 1, primero: 1, segunda: 2, tercera: 3, cuarta: 4, quinta: 5, sexta: 6, septima: 7, octava: 8,
+  novena: 9, decima: 10, undecima: 11, duodecima: 12 };
+/**
+ * Número de la semana tal como el candidato nombra su carpeta de CV/ ("Tercera semana" = 3, "Semana 5" = 5); "Antiguas"
+ * (lo enviado antes del método) es la 0. Si el nombre no dice el número, su posición (la primera carpeta es la 1).
+ */
+function numeroDeSemana(nombre, i) {
+  var t = String(nombre || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (/antigu/.test(t)) return 0;
+  var d = /\b(\d{1,2})\b/.exec(t.replace(/\d{1,4}[-/.]\d{1,2}[-/.]\d{1,4}/g, ''));
+  if (d) return Number(d[1]);
+  var w = (t.match(/[a-z]+/g) || []).filter(function (x) { return ORDINALES[x]; })[0];
+  return w ? ORDINALES[w] : i + 1;
+}
 
 /** Daño de un rechazo con rendimientos decrecientes por Resiliencia (con 10, quita 4 en vez de 8). */
 function golpeRechazo(resiliencia) { return Math.max(2, Math.round(REGLAS.HP.rechazoBase * 10 / (10 + resiliencia))); }
@@ -528,6 +546,9 @@ function simular(eventos, m) {
   var est = { hp: REGLAS.HP_INICIAL, xp: 0, resiliencia: 0, procesos: 0, rechazos: 0, hvTotal: 0, correosEntregados: 0, aliados: 0 };
   var semanas = [];
   for (var i = 0; i < nSemanas; i++) semanas.push({ hv: 0, poder: 0, avalancha: false, ko: false, pociones: {} });
+  var numeros = [];
+  for (var k = 0; k < nSemanas; k++) numeros.push(numeroDeSemana((((m && m.postulaciones && m.postulaciones.semanas) || [])[k] || {}).semana, k));
+  var jefeDe = function (s) { return jefeDeSemana(numeros[s]); };
   var diasEnvio = {}, logros = {}, efectos = [], semanaActual = -1, ultimoProceso = '', comboAnunciado = {};
   var snapshot = function (s) {
     var nv = nivelDeXp(est.xp);
@@ -562,7 +583,7 @@ function simular(eventos, m) {
       if (semanaActual > 0) {
         var inicio = { id: 'semana|' + semanaActual, dia: e.dia, semana: semanaActual, historico: e.historico, empresa: '', cargo: '', carpeta: '', n: 1 };
         var dh = cambiarHp(REGLAS.HP.semanaNueva);
-        efecto(inicio, 'semanaNueva', { hp: dh, xp: 0 }, { jefe: jefeDeSemana(semanaActual) });
+        efecto(inicio, 'semanaNueva', { hp: dh, xp: 0 }, { jefe: jefeDe(semanaActual), numero: numeros[semanaActual] });
       }
     }
     var W = semanas[e.semana];
@@ -579,7 +600,7 @@ function simular(eventos, m) {
         efecto(e, 'pocion', { hp: cambiarHp(REGLAS.HP.pocion), xp: 0 }, { hvSemana: W.hv, marca: W.hv });
       }
       if (W.hv === REGLAS.AVALANCHA && !W.avalancha) { W.avalancha = true; efecto(e, 'avalancha', { hp: 0, xp: 0 }, { hvSemana: W.hv }); }
-      if (W.hv === meta && !W.ko) { W.ko = true; efecto(e, 'ko', { hp: 0, xp: xp(REGLAS.XP.ko) }, { hvSemana: W.hv, jefe: jefeDeSemana(e.semana) }); }
+      if (W.hv === meta && !W.ko) { W.ko = true; efecto(e, 'ko', { hp: 0, xp: xp(REGLAS.XP.ko) }, { hvSemana: W.hv, jefe: jefeDe(e.semana) }); }
       if (e.dia && REGLAS.COMBOS.indexOf(r) !== -1 && !comboAnunciado[e.dia]) {
         comboAnunciado[e.dia] = true;
         efecto(e, 'combo', { hp: 0, xp: 0 }, { racha: r, multiplicador: multiplicadorRacha(r), marca: r });
@@ -591,7 +612,7 @@ function simular(eventos, m) {
       var golpe = golpeRechazo(est.resiliencia);
       if (W.avalancha) golpe = Math.ceil(golpe / 2);
       est.rechazos++; est.resiliencia++;
-      efecto(e, 'rechazo', { hp: cambiarHp(-golpe), xp: xp(REGLAS.XP.rechazo), resiliencia: 1 }, { jefe: jefeDeSemana(e.semana), golpe: golpe });
+      efecto(e, 'rechazo', { hp: cambiarHp(-golpe), xp: xp(REGLAS.XP.rechazo), resiliencia: 1 }, { jefe: jefeDe(e.semana), golpe: golpe });
     } else if (e.tipo === 'correo') {
       est.correosEntregados += e.n;
       efecto(e, 'correo', { hp: 0, xp: xp(REGLAS.XP.correo * e.n) });
@@ -607,7 +628,7 @@ function simular(eventos, m) {
   while (semanaActual < nSemanas - 1) {
     semanaActual++;
     var vacia = { id: 'semana|' + semanaActual, dia: hoy, semana: semanaActual, historico: false, empresa: '', cargo: '', carpeta: '', n: 1 };
-    efecto(vacia, 'semanaNueva', { hp: cambiarHp(REGLAS.HP.semanaNueva), xp: 0 }, { jefe: jefeDeSemana(semanaActual) });
+    efecto(vacia, 'semanaNueva', { hp: cambiarHp(REGLAS.HP.semanaNueva), xp: 0 }, { jefe: jefeDe(semanaActual), numero: numeros[semanaActual] });
   }
   var actual = nSemanas - 1;
   var nv = nivelDeXp(est.xp);
@@ -617,13 +638,13 @@ function simular(eventos, m) {
       hp: est.hp, xp: est.xp, nivel: nv.nivel, xpNivel: nv.resto, xpNecesita: nv.necesita, resiliencia: est.resiliencia,
       poder: semanas[actual].poder, avalancha: semanas[actual].avalancha, semanaActual: actual,
       reclutadorHp: Math.max(0, meta - semanas[actual].hv), meta: meta, ko: semanas[actual].ko,
-      jefe: jefeDeSemana(actual), racha: hoy ? racha(diasEnvio, hoy) : 0,
+      jefe: jefeDe(actual), numero: numeros[actual], racha: hoy ? racha(diasEnvio, hoy) : 0,
       aturdido: !!ultimoProceso && !!hoy && (ultimoProceso === hoy || ultimoProceso === diaAnterior(hoy)),
       burla: hoy ? diasSinEnvio(diasEnvio, hoy) >= 2 : false,
       semanasGanadas: semanas.filter(function (w) { return w.ko; }).length,
       logros: logros,
       semanas: semanas.map(function (w, i) {
-        return { nombre: nombres[i] || 'Semana ' + (i + 1), jefe: jefeDeSemana(i), hv: w.hv, reclutadorHp: Math.max(0, meta - w.hv), ko: w.ko, avalancha: w.avalancha };
+        return { nombre: nombres[i] || 'Semana ' + numeros[i], numero: numeros[i], jefe: jefeDe(i), hv: w.hv, reclutadorHp: Math.max(0, meta - w.hv), ko: w.ko, avalancha: w.avalancha };
       }),
     },
     efectos: efectos,
@@ -1188,9 +1209,9 @@ var ARTE = {
     var m = modelo, P = m.postulaciones, sem = P.semanas[P.semanas.length - 1] || { semana: '' }, e = resultado.estado;
     var hoy = m.hoy || '';
     var d = hoy ? new Date(hoy + 'T12:00:00Z') : null;
-    $('sem').textContent = 'Semana ' + dos(e.semanaActual + 1) + (d ? ' · ' + DIAS[d.getUTCDay()] + ' ' + d.getUTCDate() : '');
+    $('sem').textContent = (e.numero ? 'Semana ' + dos(e.numero) : 'Antiguas') + (d ? ' · ' + DIAS[d.getUTCDay()] + ' ' + d.getUTCDate() : '');
     $('sem').setAttribute('title', sem.semana + ' · ' + (hoy ? fecha(hoy) : ''));
-    $('sem').setAttribute('aria-label', 'Semana ' + (e.semanaActual + 1) + ' del juego: ' + sem.semana + (hoy ? ', ' + fecha(hoy) : ''));
+    $('sem').setAttribute('aria-label', 'Semana ' + e.numero + ': ' + sem.semana + (hoy ? ', ' + fecha(hoy) : ''));
     var r = $('racha'); r.textContent = '';
     r.appendChild(el('span', { class: 'etq', text: 'Racha' })); r.appendChild(el('span', { class: 'n', text: String(e.racha) }));
     for (var i = 0; i < 7; i++) r.appendChild(el('i', { class: i < e.racha ? null : 'off', 'aria-hidden': 'true' }));
@@ -1435,7 +1456,7 @@ var ARTE = {
   var RETRATO_DE = { proceso: 'alegria', rechazo: 'firme', aliado: 'sorpresa', avalancha: 'alegria', ko: 'victoria', nivel: 'victoria', logro: 'alegria' };
   var DE_EMPRESA = { proceso: 1, rechazo: 1, aliado: 1 };  // nivel, logro, avalancha y KO los dispara una HV, pero no son de esa empresa
   function modalEvento(it) {
-    var jefe = it.jefe || jefeDeSemana(it.semana);
+    var jefe = it.jefe || resultado.estado.semanas[it.semana].jefe;
     var empresa = DE_EMPRESA[it.tipo] ? it.empresa : '';
     var cuerpo = {
       proceso: it.empresa + ' te invitó a una prueba o entrevista. El jefe queda aturdido.',
@@ -1473,12 +1494,12 @@ var ARTE = {
   function textoBanda(it) {
     if (it.tipo === 'pocion') return '¡Encontraste una poción! ' + it.hvSemana + ' HV esta semana. +' + it.delta.hp + ' HP';
     if (it.tipo === 'combo') return '¡Combo! Racha de ' + it.racha + ' días: XP ×' + NF.format(it.multiplicador);
-    if (it.tipo === 'semanaNueva') return 'Semana ' + (it.semana + 1) + ': entra ' + it.jefe.nombre + '.';
+    if (it.tipo === 'semanaNueva') return 'Semana ' + (it.numero != null ? it.numero : it.semana + 1) + ': entra ' + it.jefe.nombre + '.';
     return '';
   }
   function estadoDe(snap, base) {
     return Object.assign({}, base, { hp: snap.hp, nivel: snap.nivel, poder: snap.poder, reclutadorHp: snap.reclutadorHp,
-      jefe: jefeDeSemana(snap.semana), ko: snap.reclutadorHp === 0, avalancha: !!snap.avalancha });
+      jefe: resultado.estado.semanas[snap.semana].jefe, ko: snap.reclutadorHp === 0, avalancha: !!snap.avalancha });
   }
   function reproducir(cola, desde, final) {
     replayActivo = true; saltar = false;
