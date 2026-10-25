@@ -409,10 +409,17 @@ var TAMANO = { hv: 'dialogo', correo: 'dialogo', rebote: 'dialogo', semanaNueva:
   rechazo: 'mediano', proceso: 'grande', aliado: 'grande', avalancha: 'grande', ko: 'grande', nivel: 'grande', logro: 'grande' };
 var BUENAS = { proceso: 1, aliado: 1, avalancha: 1, ko: 1, nivel: 1, logro: 1, pocion: 1, combo: 1, hv: 1, correo: 1 };
 
-/** El juego empezó en la Tercera semana y su jefe es el primero de la lista, el único con arte (decisión del usuario, 2026-10-25). */
-var SEMANA_DEL_PRIMER_JEFE = 3;
-/** Jefe de la semana número `n` (como la nombra el candidato): rotan en orden desde la Tercera semana. */
-function jefeDeSemana(n) { var i = n - SEMANA_DEL_PRIMER_JEFE; return JEFES[((i % JEFES.length) + JEFES.length) % JEFES.length]; }
+/**
+ * El juego empezó en la Tercera semana y su jefe es el primero de la lista, el único con arte: se queda la Tercera y la
+ * Cuarta semana para poder verlo (decisión del usuario, 2026-10-25). Desde la Quinta rotan los demás en orden.
+ */
+var SEMANA_DEL_PRIMER_JEFE = 3, SEMANAS_DEL_PRIMER_JEFE = 2;
+/** Jefe de la semana número `n` (como la nombra el candidato). */
+function jefeDeSemana(n) {
+  var i = n - SEMANA_DEL_PRIMER_JEFE;
+  if (i > 0) i = Math.max(0, i - (SEMANAS_DEL_PRIMER_JEFE - 1));
+  return JEFES[((i % JEFES.length) + JEFES.length) % JEFES.length];
+}
 
 var ORDINALES = { primera: 1, primer: 1, primero: 1, segunda: 2, tercera: 3, cuarta: 4, quinta: 5, sexta: 6, septima: 7, octava: 8,
   novena: 9, decima: 10, undecima: 11, duodecima: 12 };
@@ -1535,7 +1542,8 @@ var ARTE = {
       }
       return pr.then(paso);
     };
-    return esperarClic(0).then(function () { if (!saltar) decir('', '', []); return paso(); }).then(function () {
+    // Arranca solo (decisión del usuario, 2026-10-25: al abrir quiere ver las animaciones seguidas); "Ver" lo adelanta
+    return esperarClic(1800).then(function () { if (!saltar) decir('', '', []); return paso(); }).then(function () {
       replayActivo = false; enCoreo = false;
       verArena(final, saltar ? undefined : actual);
       var r = reposo(final);

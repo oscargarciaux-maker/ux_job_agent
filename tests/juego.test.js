@@ -70,8 +70,10 @@ assert.strictEqual(estado.numero, 3, 'la semana actual es la Tercera semana, com
 assert.deepStrictEqual(plain(estado.semanas.map(w => w.numero)), [0, 1, 2, 3], 'Antiguas es la 0');
 assert.deepStrictEqual(['Antiguas', 'Primera semana nueva', 'Segunda semana', 'Tercera semana', 'Cuarta semana', 'Décima semana', 'Semana 12', '24-09-2026', 'Otra']
   .map((n, i) => J('numeroDeSemana')(n, i)), [0, 1, 2, 3, 4, 10, 12, 8, 9]);
-assert.strictEqual(J('jefeDeSemana')(4).nombre, 'Señor Silencio', 'mañana, Cuarta semana: el segundo jefe');
-assert.strictEqual(J('jefeDeSemana')(9).nombre, 'Gerente Gracias por Participar', 'rotan y se repiten');
+assert.strictEqual(J('jefeDeSemana')(4).nombre, 'Gerente Gracias por Participar', 'el Gerente (con arte) se queda también la Cuarta semana');
+assert.strictEqual(J('jefeDeSemana')(5).nombre, 'Señor Silencio', 'desde la Quinta rotan los demás');
+assert.strictEqual(J('jefeDeSemana')(10).nombre, 'Gerente Gracias por Participar', 'rotan y se repiten');
+assert.strictEqual(J('jefeDeSemana')(2).nombre, 'El Comité', 'las semanas anteriores al juego no cambian');
 assert.strictEqual(estado.resiliencia, modelo.postulaciones.rechazada, '+1 de Resiliencia por rechazo');
 assert.ok(efectos.every(f => f.despues.hp >= 1 && f.despues.hp <= 100), 'el HP de Oscar siempre entre 1 y 100');
 assert.ok(estado.hp >= 1 && estado.hp <= 100);
