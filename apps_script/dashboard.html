@@ -359,7 +359,7 @@ function dashboardMain(D) {
       el('span', { text: 'hoy' })]) : null
   ]);
 
-  var actions = (D.seguimiento || []).filter(function (r) { return r.siguiente && !/^(esperar|ninguna|no aplica|-|—)/i.test(r.siguiente.trim()); }).slice(0, 5);
+  var actions = (D.acciones || (D.seguimiento || []).filter(function (r) { return r.siguiente && !/^(esperar|ninguna|no aplica|-|—)/i.test(r.siguiente.trim()); })).slice(0, 5);
   var nextBox = el('div', { class: 'card box' }, [
     el('h3', { text: 'Lo que viene' }),
     el('p', { class: 'sub', text: 'Acciones pendientes según el seguimiento del correo.' }),

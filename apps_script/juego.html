@@ -1181,7 +1181,7 @@ var ARTE = {
     var m = modelo, v = $('v-misiones'); v.textContent = '';
     var hoy = m.hoy || '';
     var mun = (m.porEnviar || []).slice().sort(function (a, b) { return (a.fecha || '') < (b.fecha || '') ? -1 : 1; });
-    var segs = (m.historial || []).filter(function (h) { return h.siguiente && h.siguiente !== '—' && !/^ninguna/i.test(h.siguiente); }).slice(-10).reverse();
+    var segs = (m.acciones || []).slice(0, 10);
     var k1 = [cab('01', 'Munición lista · ' + mun.length, 'h2', 'h-mun')];
     if (!mun.length && !segs.length) k1.push(el('p', { class: 'vacio', text: 'Sin misiones por hoy. La próxima búsqueda llega a las 7:00.' }));
     else if (!mun.length) k1.push(el('p', { class: 'vacio', text: 'No hay HV listas. Mañana a las 7:00 llegan vacantes nuevas.' }));
@@ -1205,7 +1205,8 @@ var ARTE = {
     var ul2 = el('ul', { class: 'lista' });
     segs.forEach(function (h) {
       ul2.appendChild(el('li', null, [el('div', { class: 'fila' }, [el('span', { class: 'amb' }, [icono('reloj', true)]),
-        el('div', { class: 'txt' }, [el('div', { class: 't1', text: h.siguiente }), el('div', { class: 't2', text: h.empresa + (h.cargo ? ' · ' + h.cargo : '') + ' · ' + fecha(h.fechaMensaje || h.fecha) })])])]));
+        el('div', { class: 'txt' }, [el('div', { class: 't1', text: h.siguiente }), el('div', { class: 't2', text: h.empresa + (h.cargo ? ' · ' + h.cargo : '') + ' · ' + fecha(h.fechaMensaje || h.fecha) }),
+          h.plazo ? el('div', { class: 'ef amb', text: 'Plazo: ' + h.plazo }) : null])])]));
     });
     if (segs.length) k2.push(ul2);
     var radar = el('div', { class: 'radar', 'aria-hidden': 'true' });
@@ -1322,7 +1323,7 @@ var ARTE = {
   var TABS = [['arena', 'Arena'], ['misiones', 'Misiones'], ['bitacora', 'Bitácora'], ['heroe', 'Héroe']];
   function pintarTabs() {
     var tl = $('tablist'); tl.textContent = '';
-    var pend = modelo ? (modelo.porEnviar || []).length + (modelo.historial || []).filter(function (h) { return h.siguiente && h.siguiente !== '—' && !/^ninguna/i.test(h.siguiente); }).slice(-10).length : 0;
+    var pend = modelo ? (modelo.porEnviar || []).length + (modelo.acciones || []).slice(0, 10).length : 0;
     TABS.forEach(function (t) {
       var b = el('button', { id: 't-' + t[0], role: 'tab', type: 'button', 'aria-selected': String(pestana === t[0]), 'aria-controls': 'v-' + t[0], tabindex: pestana === t[0] ? '0' : '-1',
         onclick: function () { irA(t[0]); } }, [el('span', { class: 'rombo', 'aria-hidden': 'true' }), t[1]]);
@@ -1571,7 +1572,7 @@ var ARTE = {
     if (fotoValida) pintarTodo(foto, '▶ Actualizando…', false);
     var url = 'https://script.google.com/macros/s/' + params.api + '/exec?formato=json&k=' + encodeURIComponent(params.k);
     var pedir = function (fresco) { return fetch(url + (fresco ? '&fresco=1' : ''), { credentials: 'omit' }).then(function (r) { return r.json(); }); };
-    pedir(false).then(function (d) { return d && !d.error && !('historial' in d) ? pedir(true) : d; })
+    pedir(false).then(function (d) { return d && !d.error && !('acciones' in d) ? pedir(true) : d; })
       .then(function (d) {
         if (d && d.error) return bloqueado();
         if (!d || !d.postulaciones) throw new Error('sin datos');

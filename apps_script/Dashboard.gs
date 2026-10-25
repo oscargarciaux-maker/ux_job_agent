@@ -135,10 +135,27 @@ function dashboardWeekName(week) {
   return /^\d{1,4}[-/.]\d{1,2}[-/.]\d{1,4}$/.test(w) ? 'Primera semana' : w;
 }
 
+/** Nombre de empresa o cargo sin mayúsculas, tildes ni signos. */
+function followupKey_(x) {
+  return String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
 /** Mismo nombre de empresa o cargo, sin importar mayúsculas, tildes ni signos. */
 function sameCompany_(a, b) {
-  const n = x => String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
-  return !!n(a) && n(a) === n(b);
+  return !!followupKey_(a) && followupKey_(a) === followupKey_(b);
+}
+
+/**
+ * Lo que de verdad queda por hacer según Seguimiento: por empresa manda su fila más reciente (una fila que corrige a otra
+ * la reemplaza: 2026-10-25, Experian salía "esperando respuesta" aunque una fila posterior decía rechazada) y esperar
+ * respuesta no es una acción. `rows` en orden cronológico, como están en el Sheet; devuelve la más reciente primero.
+ */
+function pendingFollowups(rows) {
+  const latest = {};
+  rows.forEach((r, i) => { const k = followupKey_(r.empresa); if (k) latest[k] = i; });
+  return rows.filter((r, i) => latest[followupKey_(r.empresa)] === i)
+    .filter(r => String(r.siguiente || '').trim() && !/^(esperar|ninguna|no aplica|-|—)/i.test(String(r.siguiente).trim()))
+    .reverse();
 }
 
 /** El día (yyyy-MM-dd) al inicio de un texto de fecha del Sheet, o vacío ("—", "sin fecha"...). */
@@ -240,7 +257,7 @@ function buildDashboardModel(tabs, now, timeZone) {
                  revision: r['Revisión'], carpeta: r._links['Carpeta'] || '', hv: r._links['HV'] || '' }));
   const followup = followupRows.map(r => ({
     fecha: r['Fecha revisión'], empresa: r['Empresa'], cargo: r['Cargo'], hecho: r['Hecho'], fechaMensaje: r['Fecha del mensaje'],
-    antes: r['Estado anterior'], ahora: r['Estado nuevo'], siguiente: r['Siguiente acción'],
+    antes: r['Estado anterior'], ahora: r['Estado nuevo'], siguiente: r['Siguiente acción'], quien: r['Quién'] || '', plazo: r['Plazo'] || '',
   }));
   const history = followup.slice();  // completo y en orden cronológico (el juego lo recorre entero)
   followup.reverse();
@@ -271,6 +288,7 @@ function buildDashboardModel(tabs, now, timeZone) {
     porEnviar: pending,
     seguimiento: followup.slice(0, 40),
     historial: history,
+    acciones: pendingFollowups(history),
     objetivo: { total: targets.length, porEstado: targetStatus },
   };
 }
