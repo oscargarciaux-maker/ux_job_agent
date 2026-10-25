@@ -17,6 +17,7 @@ palabra en una entrevista, lista para enviar después de su revisión. Nunca se 
 | `REGLAS_CV` | Decisiones personales: qué experiencias van, perfil, cargos, ubicación, nombre del archivo | Las decisiones personales, sobre `GUIA_CV` |
 | `MASTER_TEMPLATE` | La plantilla con marcadores `{{...}}` que se llena (Google Doc) | El formato. No se cambia al usar la skill |
 | `PLANTILLA_HV.pdf` | Ejemplo de HV terminada: cómo se ve una buena HV (estructura, tono, extensión) | Solo como referencia visual |
+| `LECCIONES_HV` | Lo que al usuario no le ha gustado de sus HV y la regla que sale de cada cosa (él agrega líneas) | Sobre todo lo demás: es su feedback directo |
 
 Las reglas de esta skill son decisiones del usuario (24 oct 2026) y mandan sobre las anteriores si chocan.
 Cifras aclaradas por el usuario que deben respetarse aunque `CONTEXTO_CV` las diga distinto: Trezo, cerca de 90 personas
@@ -44,8 +45,14 @@ o un enlace.
 
 ## Paso 1. Leer
 
-Lee completos `GUIA_CV`, `REGLAS_CV`, `CONTEXTO_CV`, los marcadores de `MASTER_TEMPLATE` y el `Detalle_Vacante`
-(o la investigación de la empresa). Si hay `Verificacion.txt`, léelo: dice qué baja la vacante (años, inglés…).
+Lee completos `LECCIONES_HV`, `GUIA_CV`, `REGLAS_CV`, `CONTEXTO_CV`, los marcadores de `MASTER_TEMPLATE` y el
+`Detalle_Vacante` (o la investigación de la empresa). Si hay `Verificacion.txt`, léelo: dice qué baja la vacante (años,
+inglés…). Lee también las HV de los últimos 7 días (los `CV_IA.json` de `Sin revisar/<fecha>/` y las HV `HV_…` de esas
+carpetas): la nueva no puede repetir su perfil ni más de 2 de sus logros con el mismo texto.
+
+`CONTEXTO_CV` es largo **a propósito** (decisión del usuario, 25 oct 2026): cuenta funciones y situaciones, no solo
+cifras, para que la HV se ajuste a cualquier vacante aunque el usuario no use las mismas palabras. Léelo entero cada vez;
+no te quedes con los 5 o 6 logros con cifras más visibles.
 
 ## Paso 2. Análisis (GUIA_CV Paso 2 y 2.1)
 
@@ -53,6 +60,32 @@ Lee completos `GUIA_CV`, `REGLAS_CV`, `CONTEXTO_CV`, los marcadores de `MASTER_T
 - El match: qué tiene el candidato, qué no, qué puede mejorar.
 - Cada gap se responde con habilidades transferibles reales y capacidad de aprendizaje. Nunca afirmes dominar algo que
   `CONTEXTO_CV` no respalde.
+
+### Mapa de evidencia (obligatorio antes de redactar; 25 oct 2026)
+
+El 25 oct 2026 el usuario fue a enviar 7 HV y "no me convencieron": repetían los mismos 6 logros y el perfil no hablaba de
+la vacante. Este mapa es el que obliga a personalizar. Por cada una de las 10 keywords, en orden:
+
+| Keyword de la vacante | Cita de `CONTEXTO_CV` (textual) | Dónde va en la HV |
+|---|---|---|
+| internal tools | "diseñé una vista de administración restringida con *guidelines* gráficos" | `LOGRO_2_1` |
+| A/B testing | (no hay) | `GAP` |
+
+1. **Busca la función, no la palabra.** La vacante dice "stakeholder management" y el usuario cuenta "teniendo contacto
+   directo con los cargos superiores y responsabilizándome de los deadlines"; dice "internal tools" y él cuenta "una vista
+   de administración restringida para el personal de ventas". Recorre todo `CONTEXTO_CV`, incluidos los proyectos que no
+   van como experiencia (Sanny, Kommo, DIN'T, Autónomo, Alcaldía): sirven para el perfil y las habilidades.
+2. **La cita va textual** (cópiala tal cual de `CONTEXTO_CV`, sin el formato): es la prueba de que la función es real.
+   Apps Script rechaza la HV si la cita de una de las 5 primeras keywords no aparece en `CONTEXTO_CV`.
+3. **Redacta con la palabra de la vacante, sin cambiar el hecho:** "Designed a restricted internal admin view…". Si no
+   hay ninguna función equivalente, es `GAP` y se responde en `_gaps`; nunca se inventa.
+4. **Dónde va:** la keyword #1 abre el perfil; cada una de las 6 primeras va en un cargo, una descripción o un logro
+   (`CARGO_EXP_n`, `DESC_EXP_n`, `LOGRO_n_m`), **no solo en habilidades**. Apps Script lo comprueba para las 5 primeras.
+5. **Elige las experiencias y los logros desde el mapa,** no desde la HV anterior: si una keyword solo la prueba Central
+   Xpress, Central Xpress va. Un logro sin cifra que prueba una keyword vale más que una cifra repetida que no la prueba.
+
+El mapa se guarda en `CV_IA.json` como `_mapa`: una lista de `{"keyword": …, "cita": …, "donde": …}`, una entrada por
+keyword y en el mismo orden de `_keywords` (`donde` = la clave del marcador, `HABILIDADES` o `GAP`).
 
 ## Paso 3. Redacción (GUIA_CV Paso 3 + estas reglas), todo para esta vacante o empresa
 
@@ -121,6 +154,9 @@ luego un cuarto logro, luego palabras de los logros; nunca la ubicación ni el p
 - Nunca en la HV ni en el nombre: aprendiz, voluntario/voluntariado, practicante, intern, volunteer, ni el semillero
   DIN'T. Ojo: "Servicio Nacional de **Aprendiz**aje" también cuenta; escribe solo "SENA". "Junior" solo si el cargo de la vacante lo dice (entonces sí en el título y en el nombre del archivo).
 - Perfil sin dos puntos. Dos experiencias nunca con el mismo cargo, ni más de una copiando el cargo de la vacante.
+- `_mapa` con una entrada por keyword; las 5 primeras que no son `GAP` llevan una cita textual de `CONTEXTO_CV` y
+  aparecen en el perfil, un cargo, una descripción o un logro (`personalizationErrors`).
+- Fechas con mes y año en todas las experiencias y estudios, iguales a `CONTEXTO_CV` (Central Xpress solo tiene el año).
 - El nombre de la empresa de la vacante no aparece en ninguna parte de la HV (`targetCompanyErrors`), salvo que sea una
   empresa donde el candidato ya trabajó.
 - `UBICACION`, `TITULO_SUBTITULO_PROFESIONAL` y `PERFIL_PERSONALIZADO` nunca vacíos.
@@ -131,7 +167,7 @@ luego un cuarto logro, luego palabras de los logros; nunca la ubicación ni el p
 
 ### En la tarea diaria (automático)
 Escribe `CV_IA.json` en la carpeta de la vacante (`create_file`, `application/json`, sin convertir): una clave por cada
-marcador de `MASTER_TEMPLATE` (sin llaves; `""` = se borra ese párrafo) más `_idioma`, `_keywords`, `_gaps`,
+marcador de `MASTER_TEMPLATE` (sin llaves; `""` = se borra ese párrafo) más `_idioma`, `_keywords`, `_gaps`, `_mapa`,
 `_nombre_archivo` y `_correo_cuerpo` (si `Detalle_Vacante` trae correo: el mensaje de postulación según el Prompt 2 de la
 "Guía Maestra de Cover Letters" —la guía principal de correos—: [reto crítico de la vacante] + [métrica de `CONTEXTO_CV`]
 + [CTA de reunión] + [adjuntos: HV, LinkedIn, Portafolio], **máximo 35 palabras**, sin clichés ni saludos largos; si no,
@@ -185,6 +221,8 @@ HV lista: <nombre del archivo> (enlace al Google Doc) — <idioma> — <páginas
 Para: <Empresa> — <Cargo> (<modo vacante | frío>)
 Perfil (primera frase): ...
 Experiencias: <empresa · cargo usado · n.º de logros> × 3 o 4
-Keywords cubiertas: ...   Gaps y cómo se responden: ...
+Mapa: <keyword → dónde va> de las 10 (las GAP, aparte)
+Lo distinto frente a las HV de la semana: <perfil y logros que solo tiene esta>
+Gaps y cómo se responden: ...
 Revisa antes de enviar: <lo que conviene mirar a mano, p. ej. un logro largo o una keyword sin cubrir>
 ```

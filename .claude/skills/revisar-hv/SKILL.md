@@ -24,7 +24,8 @@ ningún dato fuera de LinkedIn y del contexto). Nunca se envía nada.
 
 ## Fuentes (Google Drive, carpeta `Vacantes con IA/Recursos`, búscalas por nombre; nunca copiar su contenido a este repositorio público)
 
-`CONTEXTO_CV` (los datos), `REGLAS_CV` y `GUIA_CV` (las reglas), `MASTER_TEMPLATE` (el formato y los **enlaces del
+`LECCIONES_HV` (lo que al usuario no le ha gustado de sus HV: manda sobre todo lo demás), `CONTEXTO_CV` (los datos),
+`REGLAS_CV` y `GUIA_CV` (las reglas), `MASTER_TEMPLATE` (el formato y los **enlaces del
 encabezado**: son la referencia de cómo deben quedar), la guía "Guia busqueda de vacantes y creacion de HV.md"
 (sección 7, títulos de LinkedIn), la skill `crear-hv` (las reglas con que se escribió la HV) y, de la carpeta de la
 vacante, `Detalle_Vacante` (o `Empresa` en frío), `Verificacion.txt` y `CV_IA.json` si existen.
@@ -44,9 +45,10 @@ entrevistas; nunca "entrevisté a más de 90"); Seguros Bolívar, equipo de 6 co
 
 1. La HV con `read_doc` (texto, estilos de párrafo y enlaces: `textRun.textStyle.link.url`).
 2. `Detalle_Vacante` completo: cargo, empresa, ubicación, idioma, descripción. Saca las 10 keywords en ranking (o usa
-   `_keywords` de `CV_IA.json`).
+   `_keywords` y `_mapa` de `CV_IA.json`). Si la carpeta no tiene `CV_IA.json`, la HV no pasó por `crear-hv`: haz tú el
+   mapa de evidencia (skill `crear-hv`, Paso 2) para poder puntuarla.
 3. `CONTEXTO_CV` completo, `REGLAS_CV` y los enlaces del encabezado de `MASTER_TEMPLATE`.
-4. En lote: las demás HV de hoy (para comparar perfiles y cargos).
+4. Las HV de los últimos 7 días (para comparar perfiles, logros y cargos), no solo las de hoy.
 
 ## Paso 2. Chequeos
 
@@ -65,6 +67,24 @@ entrevistas; nunca "entrevisté a más de 90"); Seguros Bolívar, equipo de 6 co
 | 11 | **Personalización y keywords** | de las 10 keywords de la vacante faltan las principales (que sí respalda `CONTEXTO_CV`); las habilidades son la lista de `CONTEXTO_CV` copiada o no siguen el orden de lo que pide la vacante | Propón dónde y cómo meter cada keyword que falta |
 | 12 | **Nombre del archivo** | no es `HV_Oscar_Garcia_<Cargo>` con el cargo de la vacante (o el deducido, en frío), lleva el nombre de la empresa, una palabra prohibida o sufijos como `(3)`, `_3`, `copia`, fechas | Corrige: renombra con Drive `update_file` (el nombre sí se puede cambiar) |
 | 13 | **Visual (PDF)** | ver Paso 3 | Corrige |
+
+## Paso 2b. Puntaje de personalización (25 oct 2026)
+
+El 25 oct 2026 la revisión marcó "lista" 6 HV que el usuario no quiso enviar: solo se había mirado la forma. Puntúa de 0
+a 2 cada punto, con la razón en una línea:
+
+| Punto | 2 | 1 | 0 |
+|---|---|---|---|
+| A. Primera frase del perfil | Nombra la keyword #1 o el problema principal de la vacante con la prueba real más fuerte | Habla del rol en general | Fórmula genérica o igual a otra HV |
+| B. Keywords en la experiencia | Las 6 primeras (que no son brecha) están en cargos, descripciones o logros | 4 o 5 | 3 o menos, o solo en habilidades |
+| C. Experiencias elegidas | Las que más pruebas dan según el mapa, en ese orden | Falta una que prueba una keyword clave | Las mismas de siempre sin importar la vacante |
+| D. Logros | Elegidos y redactados para esta vacante | La mitad repetidos de otras HV | Iguales a los de otra HV |
+| E. Cargos y título | Adaptados con criterio, sin inflar | Uno solo adaptado | Iguales en todas las HV |
+| F. Habilidades | Categorías y orden según la vacante | Categorías genéricas con algún ajuste | La lista de `CONTEXTO_CV` o la de otra HV |
+
+**Menos de 9 de 12, o un 0 en A, B o D → `REVISAR`**, aunque la forma esté perfecta. Las propuestas para subir el puntaje
+salen del mapa de evidencia: qué cita de `CONTEXTO_CV` usar, en qué marcador y con qué texto (listo para pegar). Si el
+usuario pidió que se rehaga, rehazla con `crear-hv` (la anterior se renombra `ANTERIOR - …`, nunca se borra).
 
 ## Paso 3. Revisión visual del PDF
 
@@ -100,12 +120,13 @@ ya hay uno, `trash_file` y crea el nuevo: `update_file` no cambia el contenido).
 ```
 VEREDICTO: LISTA_PARA_ENVIAR | REVISAR
 PAGINAS: <n>
+PERSONALIZACION: <puntaje>/12 (A <n> · B <n> · C <n> · D <n> · E <n> · F <n>)
 CORREGIDO: <n.º de correcciones>
 PROPUESTAS: <n.º de propuestas>
 ```
 
 - `LISTA_PARA_ENVIAR`: todo pasa (con o sin correcciones); las propuestas que queden son mejoras opcionales.
-- `REVISAR`: falta algo que el candidato debe decidir antes de enviar: un dato que no se pudo comprobar, un perfil
+- `REVISAR`: personalización por debajo de 9/12 (o un 0 en A, B o D), o falta algo que el candidato debe decidir antes de enviar: un dato que no se pudo comprobar, un perfil
   repetido, cargos repetidos, keywords principales sin cubrir, la HV en el idioma equivocado o algo que no se pudo
   arreglar en 3 vueltas.
 
@@ -122,8 +143,11 @@ Revisadas: <n> — listas para enviar: <n> — revisar: <n> — aún sin armar: 
 REVISAR (primero):
 - <Empresa> — <Cargo> (enlace a la HV): <lo que debe decidir, en una frase> → <propuesta corta>
 Listas:
-- <Empresa> — <Cargo> (enlace): <n> páginas, <n> correcciones (<las 2 o 3 más importantes>)
+- <Empresa> — <Cargo> (enlace): <puntaje>/12, <n> páginas, <n> correcciones (<las 2 o 3 más importantes>)
 ```
+
+Si el usuario dice qué no le gustó de una HV, agrégalo como una línea nueva arriba en `LECCIONES_HV` (fecha | sus
+palabras | la regla) y aplícalo desde esa misma HV.
 
 Si el usuario acepta una propuesta en la conversación, aplícala en el Doc, vuelve a hacer el Paso 3 y reemplaza su
 `Revision.txt`.
