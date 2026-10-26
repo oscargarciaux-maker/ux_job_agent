@@ -30,6 +30,9 @@ function sincronizarRegistro_() {
     console.warn('Otra sincronización sigue corriendo: se usa lo que ella deje');
     return null;
   }
+  // Tiempo de cada paso en el registro de ejecuciones (2026-10-26: el botón Actualizar se sentía lento)
+  const t0 = Date.now(), times = [];
+  const lap = name => times.push(name + ' ' + ((Date.now() - t0) / 1000).toFixed(1) + ' s');
   try {
     const root = DriveApp.getFolderById(getProp_(PROPS.ROOT_FOLDER_ID));
     const folders = root.getFoldersByName(CONFIG.APPLIED_FOLDER_NAME);
@@ -38,6 +41,7 @@ function sincronizarRegistro_() {
       return null;
     }
     const children = folderChildren_();
+    lap('carpetas');
     const rows = [];
     collectAppliedFolders_(folders.next().getId(), '', rows, false, '', children);
     // Postulaciones antiguas (2026-10-25): una carpeta "Antigua" (o "Antiguas") junto a CV/ cuenta como una semana más
@@ -60,19 +64,24 @@ function sincronizarRegistro_() {
     const count = {};
     rows.forEach(r => { count[r.status] = (count[r.status] || 0) + 1; });
     console.log('Aplicadas sincronizadas: ' + rows.length + ' ' + JSON.stringify(count));
+    lap('Aplicadas');
     try {
       writePendingCvs_(ss, root, children);
     } catch (e) {
       console.error('Por enviar -> ERROR: ' + e.message);
     }
+    lap('Por enviar');
     try {
-      return warmDashboardCache_();
+      const json = warmDashboardCache_(children);
+      lap('tablero');
+      return json;
     } catch (e) {
       console.error('Tablero -> ERROR: ' + e.message);
       return null;
     }
   } finally {
     lock.releaseLock();
+    console.log('Sincronización: ' + times.join(' · '));
   }
 }
 
@@ -201,11 +210,12 @@ function collectAppliedFolders_(parentId, groupName, rows, inTest, weekName, chi
  * Carpetas de semana (primer nivel de CV/ y la carpeta de antiguas junto a CV/), con su día de creación: así el tablero y
  * el juego muestran la semana nueva aunque todavía no tenga envíos (2026-10-26).
  */
-function listWeekFolders_() {
+function listWeekFolders_(children) {
+  children = children || listChildFolders_;
   const root = DriveApp.getFolderById(getProp_(PROPS.ROOT_FOLDER_ID));
   const cv = root.getFoldersByName(CONFIG.APPLIED_FOLDER_NAME);
-  const weeks = cv.hasNext() ? listChildFolders_(cv.next().getId()) : [];
-  const old = listChildFolders_(root.getId()).filter(f => CONFIG.APPLIED_OLD_FOLDER_PATTERN.test(String(f.name).trim()));
+  const weeks = cv.hasNext() ? children(cv.next().getId()) : [];
+  const old = children(root.getId()).filter(f => CONFIG.APPLIED_OLD_FOLDER_PATTERN.test(String(f.name).trim()));
   return weeks.concat(old).map(f => ({ nombre: f.name, creada: localDay(f.createdTime, tz_()) }));
 }
 

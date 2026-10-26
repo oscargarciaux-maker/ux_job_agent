@@ -514,7 +514,8 @@ Las stats del juego (HP, XP, nivel, Resiliencia, Poder) no se guardan: se recalc
 ### Frescura de los datos (decidido el 26 oct)
 
 - `sincronizarAplicadas` lee Drive cada hora y deja las pestañas `Aplicadas` y `Por enviar` y la caché del JSON. Al abrir, el juego pide la caché (rápida).
-- Si esos datos tienen más de 15 minutos (`DATOS_VIEJOS_MIN`, `minutosDesde` en el motor, con pruebas), el juego los muestra sin replay y pide `&fresco=1&sync=1`: Apps Script vuelve a leer Drive (`sincronizarRegistro_`, una sola consulta para todas las carpetas), reescribe las dos pestañas y devuelve el JSON; con eso arranca el replay.
+- Si esos datos tienen más de 15 minutos (`DATOS_VIEJOS_MIN`, `minutosDesde` en el motor, con pruebas), el juego pide además `&fresco=1&sync=1`: Apps Script vuelve a leer Drive (`sincronizarRegistro_`, una sola consulta para todas las carpetas), reescribe las dos pestañas y devuelve el JSON. El replay de lo que ya había no espera esa lectura (tarda varios segundos): arranca de inmediato y lo nuevo que traiga Drive se reproduce al terminar (`pendiente`, `aplicarPendiente`; también tras la introducción). Mientras tanto la fila dice «Leyendo Drive…» y luego «Drive leído: lo nuevo va al final».
+- `sincronizarRegistro_` deja en el registro de ejecuciones el tiempo de cada paso («Sincronización: carpetas … · Aplicadas … · Por enviar … · tablero …»).
 - El botón «Actualizar» hace lo mismo a pedido. El tablero del coach usa la misma petición en su botón.
 - Las carpetas de primer nivel de `CV/` son siempre semanas: una vacía no es una postulación, y el JSON trae todas las semanas aunque no tengan envíos (`semanasCarpetas` → `postulaciones.semanas` con `total: 0`).
 
