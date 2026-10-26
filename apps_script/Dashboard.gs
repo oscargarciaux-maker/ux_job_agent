@@ -46,9 +46,9 @@ function dashboardJson_(given, key, sync) {
   return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);
 }
 
-/** Calcula los datos del tablero y los deja en caché (si caben); devuelve el JSON. */
-function warmDashboardCache_() {
-  const json = JSON.stringify(buildDashboardModel(readDashboardTabs_(), new Date(), tz_()));
+/** Calcula los datos del tablero y los deja en caché (si caben); devuelve el JSON. `children`: carpetas ya leídas. */
+function warmDashboardCache_(children) {
+  const json = JSON.stringify(buildDashboardModel(readDashboardTabs_(children), new Date(), tz_()));
   if (json.length < CONFIG.DASHBOARD_CACHE_MAX_CHARS) {
     CacheService.getScriptCache().put(CONFIG.DASHBOARD_CACHE_KEY, json, CONFIG.DASHBOARD_CACHE_SECONDS);
   }
@@ -73,7 +73,7 @@ function configurarTablero() {
       '?k=' + key + ' . Ese es el enlace para compartir. (El que termina en /dev es solo de prueba y no abre para otras personas.)');
 }
 
-function readDashboardTabs_() {
+function readDashboardTabs_(children) {
   const ss = SpreadsheetApp.openById(getProp_(PROPS.SHEET_ID));
   const tab = (name, linkCols) => {
     const sheet = ss.getSheetByName(name);
@@ -86,7 +86,7 @@ function readDashboardTabs_() {
   };
   let weeks = [];
   try {
-    weeks = listWeekFolders_();
+    weeks = listWeekFolders_(children);
   } catch (e) {
     console.warn('Semanas de CV/ -> ' + e.message);
   }

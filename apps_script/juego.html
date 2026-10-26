@@ -879,6 +879,14 @@ var ARTE = {
   var CLAVE = 'juego:' + (params.api || 'sin-api');
   var modelo = null, resultado = null, mostrado = null, pestana = 'arena', replayActivo = false;
   var URL_DATOS = '', sincronizando = false, avisoDatos = '', tonoDatos = '';
+  // Datos que llegan de Drive mientras corre el replay o la introducción: se aplican al terminar (2026-10-26)
+  var pendiente = null, introAbierta = false;
+  function aplicarPendiente() {
+    if (!pendiente || replayActivo || introAbierta) return;
+    var d = pendiente; pendiente = null;
+    avisoDatos = ''; tonoDatos = '';
+    pintarTodo(d, null, true);
+  }
   var prefs = leer(CLAVE + ':prefs') || {};
   /** Movimiento reducido y efectos (texturas, lluvia, parpadeo, glitch). Sin elección guardada, siguen al sistema. */
   function aplicarPrefs() {
@@ -1261,7 +1269,8 @@ var ARTE = {
   }
   /**
    * Lee Drive y el Sheet en ese momento (&sync=1) y repinta: lo nuevo (HV enviadas, respuestas) se reproduce en la arena.
-   * `auto`: al abrir con datos de más de DATOS_VIEJOS_MIN; si falla, el replay sigue con los datos que ya hay.
+   * `auto`: al abrir con datos de más de DATOS_VIEJOS_MIN. El replay de lo que ya había no espera a Drive (tarda varios
+   * segundos): lo que llegue de nuevo se reproduce cuando termine (2026-10-26, «el proceso de actualización tardó mucho»).
    */
   function sincronizar(auto) {
     if (sincronizando || (replayActivo && !auto) || !URL_DATOS) return Promise.resolve();
@@ -1274,12 +1283,13 @@ var ARTE = {
         if (!d || !d.postulaciones) throw new Error('sin datos');
         guardar(CLAVE + ':modelo', d);
         avisoDatos = ''; tonoDatos = '';
-        pintarTodo(d, null, true);
+        if (replayActivo || introAbierta) { pendiente = d; avisoDatos = 'Drive leído: lo nuevo va al final'; tonoDatos = 'cia'; pintarDatos(); }
+        else pintarTodo(d, null, true);
         if (!auto) anunciar('Listo. ' + textoBase() + '.');
       })
       .catch(function () {
         sincronizando = false; avisoDatos = 'No se pudo leer Drive. ' + textoBase(); tonoDatos = 'mag';
-        if (auto && modelo) pintarTodo(modelo, null, true); else pintarDatos();
+        pintarDatos();
         if (!auto) anunciar(avisoDatos);
       });
   }
@@ -1409,7 +1419,7 @@ var ARTE = {
       if (it.tamano === 'dialogo') { var t = dialogoDe(it); decir(t.voz, t.dato, []); anunciar(t.voz + ' ' + t.dato); }
       coreografia(it, sig, mostrado)
         .then(function () { return it.tamano === 'mediano' || it.tamano === 'grande' ? modalEvento(it) : espera(1500); })
-        .then(function () { replayActivo = false; pintarDatos(); verArena(final); decirReposo(); });
+        .then(function () { replayActivo = false; pintarDatos(); verArena(final); decirReposo(); aplicarPendiente(); });
     };
     alCerrar = null; cerrarModal(); irA('arena'); setTimeout(alTerminar, 0);
   }
@@ -1622,6 +1632,7 @@ var ARTE = {
       var resumen = cola.resumen ? (cola.resumen === 1 ? ' Y 1 evento más: velo en la Bitácora.' : ' Y ' + cola.resumen + ' eventos más: velos en la Bitácora.') : '';
       decir(r.voz, r.dato + resumen, cola.resumen ? [el('button', { class: 'btn', type: 'button', text: 'Bitácora ▶', onclick: function () { irA('bitacora'); } })] : []);
       guardar(CLAVE + ':visto', ultimoVistoDe(resultado.efectos));
+      aplicarPendiente();
     });
   }
   /** Lo que dice el jefe en reposo, con el dato real al lado (principio 1). */
@@ -1694,7 +1705,8 @@ var ARTE = {
     if (MODO_COACH) { verArena(resultado.estado); decirReposo(); return; }
     if (!visto) {
       verArena(resultado.estado); decirReposo();
-      intro().then(function () { guardar(CLAVE + ':visto', ultimoVistoDe(resultado.efectos)); });
+      introAbierta = true;
+      intro().then(function () { introAbierta = false; guardar(CLAVE + ':visto', ultimoVistoDe(resultado.efectos)); aplicarPendiente(); });
       return;
     }
     var cola = colaReplay(resultado.efectos, visto);
@@ -1717,9 +1729,9 @@ var ARTE = {
         if (d && d.error) return bloqueado();
         if (!d || !d.postulaciones) throw new Error('sin datos');
         guardar(CLAVE + ':modelo', d);
-        // Datos de la caché con más de 15 min: se muestran ya y se lee Drive antes del replay (2026-10-26)
-        if (minutosDesde(d.generado, Date.now()) > DATOS_VIEJOS_MIN) { pintarTodo(d, '', false); return sincronizar(true); }
         pintarTodo(d, '', true);
+        // Datos de la caché con más de 15 min: se lee Drive mientras corre el replay (2026-10-26)
+        if (minutosDesde(d.generado, Date.now()) > DATOS_VIEJOS_MIN) sincronizar(true);
       })
       .catch(function () {
         if (fotoValida) { verEstado('Sin conexión. ' + textoBase(), 'mag'); pintarTodo(foto, null, true); }
