@@ -540,9 +540,10 @@ function dashboardMain(D) {
     if (last && last.generado) { last.recargar = null; dashboardMain(last); shown = true; }
   } catch (e) { /* sin almacenamiento: se espera a los datos */ }
   function load(fresh) {
-    if (shown) updated.textContent = 'Actualizando…';
+    if (shown) updated.textContent = fresh ? 'Leyendo Drive…' : 'Actualizando…';
     reload.setAttribute('aria-disabled', 'true');
-    return fetch(url + (fresh ? '&fresco=1' : ''), { credentials: 'omit' })
+    // Actualizar lee Drive en ese momento (&sync=1, 2026-10-26); antes solo recalculaba con el Sheet de la última hora
+    return fetch(url + (fresh ? '&fresco=1&sync=1' : ''), { credentials: 'omit' })
       .then(function (r) { return r.json(); })
       .then(function (data) { return data; }, function () { return null; })
       .then(function (data) {
