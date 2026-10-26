@@ -113,7 +113,9 @@ function createVacancyDetailDoc_(folder, vacancy, item, language) {
     'Idioma: ' + language.toUpperCase(),
     'Correo de contacto: ' + (extractContactEmail(vacancy) || 'N/D'),
     'Fuente: ' + (vacancy.source || 'N/D'),
-  ].concat(vacancy.roleToVerify ? ['Rol: VERIFICAR FUNCIONES (el título no es de diseño; entra solo si la función principal es diseño)'] : [])
+  ].concat(vacancy.fromPost ? ['Tipo: PUBLICACIÓN de LinkedIn (reclutador o empresa). Postular por el medio que indica el texto: ' +
+                                'correo, mensaje directo o el enlace que trae; si el enlace lleva a una vacante formal, verifícala allí'] : [])
+   .concat(vacancy.roleToVerify ? ['Rol: VERIFICAR FUNCIONES (el título no es de diseño; entra solo si la función principal es diseño)'] : [])
    .concat(vacancy.companyNote ? ['Aviso empresa: ' + vacancy.companyNote] : [])
    .forEach(line => body.appendParagraph(line));
   body.appendParagraph('Descripción completa').setHeading(DocumentApp.ParagraphHeading.HEADING2);

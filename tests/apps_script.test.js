@@ -196,6 +196,11 @@ assert.strictEqual(eeCards[0].postedAt, '2026-10-22');
 assert.strictEqual(eeCards[0].link, 'https://www.elempleo.com/co/ofertas-trabajo/disenador-ui-ux-1886783875');
 const eeLd = context.parseJobPostingJsonLd('<script type="application/ld+json">{"@type":"JobPosting","datePosted":"2026-10-22","validThrough":"2026-12-21","description":"<p>Figma &amp; UX</p>"}</script>');
 assert.ok(eeLd.datePosted === '2026-10-22' && eeLd.validThrough === '2026-12-21' && eeLd.description === 'Figma & UX');
+// Publicaciones de LinkedIn: la página pública trae el texto completo en su JSON-LD SocialMediaPosting (2026-10-26)
+const liPost = context.parseLinkedInPostPage('<script type="application/ld+json">{"@context":"http://schema.org","@type":"SocialMediaPosting",' +
+  '"datePublished":"2026-10-15T08:07:24.932Z","author":{"@type":"Person","name":"Ana Gómez"},"articleBody":"HIRING! Remote UI/UX Designer. Escribe a talento@empresa.co"}</script>');
+assert.ok(liPost.date === '2026-10-15' && liPost.author === 'Ana Gómez' && /talento@empresa\.co/.test(liPost.text));
+assert.strictEqual(context.parseLinkedInPostPage('<html>sin datos</html>'), null);
 assert.ok(context.isDesignRole({ title: 'Diseñador UX/UI' }) && !context.isDesignRole({ title: 'Graphic Designer' }));
 assert.ok(!context.isDesignRole({ title: 'Senior SEO & UX Copywriter' }) && !context.isDesignRole({ title: 'UX Writer' }));
 assert.ok(context.isDesignRole({ title: 'Diseñador Digital' }) && context.isDesignRole({ title: 'Visual Designer' }));

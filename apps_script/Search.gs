@@ -45,7 +45,7 @@ function searchUxJobs_() {
   }
   return Object.keys(byKey).map(k => byKey[k]).filter(v => {
     let reason = exclusionReason(v);
-    if (!reason && !v.isPost) {
+    if (!reason && !v.isPost && !v.fromPost) {
       // Google Jobs llega por búsquedas de diseño: solo se descarta redacción/SEO/programación; los demás títulos que no
       // son de diseño entran marcados para revisar sus funciones
       const cls = roleTitleClass(v.title);
@@ -330,7 +330,62 @@ function searchLinkedInPosts_(apiKey) {
   const posts = (JSON.parse(response.getContentText()).organic_results || []).map(parseLinkedInPost);
   const kept = posts.filter(v => v.link && isRecent(v.postedAt, CONFIG.MAX_POST_AGE_DAYS) && isReachablePost(v));
   console.log('Publicaciones: ' + posts.length + ' resultados, ' + kept.length + ' de diseño y accesibles desde Colombia');
+  return enrichLinkedInPosts_(kept);
+}
+
+/**
+ * Texto completo de cada publicación (decisión del usuario 2026-10-26: las publicaciones también reciben HV). La página
+ * pública del post trae el texto entero en su JSON-LD SocialMediaPosting, sin sesión de LinkedIn. Las que se leen pasan
+ * a ser vacantes (carpeta, Detalle_Vacante e IA); las que no abren siguen en el documento "Posts" para el proceso manual.
+ */
+function enrichLinkedInPosts_(posts) {
+  if (!posts.length) return posts;
+  let responses = [];
+  try {
+    responses = UrlFetchApp.fetchAll(posts.map(v => ({ url: v.link, muteHttpExceptions: true, followRedirects: true,
+                                                        headers: { 'User-Agent': 'Mozilla/5.0', 'Accept-Language': 'es-CO,es;q=0.9' } })));
+  } catch (e) {
+    console.warn('No se pudo leer el texto completo de las publicaciones: ' + e.message);
+  }
+  let full = 0, dropped = 0;
+  const kept = posts.filter((v, i) => {
+    const r = responses[i];
+    const page = r && r.getResponseCode() === 200 ? parseLinkedInPostPage(r.getContentText()) : null;
+    if (!page || !page.text) return true;
+    v.description = page.text;
+    if (page.date) v.postedAt = page.date;
+    if (page.author && /^Post LinkedIn$/.test(v.company)) v.company = 'Post ' + page.author;
+    v.isPost = false;
+    v.fromPost = true;
+    v.source = 'Publicación LinkedIn (texto completo)';
+    if (!isRecent(v.postedAt, CONFIG.MAX_POST_AGE_DAYS) || !isReachablePost(v)) {
+      console.log('Descartada (publicación vieja, cerrada, sin rol de diseño o no accesible desde Colombia): ' + v.link);
+      dropped++;
+      return false;
+    }
+    full++;
+    return true;
+  });
+  console.log('Publicaciones con texto completo: ' + full + ' (pasan a la IA), ' + dropped + ' descartadas al leerlas, ' +
+              (kept.length - full) + ' sin texto (proceso manual)');
   return kept;
+}
+
+/** { text, date (YYYY-MM-DD), author } del JSON-LD SocialMediaPosting de la página pública de un post, o null. */
+function parseLinkedInPostPage(html) {
+  const re = /<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/gi;
+  let m;
+  while ((m = re.exec(String(html || '')))) {
+    let data;
+    try { data = JSON.parse(m[1]); } catch (e) { continue; }
+    const items = [].concat(data['@graph'] || data);
+    const post = items.filter(x => x && /SocialMediaPosting|Article/.test(x['@type'] || ''))[0];
+    if (!post) continue;
+    const text = String(post.articleBody || post.text || '').trim();
+    const author = post.author && (post.author.name || (post.author[0] && post.author[0].name)) || '';
+    return { text: text, date: String(post.datePublished || '').slice(0, 10), author: String(author).trim() };
+  }
+  return null;
 }
 
 /** Vacante remota a la que se puede aplicar desde Colombia: su ubicación o descripción dice remoto/LATAM/Colombia. */
@@ -428,7 +483,7 @@ function hostOf_(link) {
 function verifyPostingDates_(vacancies) {
   // Se abre la página original de todas las vacantes formales (gratis): da la fecha si Google Jobs no la trajo y
   // permite descartar las que ya no reciben postulaciones (guía 2026-10-22: solo vacantes abiertas y verificadas).
-  const pending = vacancies.filter(v => !v.isPost);
+  const pending = vacancies.filter(v => !v.isPost && !v.fromPost);  // Las publicaciones ya se leyeron al buscarlas
   if (pending.length) {
     let responses = [];
     try {
