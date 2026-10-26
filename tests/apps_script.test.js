@@ -177,6 +177,30 @@ assert.strictEqual(liCards[0].link, 'https://www.linkedin.com/jobs/view/44807205
 const liDetail = context.parseLinkedInJobDetail('<div class="show-more-less-html__markup relative">Buscamos <b>UX</b><br>Figma</div>');
 assert.ok(/Buscamos UX/.test(liDetail.description) && /Figma/.test(liDetail.description) && !liDetail.closed);
 assert.ok(context.parseLinkedInJobDetail('<figure class="closed-job">No longer accepting applications</figure>').closed);
+// elempleo: fecha relativa, tarjetas y JSON-LD de la ficha
+const hoyEe = new Date('2026-10-26T15:00:00Z');
+assert.strictEqual(context.relativeDateEs('Hace 4 d&#237;as'.replace('&#237;', 'í'), hoyEe), '2026-10-22');
+assert.strictEqual(context.relativeDateEs('Hace 2 semanas', hoyEe), '2026-10-12');
+assert.strictEqual(context.relativeDateEs('Hace 1 mes', hoyEe), '2026-09-26');
+assert.strictEqual(context.relativeDateEs('Hace 3 horas', hoyEe), '2026-10-26');
+assert.strictEqual(context.relativeDateEs('Ayer', hoyEe), '2026-10-25');
+assert.strictEqual(context.relativeDateEs('sin fecha', hoyEe), null);
+const eeCards = context.parseElempleoList('<div class="result-list"><div class="col-md-12 result-item mb-3 bg-white"><div data-url="/co/ofertas-trabajo/disenador-ui-ux-1886783875" ' +
+  'data-ga4-offerdata="{&quot;id&quot;:1886783875,&quot;title&quot;:&quot;Dise&#241;ador ui/ux - hibrido&quot;,&quot;company&quot;:&quot;NOVATEC&quot;,&quot;location&quot;:&quot;Bogot&#225;&quot;}">' +
+  '<span>Hace 4 d&#237;as</span></div></div><div class="result-item mb-3">sin datos</div>', 'https://www.elempleo.com', hoyEe);
+assert.strictEqual(eeCards.length, 1);
+assert.strictEqual(eeCards[0].title, 'Diseñador ui/ux - hibrido');
+assert.strictEqual(eeCards[0].company, 'NOVATEC');
+assert.strictEqual(eeCards[0].location, 'Bogotá, Colombia');
+assert.strictEqual(eeCards[0].postedAt, '2026-10-22');
+assert.strictEqual(eeCards[0].link, 'https://www.elempleo.com/co/ofertas-trabajo/disenador-ui-ux-1886783875');
+const eeLd = context.parseJobPostingJsonLd('<script type="application/ld+json">{"@type":"JobPosting","datePosted":"2026-10-22","validThrough":"2026-12-21","description":"<p>Figma &amp; UX</p>"}</script>');
+assert.ok(eeLd.datePosted === '2026-10-22' && eeLd.validThrough === '2026-12-21' && eeLd.description === 'Figma & UX');
+// Publicaciones de LinkedIn: la página pública trae el texto completo en su JSON-LD SocialMediaPosting (2026-10-26)
+const liPost = context.parseLinkedInPostPage('<script type="application/ld+json">{"@context":"http://schema.org","@type":"SocialMediaPosting",' +
+  '"datePublished":"2026-10-15T08:07:24.932Z","author":{"@type":"Person","name":"Ana Gómez"},"articleBody":"HIRING! Remote UI/UX Designer. Escribe a talento@empresa.co"}</script>');
+assert.ok(liPost.date === '2026-10-15' && liPost.author === 'Ana Gómez' && /talento@empresa\.co/.test(liPost.text));
+assert.strictEqual(context.parseLinkedInPostPage('<html>sin datos</html>'), null);
 assert.ok(context.isDesignRole({ title: 'Diseñador UX/UI' }) && !context.isDesignRole({ title: 'Graphic Designer' }));
 assert.ok(!context.isDesignRole({ title: 'Senior SEO & UX Copywriter' }) && !context.isDesignRole({ title: 'UX Writer' }));
 assert.ok(context.isDesignRole({ title: 'Diseñador Digital' }) && context.isDesignRole({ title: 'Visual Designer' }));
