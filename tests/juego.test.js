@@ -119,6 +119,45 @@ assert.deepStrictEqual(['0. Antiguas', '1. Primera semana nueva', '2. Segunda se
   assert.strictEqual(J('simular')(J('construirEventos')(m), m).estado.reclutadorHp, 49);
 }
 
+// ---------- Bitácora por semana (2026-10-26): historia de cada postulación y lo de cada semana ----------
+{
+  const igual = (a, b) => J('mismaEmpresa')(a, b);
+  assert.ok(igual('Kanguro', 'Kanguro Insurance') && igual('PeriferiaIT', 'Periferia IT Group') && igual('EPAM', 'epam'));
+  assert.ok(!igual('Empresa 1', 'Empresa 16') && !igual('Banco de Bogotá', 'Banco Popular') && !igual('Sole', 'Solera') && !igual('', ''),
+    'ante la duda no se juntan dos empresas');
+  // Con los datos reales anonimizados: una empresa que pasó a prueba y luego la rechazaron
+  const a46 = modelo.postulaciones.lista.find(a => a.empresa === 'Empresa 46');
+  const h46 = plain(J('historiaDePostulacion')(modelo, a46));
+  assert.deepStrictEqual(h46.map(p => p.tipo), ['envio', 'seguimiento', 'seguimiento']);
+  assert.ok(h46.every((p, i) => !i || (p.dia || '9999') >= (h46[i - 1].dia || '')), 'en orden de fecha');
+  assert.strictEqual(h46[2].ahora, 'Rechazada (rojo)');
+  // Misma empresa con dos postulaciones: cada hallazgo va a la más reciente enviada antes de él
+  const m = { postulaciones: { lista: [
+    { empresa: 'Truelogic', cargo: '', clave: 'rechazada', creada: '2026-09-22' },
+    { empresa: 'Truelogic', cargo: '', clave: 'sinRespuesta', creada: '2026-10-14' },
+    { empresa: 'Truelogic Software', cargo: '', clave: 'preparada', creada: '2026-10-20' }] },
+  historial: [{ empresa: 'Truelogic', hecho: 'Rechazo', fechaMensaje: '2026-09-25', ahora: 'Rechazada', siguiente: 'Ninguna' },
+    { empresa: 'Truelogic Software', hecho: 'Acuse', fechaMensaje: '2026-10-20', ahora: 'Aplicada, sin respuesta', siguiente: 'Esperar respuesta' },
+    { empresa: 'Otra', hecho: 'x', fechaMensaje: '2026-10-21' }] };
+  const [vieja, nueva] = m.postulaciones.lista;
+  assert.deepStrictEqual(plain(J('historiaDePostulacion')(m, vieja).map(p => p.texto)), ['HV enviada', 'Rechazo']);
+  assert.deepStrictEqual(plain(J('historiaDePostulacion')(m, nueva).map(p => p.texto)), ['HV enviada', 'Acuse']);
+  // Acción pendiente: la del último hallazgo, salvo esperar o ninguna
+  const paso = siguiente => ({ tipo: 'seguimiento', siguiente });
+  assert.strictEqual(J('accionPendiente')([paso('Grabar el video'), paso('Esperar respuesta')]), '');
+  assert.strictEqual(J('accionPendiente')([paso('Esperar respuesta'), paso('Grabar el video de Spark Hire')]), 'Grabar el video de Spark Hire');
+  assert.strictEqual(J('accionPendiente')([{ tipo: 'envio' }]), '');
+  // Lo de cada semana: las mismas cifras del tablero y cada correo en frío en una sola semana
+  const det = plain(J('semanasDetalle')(modelo, estado));
+  assert.deepStrictEqual(det.map(w => w.hv), modelo.postulaciones.semanas.map(w => w.total));
+  assert.deepStrictEqual(det.map(w => w.rechazada), modelo.postulaciones.semanas.map(w => w.rechazada));
+  assert.deepStrictEqual(det.map(w => w.numero), [0, 1, 2, 3]);
+  assert.deepStrictEqual(det.map(w => w.actual), [false, false, false, true]);
+  assert.ok(det.every(w => w.postulaciones.every((a, i) => !i || (a.creada || '') <= (w.postulaciones[i - 1].creada || ''))), 'recientes primero');
+  const enviados = modelo.correos.lista.filter(c => c.clave && c.clave !== 'borrador' && (c.dia || '') >= modelo.postulaciones.semanas[0].desde).length;
+  assert.strictEqual(det.reduce((n, w) => n + w.correos.length, 0), enviados);
+}
+
 // Antigüedad de los datos (hora de Bogotá, UTC−5): con más de 15 min el juego lee Drive al abrir (2026-10-26)
 assert.strictEqual(J('minutosDesde')('2026-10-26T11:52', Date.parse('2026-10-26T17:20:00Z')), 28);
 assert.strictEqual(J('minutosDesde')('2026-10-26T12:15', Date.parse('2026-10-26T17:20:00Z')), 5);

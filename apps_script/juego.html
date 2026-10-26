@@ -195,20 +195,23 @@ h2.cab, h3.cab { font-size: inherit; font-weight: inherit; }
 
 /* ---------- Caja de diálogo: habla el jefe, el dato real va debajo ---------- */
 .dialogo { margin: 10px 12px 0; cursor: default; }
-.dialogo .in { display: flex; gap: 12px; align-items: flex-start; padding-right: 52px; min-height: 92px; }
-.cara { width: 64px; height: 64px; flex: none; overflow: hidden; border: 1px solid var(--magenta); background: #120d20; box-shadow: inset 0 0 14px rgba(0,0,0,.8); }
-.cara img { width: 64px; height: 64px; object-fit: none; object-position: 50% 0; image-rendering: pixelated; transform: scaleX(-1); display: block; }
-.cara svg { width: 64px; height: 128px; display: block; transform: scaleX(-1); }
-.quien { font-weight: 600; font-size: 14px; letter-spacing: .08em; color: var(--magenta); text-transform: uppercase; }
-.voz { font-size: 18px; line-height: 1.4; margin: 2px 0 0; }
+.dialogo .in { display: flex; gap: 10px; align-items: flex-start; padding: 8px 40px 8px 10px; }
+/* Caja compacta (2026-10-26): cara de 48 px recortada del sprite sin escalar, nombre corto en una línea y voz a 16 px */
+.cara { width: 48px; height: 48px; flex: none; overflow: hidden; border: 1px solid var(--magenta); background: #120d20; box-shadow: inset 0 0 14px rgba(0,0,0,.8); }
+.cara img { width: 64px; height: 64px; margin-left: -8px; object-fit: none; object-position: 50% 0; image-rendering: pixelated; transform: scaleX(-1); display: block; }
+.cara svg { width: 64px; height: 128px; margin-left: -8px; display: block; transform: scaleX(-1); }
+.quien { font-weight: 600; font-size: 14px; letter-spacing: .08em; color: var(--magenta); text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.voz { font-size: 16px; line-height: 1.35; margin: 2px 0 0; }
 .voz:empty { display: none; }
 .dato-linea { font-size: 14px; color: var(--texto-2); margin: 4px 0 0; }
 .dato-linea:empty { display: none; }
 .cursor { display: inline-block; width: 8px; height: 14px; margin-left: 2px; background: var(--texto-2); vertical-align: -2px; animation: cur 1s steps(1) infinite; }
 @keyframes cur { 50% { opacity: 0; } }
-.dialogo .acciones { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.dialogo .acciones { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+.dialogo .acciones .btn { min-height: 44px; padding: 0 12px; }
+.dialogo .in > div:nth-child(2) { flex: 1; min-width: 0; }
 .dialogo .acciones:empty { display: none; }
-.sig { position: absolute; right: 4px; bottom: 4px; min-width: 48px; min-height: 48px; background: none; border: 0; color: var(--cian); cursor: pointer; font-family: var(--f-px); font-size: 16px; }
+.sig { position: absolute; right: 0; bottom: 0; min-width: 44px; min-height: 44px; background: none; border: 0; color: var(--cian); cursor: pointer; font-family: var(--f-px); font-size: 16px; }
 
 /* ---------- Panel de números reales ---------- */
 .stats { padding: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -267,6 +270,23 @@ select.sel { min-height: 48px; padding: 0 12px; background: var(--panel); color:
 .grafica { display: grid; gap: 10px; }
 .grafica .fil { display: grid; grid-template-columns: 10ch 1fr 3ch; gap: 8px; align-items: center; font-size: 14px; color: var(--texto-2); }
 .grafica .fil .mono { color: var(--texto); text-align: right; font-size: 16px; }
+button.fil { all: unset; box-sizing: border-box; display: grid; grid-template-columns: 10ch 1fr 3ch; gap: 8px; align-items: center; min-height: 44px; cursor: pointer; font-size: 14px; color: var(--texto-2); }
+button.fil:hover, button.fil:focus-visible { background: rgba(79,201,196,.06); }
+button.fil:focus-visible { outline: 2px solid var(--cian); outline-offset: 2px; }
+/* Bitácora por semana: ◀ selector ▶, filtros con su cifra y la línea de tiempo de cada vacante (2026-10-26) */
+.semnav { display: grid; grid-template-columns: 48px 1fr 48px; gap: 8px; align-items: center; margin: 0 0 10px; }
+.semnav .sel { width: 100%; min-width: 0; }
+.flecha { justify-content: center; padding: 0; }
+.flecha[aria-disabled="true"] { opacity: .35; cursor: default; }
+.chips { gap: 6px; }
+.chips .btn { min-height: 44px; padding: 0 10px; gap: 8px; letter-spacing: .04em; }
+.chips .cuenta { color: var(--cian); }
+.chips .btn[aria-pressed="true"] .cuenta { color: var(--texto); }
+.big .sub { text-align: right; }
+ol.tiempo { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 10px; }
+ol.tiempo li { display: grid; grid-template-columns: 7ch 1fr; gap: 10px; padding-left: 10px; border-left: 2px solid var(--linea); font-size: 16px; }
+ol.tiempo .cuando { color: var(--cian); font-size: 14px; padding-top: 2px; }
+ol.tiempo .t2 { font-size: 14px; color: var(--texto-2); }
 .ficha { display: flex; gap: 14px; align-items: flex-start; flex-wrap: wrap; }
 .ficha .datos { flex: 1; min-width: 180px; }
 .lv { font-family: var(--f-px); font-size: 24px; color: var(--lila); line-height: 1.2; }
@@ -319,6 +339,7 @@ html.reducido .num { transform: translateX(-50%); }
 @media (max-width: 359px) { .mcuerpo { flex-direction: column; align-items: center; } }
 @media (min-width: 760px) {
   :root { --e: 2; --mesa: 96px; }
+  .voz { font-size: 18px; }
   .arena { height: 470px; }
   .ventana { top: 92px; height: 220px; }
   .derrame { top: 314px; }
@@ -502,6 +523,78 @@ function diasSinEnvio(diasConEnvio, hoy) {
 function mismoNombre(a, b) {
   var n = function (x) { return String(x || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim(); };
   return !!n(a) && n(a) === n(b);
+}
+
+/**
+ * Misma empresa aunque Seguimiento y la carpeta la escriban distinto: un nombre es el otro más palabras completas
+ * ("Kanguro" / "Kanguro Insurance", "PeriferiaIT" / "Periferia IT Group"). "Empresa 1" no es "Empresa 16", ni "Banco de
+ * Bogotá" es "Banco Popular": ante la duda, no se juntan.
+ */
+function mismaEmpresa(a, b) {
+  var pal = function (x) { return String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').match(/[a-z0-9]+/g) || []; };
+  var pa = pal(a), pb = pal(b), x = pa.join(''), y = pb.join('');
+  if (!x || !y) return false;
+  if (x === y) return true;
+  var corto = x.length < y.length ? x : y, largo = x.length < y.length ? pb : pa;
+  if (corto.length < 4) return false;
+  for (var i = 0, n = 0; i < largo.length; i++) { n += largo[i].length; if (n === corto.length) return largo.join('').indexOf(corto) === 0; if (n > corto.length) return false; }
+  return false;
+}
+
+/**
+ * Lo que pasó con una postulación (pestaña Bitácora, 2026-10-26: «ver qué hice en cada vacante»): su envío y los hallazgos
+ * de Seguimiento de esa empresa, por fecha. Si la empresa tiene varias postulaciones, cada hallazgo va a la más reciente
+ * enviada antes de él (o a la del mismo cargo). `a` es un elemento de m.postulaciones.lista.
+ */
+function historiaDePostulacion(m, a) {
+  var lista = (((m && m.postulaciones) || {}).lista || []).filter(function (x) { return x.clave !== 'preparada' && mismaEmpresa(x.empresa, a.empresa); });
+  var duenaDe = function (h, dia) {
+    if (lista.length < 2) return a;
+    var porCargo = h.cargo ? lista.filter(function (x) { return x.cargo && mismoNombre(x.cargo, h.cargo); }) : [];
+    if (porCargo.length === 1) return porCargo[0];
+    var mejor = null;
+    lista.forEach(function (x) { var c = diaValido(x.creada); if (c && dia && c <= dia && (!mejor || c >= diaValido(mejor.creada))) mejor = x; });
+    return mejor || a;
+  };
+  var pasos = [{ tipo: 'envio', dia: diaValido(a.creada), texto: 'HV enviada', ahora: '', siguiente: '', plazo: '' }];
+  ((m && m.historial) || []).forEach(function (h) {
+    if (!h.empresa || !mismaEmpresa(h.empresa, a.empresa)) return;
+    var dia = diaValido(h.fechaMensaje) || diaValido(h.fecha);
+    if (duenaDe(h, dia) !== a) return;
+    pasos.push({ tipo: 'seguimiento', dia: dia, texto: h.hecho || '', antes: h.antes || '', ahora: h.ahora || '', siguiente: h.siguiente || '', plazo: h.plazo || '' });
+  });
+  var orden = pasos.map(function (p, i) { return { p: p, i: i }; });
+  orden.sort(function (x, y) { var a1 = x.p.dia || '9999', b1 = y.p.dia || '9999'; return a1 < b1 ? -1 : a1 > b1 ? 1 : x.i - y.i; });
+  return orden.map(function (o) { return o.p; });
+}
+
+/** La acción que queda pendiente según la historia (la del último hallazgo), o vacío si es esperar o ninguna. */
+function accionPendiente(pasos) {
+  var ult = pasos.filter(function (p) { return p.tipo === 'seguimiento'; }).pop();
+  var s = ult ? String(ult.siguiente || '').trim() : '';
+  return s && !/^(esperar|ninguna|no aplica|-|—)/i.test(s) ? s : '';
+}
+
+/**
+ * Lo de cada semana para la Bitácora: sus postulaciones (más recientes primero), los correos en frío enviados entre su
+ * inicio y el de la siguiente, y las cifras. `estado` es el de simular (trae jefe, KO y número de cada semana).
+ */
+function semanasDetalle(m, estado) {
+  var P = (m && m.postulaciones) || {}, semanas = P.semanas || [];
+  var desde = semanas.map(function (w) { return diaValido(w.desde); });
+  return semanas.map(function (w, i) {
+    var lista = (P.lista || []).filter(function (a) { return a.semana === w.semana && a.clave !== 'preparada'; })
+      .sort(function (x, y) { return (y.creada || '') < (x.creada || '') ? -1 : (y.creada || '') > (x.creada || '') ? 1 : 0; });
+    var fin = desde[i + 1] || '9999';
+    var correos = (((m && m.correos) || {}).lista || []).filter(function (c) {
+      var d = diaValido(c.dia || c.fecha); return c.clave && c.clave !== 'borrador' && d && d >= (desde[i] || '') && d < fin;
+    });
+    var cuenta = function (k) { return lista.filter(function (a) { return a.clave === k; }).length; };
+    var e = (estado && estado.semanas && estado.semanas[i]) || {};
+    return { indice: i, nombre: w.semana, numero: e.numero, jefe: e.jefe, ko: !!e.ko, desde: desde[i], hv: lista.length,
+      proceso: cuenta('proceso'), rechazada: cuenta('rechazada'), sinRespuesta: cuenta('sinRespuesta') + cuenta('aplicada'),
+      postulaciones: lista, correos: correos, actual: i === semanas.length - 1 };
+  });
 }
 
 /**
@@ -1117,7 +1210,8 @@ var ARTE = {
     mostrado = d; jefeVisible = d.jefe;
     $('jefe-nombre').textContent = infoJefe(d.jefe).corto;
     $('placa-jefe').setAttribute('title', d.jefe.nombre);
-    $('dialogo-quien').textContent = d.jefe.nombre;
+    $('dialogo-quien').textContent = infoJefe(d.jefe).corto;
+    $('dialogo-quien').setAttribute('title', d.jefe.nombre);
     segmentos($('rec-seg'), a.reclutadorHp, d.reclutadorHp, d.meta);
     segmentos($('osc-seg'), a.hp, d.hp, 100);
     segmentos($('pod-seg'), a.poder, d.poder, 30);
@@ -1229,7 +1323,7 @@ var ARTE = {
     var de = function (clave) { return lista.filter(function (a) { return a.clave === clave; }).map(function (a) { return { t1: a.empresa, t2: (a.cargo || 'Sin cargo') + ' · ' + a.semana + (a.estadoFecha ? ' · ' + fecha(a.estadoFecha) : ''), url: a.carpeta }; }); };
     var respondieron = P.proceso + P.rechazada;
     p.appendChild(tarjeta('02', 'Total', NF.format(P.total), 'en ' + P.semanas.length + ' semanas', '', function () {
-      listaModal('Enviadas por semana', P.semanas.map(function (w) { return { t1: w.semana, t2: w.total + ' HV · ' + w.proceso + ' en proceso · ' + w.rechazada + ' rechazadas' }; }));
+      semanaBit = 'todas'; filtroBit = 'todo'; irA('bitacora');
     }));
     p.appendChild(tarjeta('03', 'En proceso', NF.format(P.proceso), 'entrevistas o pruebas', 'verde', function () { listaModal('En proceso', de('proceso'), 'Todavía ninguna. Las respuestas llegan solas.'); }));
     p.appendChild(tarjeta('04', 'Rechazadas', NF.format(P.rechazada), '+' + P.rechazada + ' de Resiliencia', 'mag', function () { listaModal('Rechazadas', de('rechazada')); }));
@@ -1350,8 +1444,8 @@ var ARTE = {
       el('div', null, [panel(k2, '', { 'aria-labelledby': 'h-seg' }), panel(k3, '', { 'aria-labelledby': 'h-radar' })])]));
   }
 
-  var filtroBit = 'todo', semanaBit = 'todas';
-  var REAL = { hv: 1, proceso: 1, rechazo: 1, correo: 1, rebote: 1, aliado: 1 };
+  // ===================== BITÁCORA POR SEMANA (2026-10-26: «ver cada semana, qué me rechazaron y qué hice en cada vacante») =====================
+  var filtroBit = 'todo', semanaBit = null;  // semanaBit: null = la semana actual, 'todas' = histórico, o el índice como texto
   function textoEfecto(f) {
     var p = [];
     if (f.delta.hp) p.push(signo(f.delta.hp) + ' HP');
@@ -1359,55 +1453,167 @@ var ARTE = {
     if (f.delta.resiliencia) p.push('+' + f.delta.resiliencia + ' RES');
     return p.join(' ') || '—';
   }
-  var NOMBRE_TIPO = { hv: 'HV enviada', proceso: 'Prueba o entrevista', rechazo: 'Rechazo', correo: 'Correo en frío entregado', rebote: 'Correo en frío rebotado', aliado: 'Respuesta a correo en frío' };
-  var ICONO_TIPO = { hv: 'hoja', proceso: 'espada', rechazo: 'escudo', correo: 'correo', rebote: 'correo', aliado: 'correo' };
   var FUENTE = { hv: 'Fuente · carpetas de CV/', pocion: 'Fuente · carpetas de CV/', avalancha: 'Fuente · carpetas de CV/', ko: 'Fuente · carpetas de CV/',
     proceso: 'Fuente · color de la carpeta en CV/', rechazo: 'Fuente · color de la carpeta en CV/',
     correo: 'Fuente · pestaña Correos en frío', rebote: 'Fuente · pestaña Correos en frío', aliado: 'Fuente · pestaña Correos en frío',
     nivel: 'Calculado con tu historial', logro: 'Calculado con tu historial' };
+  // Estado de una postulación: palabra, color e ícono (el color nunca va solo)
+  var ESTADO_POST = { rechazada: ['Rechazada', 'mag', 'escudo'], proceso: ['En proceso', 'verde', 'espada'],
+    sinRespuesta: ['Sin respuesta', 'cia', 'hoja'], aplicada: ['Enviada', 'cia', 'hoja'] };
+  var FILTROS = [['todo', 'Todas'], ['proceso', 'En proceso'], ['rechazada', 'Rechazadas'], ['sin', 'Sin respuesta'], ['correos', 'Correos']];
+  function pasaFiltro(a) {
+    if (filtroBit === 'proceso') return a.clave === 'proceso';
+    if (filtroBit === 'rechazada') return a.clave === 'rechazada';
+    if (filtroBit === 'sin') return a.clave === 'sinRespuesta' || a.clave === 'aplicada';
+    return true;
+  }
+  /** Abre la Bitácora en una semana (desde Héroe o desde el panel de la Arena). */
+  function irASemana(i) { semanaBit = String(i); filtroBit = 'todo'; irA('bitacora'); }
+  function nombreSemana(w) { return w.numero ? 'Semana ' + dos(w.numero) : 'Antiguas'; }
+  function resultadoJefe(w) {
+    var meta = resultado.estado.meta;
+    if (w.ko) return { texto: '★ Jefe vencido: ' + w.hv + ' HV', clase: 'amb' };
+    if (w.actual) return { texto: 'En curso: faltan ' + Math.max(0, meta - w.hv) + ' HV', clase: 'cia' };
+    return { texto: 'Sobrevivió con ' + Math.max(0, meta - w.hv) + ' HP', clase: '' };
+  }
   function verBitacora() {
     var v = $('v-bitacora'); v.textContent = '';
-    var chips = el('div', { class: 'chips', role: 'group', 'aria-label': 'Filtrar' });
-    [['todo', 'Todo'], ['proceso', 'En proceso'], ['rechazada', 'Rechazadas'], ['sin', 'Sin respuesta'], ['correos', 'Correos']].forEach(function (c) {
-      chips.appendChild(el('button', { class: 'btn', type: 'button', 'aria-pressed': String(filtroBit === c[0]), text: c[1], onclick: function () { filtroBit = c[0]; verBitacora(); } }));
+    var det = semanasDetalle(modelo, resultado.estado);
+    if (!det.length) { v.appendChild(el('div', { class: 'pagina' }, [panel([el('p', { class: 'vacio', text: 'Todavía no hay semanas en CV/.' })])])); return; }
+    var actual = det.length - 1;
+    var sel = semanaBit == null ? String(actual) : semanaBit;
+    var todas = sel === 'todas' || !det[Number(sel)];
+    var w = todas ? null : det[Number(sel)];
+    // Navegación: ◀ [Histórico, semana 0 … semana actual] ▶
+    var orden = ['todas'].concat(det.map(function (x) { return String(x.indice); }));
+    var pos = orden.indexOf(todas ? 'todas' : sel);
+    var ir = function (p) { if (p < 0 || p >= orden.length) return; semanaBit = orden[p]; verBitacora(); var s = $('bit-sel'); if (s) s.focus(); };
+    var selector = el('select', { class: 'sel', id: 'bit-sel', 'aria-label': 'Semana', onchange: function (e) { semanaBit = e.target.value; verBitacora(); $('bit-sel').focus(); } });
+    orden.forEach(function (k) {
+      var x = k === 'todas' ? null : det[Number(k)];
+      var o = el('option', { value: k, text: x ? x.nombre + (x.actual ? ' · actual' : '') : 'Histórico (todas)' });
+      if (k === orden[pos]) o.selected = true;
+      selector.appendChild(o);
     });
-    var sel = el('select', { class: 'sel', 'aria-label': 'Semana', onchange: function (e) { semanaBit = e.target.value; verBitacora(); } });
-    sel.appendChild(el('option', { value: 'todas', text: 'Todas las semanas' }));
-    resultado.estado.semanas.forEach(function (s, i) { var o = el('option', { value: String(i), text: s.nombre }); if (semanaBit === String(i)) o.selected = true; sel.appendChild(o); });
-    chips.appendChild(sel);
-    var filas = resultado.efectos.filter(function (f) {
-      if (!REAL[f.tipo]) return false;
-      if (semanaBit !== 'todas' && String(f.semana) !== semanaBit) return false;
-      if (filtroBit === 'proceso') return f.tipo === 'proceso' || (f.tipo === 'hv' && f.postulacion === 'proceso');
-      if (filtroBit === 'rechazada') return f.tipo === 'rechazo' || (f.tipo === 'hv' && f.postulacion === 'rechazada');
-      if (filtroBit === 'sin') return f.tipo === 'hv' && (f.postulacion === 'sinRespuesta' || f.postulacion === 'aplicada');
-      if (filtroBit === 'correos') return f.tipo === 'correo' || f.tipo === 'rebote' || f.tipo === 'aliado';
-      return true;
-    }).slice().reverse();
-    var ul = el('ul', { class: 'lista' });
-    filas.slice(0, 200).forEach(function (f) {
-      var malo = f.tipo === 'rechazo' || f.tipo === 'rebote';
-      ul.appendChild(el('li', null, [el('button', { class: 'fila', type: 'button', onclick: function () { detalleEvento(f); },
-        'aria-label': NOMBRE_TIPO[f.tipo] + ': ' + f.empresa + ', ' + fecha(f.dia) + '. Efecto ' + textoEfecto(f) }, [
-        el('span', { class: malo ? 'mag' : f.tipo === 'proceso' || f.tipo === 'aliado' ? 'verde' : 'cia' }, [icono(ICONO_TIPO[f.tipo], true)]),
-        el('div', { class: 'txt' }, [el('div', { class: 't1', text: f.empresa || NOMBRE_TIPO[f.tipo] }),
-          el('div', { class: 't2', text: NOMBRE_TIPO[f.tipo] + (f.n > 1 ? ' ×' + f.n : '') + (f.cargo ? ' · ' + f.cargo : '') + ' · ' + fecha(f.dia) }),
-          el('div', { class: 'ef ' + (malo ? 'mag' : 'verde'), text: textoEfecto(f) })]),
+    var flecha = function (txt, etq, p) {
+      return el('button', { class: 'btn sec flecha', type: 'button', 'aria-label': etq, 'aria-disabled': p < 0 || p >= orden.length ? 'true' : null,
+        onclick: function () { ir(p); } }, [el('span', { 'aria-hidden': 'true', text: txt })]);
+    };
+    var nav = el('div', { class: 'semnav' }, [flecha('◀', 'Semana anterior', pos - 1), selector, flecha('▶', 'Semana siguiente', pos + 1)]);
+
+    var lista = todas ? det.reduce(function (acc, x) { return acc.concat(x.postulaciones.map(function (a) { return { a: a, w: x }; })); }, []).reverse()
+      .sort(function (p, q) { return (q.a.creada || '') < (p.a.creada || '') ? -1 : (q.a.creada || '') > (p.a.creada || '') ? 1 : 0; })
+      : w.postulaciones.map(function (a) { return { a: a, w: w }; });
+    var correos = todas ? det.reduce(function (acc, x) { return acc.concat(x.correos); }, []) : w.correos;
+    var cuenta = { todo: lista.length, correos: correos.length };
+    ['proceso', 'rechazada', 'sin'].forEach(function (k) { var f0 = filtroBit; filtroBit = k; cuenta[k] = lista.filter(function (x) { return pasaFiltro(x.a); }).length; filtroBit = f0; });
+    var chips = el('div', { class: 'chips', role: 'group', 'aria-label': 'Filtrar' });
+    FILTROS.forEach(function (c) {
+      chips.appendChild(el('button', { class: 'btn', type: 'button', 'aria-pressed': String(filtroBit === c[0]), onclick: function () { filtroBit = c[0]; verBitacora(); } },
+        [el('span', { text: c[1] }), el('span', { class: 'mono cuenta', text: String(cuenta[c[0]]) })]));
+    });
+
+    // Resumen: la semana con su jefe, o el histórico con una fila por semana
+    var resumen;
+    if (todas) {
+      var ulw = el('ul', { class: 'lista' });
+      det.slice().reverse().forEach(function (x) {
+        var r = resultadoJefe(x);
+        ulw.appendChild(el('li', null, [el('button', { class: 'fila', type: 'button', onclick: function () { irASemana(x.indice); },
+          'aria-label': nombreSemana(x) + ', ' + x.nombre + ': ' + x.hv + ' HV, ' + x.proceso + ' en proceso, ' + x.rechazada + ' rechazadas. ' + r.texto + '. Ver la semana' }, [
+          el('span', { class: 'cia' }, [icono('carpeta', true)]),
+          el('div', { class: 'txt' }, [el('div', { class: 't1', text: nombreSemana(x) + ' · ' + x.nombre }),
+            el('div', { class: 't2', text: x.hv + ' HV · ' + x.proceso + ' en proceso · ' + x.rechazada + ' rechazadas · ' + (x.jefe ? x.jefe.nombre : '') }),
+            el('div', { class: 'ef ' + r.clase, text: r.texto })]),
+        ])]));
+      });
+      resumen = panel([cab('01', 'Histórico · ' + det.length + ' semanas', 'h2', 'h-bit'), nav, ulw], '', { 'aria-labelledby': 'h-bit' });
+    } else {
+      var r = resultadoJefe(w);
+      resumen = panel([cab('01', nombreSemana(w) + ' · ' + w.nombre, 'h2', 'h-bit'), nav,
+        el('div', { class: 'big' }, [el('span', { class: 'n' }, [String(w.hv), el('small', { text: ' / ' + resultado.estado.meta })]),
+          el('span', { class: 'sub ' + r.clase, text: r.texto })]),
+        barraSeg('cia', w.hv, resultado.estado.meta, true),
+        el('p', { class: 'sub', text: 'Jefe: ' + (w.jefe ? w.jefe.nombre : '—') + (w.desde ? ' · desde el ' + fecha(w.desde) : '') }),
+      ], '', { 'aria-labelledby': 'h-bit' });
+    }
+
+    // Lista: una fila por postulación (o por correo en frío) con su estado y lo que falta hacer
+    var ul = el('ul', { class: 'lista' }), n = 0;
+    if (filtroBit === 'correos') {
+      correos.slice().sort(function (p, q) { return (q.dia || '') < (p.dia || '') ? -1 : 1; }).forEach(function (c) {
+        n++;
+        var rebote = c.rebotadas && !c.entregadas, respondio = c.clave === 'respondio';
+        ul.appendChild(el('li', null, [el('button', { class: 'fila', type: 'button', onclick: function () { fichaCorreo(c); },
+          'aria-label': 'Correo en frío a ' + c.empresa + ', ' + fecha(c.dia) + ': ' + (c.estado || '') + '. Ver detalle' }, [
+          el('span', { class: rebote ? 'mag' : respondio ? 'verde' : 'cia' }, [icono('correo', true)]),
+          el('div', { class: 'txt' }, [el('div', { class: 't1', text: c.empresa }),
+            el('div', { class: 't2', text: 'Correo en frío · ' + fecha(c.dia) }),
+            el('div', { class: 'ef ' + (rebote ? 'mag' : respondio ? 'verde' : ''), text: c.estado || '' })]),
+        ])]));
+      });
+    } else {
+      lista.filter(function (x) { return pasaFiltro(x.a); }).slice(0, 200).forEach(function (x) {
+        n++;
+        var a = x.a, e = ESTADO_POST[a.clave] || ESTADO_POST.aplicada;
+        var acc = accionPendiente(historiaDePostulacion(modelo, a));
+        ul.appendChild(el('li', null, [el('button', { class: 'fila', type: 'button', onclick: function () { fichaVacante(a, x.w); },
+          'aria-label': a.empresa + (a.cargo ? ', ' + a.cargo : '') + ': ' + e[0] + '. Enviada el ' + fecha(a.creada) + (acc ? '. Pendiente: ' + acc : '') + '. Ver qué pasó' }, [
+          el('span', { class: e[1] }, [icono(e[2], true)]),
+          el('div', { class: 'txt' }, [el('div', { class: 't1', text: a.empresa }),
+            el('div', { class: 't2', text: (a.cargo ? a.cargo + ' · ' : '') + 'Enviada ' + fecha(a.creada) + (todas ? ' · ' + nombreSemana(x.w) : '') }),
+            el('div', { class: 'ef ' + e[1], text: e[0] + (a.estadoFecha ? ' · ' + fecha(a.estadoFecha) : '') }),
+            acc ? el('div', { class: 'ef amb', text: '▶ ' + acc }) : null]),
+        ])]));
+      });
+    }
+    var titulo = { todo: 'Postulaciones', proceso: 'En proceso', rechazada: 'Rechazadas', sin: 'Sin respuesta', correos: 'Correos en frío' }[filtroBit];
+    var vacio = filtroBit === 'correos' ? 'No hay correos en frío enviados esa semana.' : filtroBit === 'todo' ? 'Todavía no hay postulaciones esta semana.' : 'Ninguna con este filtro.';
+    var detalle = panel([cab('02', titulo + ' · ' + n, 'h2', 'h-bit2'), chips, n ? ul : el('p', { class: 'vacio', text: vacio })], '', { 'aria-labelledby': 'h-bit2' });
+    v.appendChild(el('div', { class: 'pagina cols' }, [el('div', null, [resumen]), el('div', null, [detalle])]));
+  }
+  /** Ficha de una postulación: estado, cada paso con su fecha (envío y hallazgos de Seguimiento), lo pendiente y su efecto en el juego. */
+  function fichaVacante(a, w) {
+    var pasos = historiaDePostulacion(modelo, a), acc = accionPendiente(pasos);
+    var e = ESTADO_POST[a.clave] || ESTADO_POST.aplicada;
+    var ol = el('ol', { class: 'tiempo' });
+    pasos.forEach(function (p) {
+      ol.appendChild(el('li', null, [el('span', { class: 'mono cuando', text: p.dia ? fecha(p.dia) : 'sin fecha' }), el('div', null, [
+        el('div', { text: p.texto }),
+        p.tipo === 'seguimiento' && p.ahora && p.ahora !== '—' ? el('div', { class: 't2', text: 'Estado: ' + p.ahora }) : null,
+        p.siguiente && !/^(—|-)$/.test(p.siguiente) ? el('div', { class: 't2', text: 'Siguiente: ' + p.siguiente + (p.plazo ? ' · ' + p.plazo : '') }) : null,
       ])]));
     });
-    var kids = [cab('01', 'Bitácora · ' + filas.length + (filas.length === 1 ? ' evento' : ' eventos'), 'h2', 'h-bit'), chips,
-      filas.length ? ul : el('p', { class: 'vacio', text: 'No hay eventos con este filtro.' })];
-    if (filas.length > 200) kids.push(el('p', { class: 'vacio', text: 'Se muestran los 200 más recientes de ' + filas.length + '.' }));
-    v.appendChild(el('div', { class: 'pagina' }, [panel(kids, '', { 'aria-labelledby': 'h-bit' })]));
+    if (pasos.length === 1) ol.appendChild(el('li', null, [el('span', { class: 'mono cuando', text: '—' }), el('div', { class: 't2', text: 'Sin hallazgos en el correo todavía. El silencio no resta nada.' })]));
+    // Efectos de esta postulación: por su carpeta; sin carpeta, por empresa y cargo (la HV en su semana, la respuesta después)
+    var mios = resultado.efectos.filter(function (f) {
+      if (f.tipo !== 'hv' && f.tipo !== 'proceso' && f.tipo !== 'rechazo') return false;
+      if (a.carpeta) return f.carpeta === a.carpeta;
+      if (f.empresa !== a.empresa || f.cargo !== (a.cargo || '')) return false;
+      return f.tipo === 'hv' ? f.semana === w.indice : !f.dia || !a.creada || f.dia >= a.creada.slice(0, 10);
+    });
+    var suma = { hp: 0, xp: 0, resiliencia: 0 };
+    mios.forEach(function (f) { suma.hp += f.delta.hp || 0; suma.xp += f.delta.xp || 0; suma.resiliencia += f.delta.resiliencia || 0; });
+    var efs = [];
+    if (suma.hp) efs.push(el('span', { class: suma.hp < 0 ? 'mag' : 'verde', text: signo(suma.hp) + ' HP' }));
+    if (suma.xp) efs.push(el('span', { class: 'amb', text: signo(suma.xp) + ' XP' }));
+    if (suma.resiliencia) efs.push(el('span', { class: 'amb', text: '+' + suma.resiliencia + ' RES' }));
+    var revivir = mios.filter(function (f) { return !f.historico; }).pop();
+    abrirModal({ tamano: 'mediano', tono: a.clave === 'rechazada' ? 'mag' : 'cia', cabecera: 'Archivo · ' + nombreSemana(w), titulo: a.empresa,
+      nodos: [el('p', { class: 'dato', text: [a.cargo, w.nombre].filter(Boolean).join(' · ') }),
+        el('p', { class: e[1] }, [icono(e[2]), ' ' + e[0] + (a.estadoFecha ? ' · ' + fecha(a.estadoFecha) : '')]),
+        acc ? el('p', { class: 'amb' }, ['▶ Pendiente: ' + acc]) : null, ol],
+      efectos: efs,
+      botones: [revivir ? el('button', { class: 'btn ancho', type: 'button', onclick: function () { repetir(revivir); } }, [el('span', { text: 'Ver de nuevo en la arena' }), el('span', { 'aria-hidden': 'true', text: '▶' })]) : null,
+        botonCarpeta(safeUrl(a.carpeta)), botonContinuar('Cerrar')],
+      fuente: 'Fuente · carpeta en CV/ y pestaña Seguimiento', fecha: 'ENVIADA ' + fecha(a.creada).toUpperCase() });
   }
-  function detalleEvento(f) {
-    var malo = (f.delta.hp || 0) < 0;
-    abrirModal({ tamano: 'mediano', tono: malo ? 'mag' : 'cia', cabecera: 'Archivo' + (f.empresa ? ' · ' + f.empresa : ''), titulo: NOMBRE_TIPO[f.tipo] || f.tipo,
-      nodos: [el('p', { class: 'dato', text: [f.empresa, f.cargo, fecha(f.dia)].filter(Boolean).join(' · ') }),
-        f.historico ? el('p', { text: 'Sin fecha exacta: cuenta en las stats desde el inicio de su semana.' }) : null],
-      efectos: [el('span', { class: malo ? 'mag' : 'verde', text: textoEfecto(f) })],
-      botones: [f.historico ? null : el('button', { class: 'btn ancho', type: 'button', onclick: function () { repetir(f); } }, [el('span', { text: 'Ver de nuevo en la arena' }), el('span', { 'aria-hidden': 'true', text: '▶' })]),
-        botonCarpeta(safeUrl(f.carpeta)), botonContinuar('Cerrar')], fuente: FUENTE[f.tipo], fecha: f.dia ? fecha(f.dia).toUpperCase() : 'SIN FECHA' });
+  function fichaCorreo(c) {
+    var datos = [['Enviado', fecha(c.dia)], ['Estado', c.estado], ['Respuesta', c.respuesta], ['Notas', c.notas],
+      ['Direcciones', (c.entregadas || 0) + ' entregadas' + (c.rebotadas ? ' · ' + c.rebotadas + ' rebotadas' : '')]];
+    abrirModal({ tamano: 'mediano', tono: c.rebotadas && !c.entregadas ? 'mag' : 'cia', cabecera: 'Archivo · Correo en frío', titulo: c.empresa,
+      nodos: datos.filter(function (d) { return d[1]; }).map(function (d) { return el('p', null, [el('span', { class: 'etq', text: d[0] + ' ' }), d[1]]); }),
+      fuente: FUENTE.correo, fecha: c.dia ? fecha(c.dia).toUpperCase() : 'SIN FECHA' });
   }
   /** Vuelve a mostrar un evento de la Bitácora en la arena (con su modal) y deja todo como estaba. */
   function repetir(f) {
@@ -1441,13 +1647,13 @@ var ARTE = {
       ]),
     ])])];
     var graf = el('div', { class: 'grafica' });
-    e.semanas.forEach(function (s) {
-      var barra = barraSeg('amb', s.hv, e.meta);
-      barra.removeAttribute('aria-hidden'); barra.setAttribute('role', 'img'); barra.setAttribute('aria-label', s.nombre + ': ' + s.hv + ' HV de ' + e.meta + (s.ko ? ', jefe vencido' : ''));
-      graf.appendChild(el('div', { class: 'fil' }, [el('span', { text: s.nombre.replace(/ semana( nueva)?/i, ''), title: s.nombre }), barra, el('span', { class: 'mono', text: String(s.hv) })]));
+    e.semanas.forEach(function (s, i) {
+      graf.appendChild(el('button', { class: 'fil', type: 'button', onclick: function () { irASemana(i); },
+        'aria-label': s.nombre + ': ' + s.hv + ' HV de ' + e.meta + (s.ko ? ', jefe vencido' : '') + '. Ver la semana en la Bitácora' }, [
+        el('span', { text: s.nombre.replace(/ semana( nueva)?/i, '') }), barraSeg('amb', s.hv, e.meta), el('span', { class: 'mono', text: String(s.hv) })]));
     });
     var k2 = [cab('03', 'HV por semana · meta ' + e.meta, 'h2', 'h-sem'), graf,
-      el('p', { class: 'sub', text: 'Barra llena = meta de ' + e.meta + '. Jefes: ' + e.semanas.map(function (s) { return s.jefe.nombre + (s.ko ? ' (vencido)' : ' (sobrevivió)'); }).join(', ') + '.' })];
+      el('p', { class: 'sub', text: 'Toca una semana para ver sus vacantes. Jefes: ' + e.semanas.map(function (s, i) { return s.jefe.nombre + (s.ko ? ' (vencido)' : i === e.semanas.length - 1 ? ' (en curso)' : ' (sobrevivió)'); }).join(', ') + '.' })];
     var C = m.correos;
     var k3 = [cab('04', 'Correos en frío', 'h2', 'h-cor'), el('div', { class: 'pares' }, [
       el('div', null, [el('span', { text: 'Enviados' }), el('span', { class: 'mono', text: String(C.enviados) })]),

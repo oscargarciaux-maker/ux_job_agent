@@ -447,6 +447,10 @@ Seguridad: ningún destello se repite más de 3 veces por segundo (criterio WCAG
 
 Las tres pantallas usan las mismas ventanas y tarjetas del Home, sin animaciones de combate. En la v1 son listas claras: lo jugable vive en la Arena y en los modales.
 
+### Caja de diálogo compacta (26 oct)
+
+El usuario pidió que el mensaje del jefe ocupe menos: cara de 48 px recortada del sprite sin escalar, nombre corto del jefe en una línea (el completo va en `title`), voz a 16 px en el celular (18 desde 760 px), menos relleno y botones del replay de 44 px en una sola fila.
+
 ### Misiones: ¿qué hago hoy?
 
 1. **Munición lista** (`porEnviar`): una tarjeta por HV con empresa, cargo, revisión (LISTA o REVISAR, con ícono) y días que lleva lista. Orden: la más antigua primero. Con más de 3 días se marca «¡Se enfría!» en oro. Botón «Abrir carpeta» (Drive, solo lectura).
@@ -455,13 +459,18 @@ Las tres pantallas usan las mismas ventanas y tarjetas del Home, sin animaciones
 
 Estado vacío: «Sin misiones por hoy. La próxima búsqueda llega a las 7:00.»
 
-### Bitácora: ¿qué ha pasado?
+### Bitácora: ¿qué ha pasado? (por semana desde el 26 oct)
 
-- Lista en orden cronológico inverso que une postulaciones, correos en frío y hallazgos de seguimiento.
-- Filtros en chips: Todo, En proceso, Rechazadas, Sin respuesta y Correos; selector de semana.
-- Cada fila: ícono del evento, empresa, cargo, fecha y el efecto que tuvo en el juego (por ejemplo, «+20 HP»).
-- Tocar una fila abre el modal mediano con el detalle, sin animación.
-- Sin búsqueda de texto en la v1.
+Decisión del usuario: poder cambiar de semana, ver a cuáles lo rechazaron y qué hizo en cada vacante, y ver el histórico.
+
+- **Abre en la semana actual.** Arriba: ◀ selector ▶ para pasar entre «Histórico (todas)» y cada semana de `CV/`. Héroe (cada barra de «HV por semana») y la tarjeta «Total» de la Arena llevan directo a una semana o al histórico.
+- **Resumen de la semana:** HV contra la meta con su barra, el jefe y cómo terminó (★ vencido, «Sobrevivió con N HP» o «En curso: faltan N HV»).
+- **Histórico:** una fila por semana (HV, en proceso, rechazadas, jefe y resultado); tocarla abre esa semana.
+- **Filtros con su cifra:** Todas, En proceso, Rechazadas, Sin respuesta y Correos (los correos en frío enviados entre el inicio de esa semana y el de la siguiente).
+- **Una fila por postulación**, no por evento: ícono y palabra del estado (con su fecha), cargo, día de envío y, en ámbar, la acción pendiente si la hay.
+- **Ficha de la vacante** al tocar la fila: estado, línea de tiempo (envío y cada hallazgo de `Seguimiento` con su estado y siguiente acción), lo pendiente, el efecto total en el juego, «Ver de nuevo en la arena» y «Ver carpeta».
+- Motor (funciones puras con pruebas): `mismaEmpresa` (un nombre es el otro más palabras completas; «Empresa 1» no es «Empresa 16»), `historiaDePostulacion` (si la empresa tiene varias postulaciones, cada hallazgo va a la más reciente enviada antes de él o a la del mismo cargo), `accionPendiente` y `semanasDetalle`.
+- Sin búsqueda de texto.
 
 ### Héroe: ¿cuánto he crecido?
 
