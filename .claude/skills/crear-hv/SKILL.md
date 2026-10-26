@@ -107,6 +107,25 @@ descripción o una categoría de habilidades sale igual, reescríbela.
   la cuarta experiencia, se quita (todos sus marcadores en `""`).
 - Logros cuantificados (%, $, tiempo, personas) solo con cifras de `CONTEXTO_CV`, redactados con las keywords de la
   vacante, de máximo 35 palabras cada uno.
+- **2 páginas es el tope, no la meta** (26 oct 2026, Qentaz quedó "demasiado resumida" con media página 2 en blanco): si
+  a la página 2 le sobra más de un cuarto, úsalo con lo que más prueba la vacante (un 4.º logro en las experiencias
+  clave o una 4.ª experiencia relevante).
+
+**Redacción** (`GUIA_CV`, regla 6: "tono profesional, estratégico y orientado a resultados"; 26 oct 2026, el usuario
+dijo que los logros de Qentaz sonaban "muy conversacionales"):
+- **Logro = verbo de impacto en pasado + qué (con la keyword) + cómo (método o herramienta) + resultado medible o efecto
+  en el negocio.** Si hay cifra, el logro abre con ella: "Reduje en 66% el tiempo de creación por pantalla (de 3 horas
+  a 1) con un sistema de diseño tokenizado en tres niveles en Figma, bajo criterios WCAG 2.1."
+- Verbos: reduje, incrementé, logré, eliminé, garanticé, optimicé, reorienté, redefiní, estructuré, prioricé, lideré
+  (en inglés: cut, reduced, increased, achieved, eliminated, led, redesigned, streamlined). Nunca "usé", "ayudé",
+  "participé", "hice", "me encargué".
+- **Sin explicaciones de conversación:** nada de "porque el paciente pide consejo…", "para no pedir los mismos datos
+  varias veces", "hallé que…", "al descubrir que…, llevé…". El porqué se convierte en el resultado: "Diseñé un modelo de
+  venta conversacional (e-commerce, asesoría por WhatsApp y pago con Bold) que formalizó los ingresos digitales y
+  conservó la cercanía consultiva que exigen los pacientes."
+- `DESC_EXP_n` es una promesa de valor con verbo en primera persona ("Lideré a cinco personas en el rediseño
+  omnicanal…", "Redefiní la experiencia de compra de…"), no una frase nominal suelta ("E-commerce de dispositivos…").
+- `PLANTILLA_HV.pdf` (en `Recursos`) es la referencia de este tono.
 
 **Cargos (`CARGO_EXP_n`):** parten del título de LinkedIn de cada experiencia (tabla "Experiencias y títulos" de la
 sección 7 de "Guia busqueda de vacantes y creacion de HV.md" en Drive) y se ajustan con criterio. Solo la experiencia más
