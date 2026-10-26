@@ -201,6 +201,8 @@ const liPost = context.parseLinkedInPostPage('<script type="application/ld+json"
   '"datePublished":"2026-10-15T08:07:24.932Z","author":{"@type":"Person","name":"Ana Gómez"},"articleBody":"HIRING! Remote UI/UX Designer. Escribe a talento@empresa.co"}</script>');
 assert.ok(liPost.date === '2026-10-15' && liPost.author === 'Ana Gómez' && /talento@empresa\.co/.test(liPost.text));
 assert.strictEqual(context.parseLinkedInPostPage('<html>sin datos</html>'), null);
+assert.ok(!context.isReachablePost({ link: 'https://www.linkedin.com/posts/x-activity-1', description: 'Hiring remote UI/UX Designer, Figma. Thank you for the response, we got the people we wanted' }));
+assert.ok(context.isReachablePost({ link: 'https://www.linkedin.com/posts/x-activity-1', description: 'Hiring remote UI/UX Designer, Figma' }));
 assert.ok(context.isDesignRole({ title: 'Diseñador UX/UI' }) && !context.isDesignRole({ title: 'Graphic Designer' }));
 assert.ok(!context.isDesignRole({ title: 'Senior SEO & UX Copywriter' }) && !context.isDesignRole({ title: 'UX Writer' }));
 assert.ok(context.isDesignRole({ title: 'Diseñador Digital' }) && context.isDesignRole({ title: 'Visual Designer' }));
