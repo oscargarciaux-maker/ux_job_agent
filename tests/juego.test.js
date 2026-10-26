@@ -91,6 +91,40 @@ assert.strictEqual(estado.racha, 5, 'domingo 25: lunes 19 a viernes 23 con enví
 assert.ok(estado.logros.racha5, 'logro Racha de 5 días');
 assert.strictEqual(estado.burla, false);
 
+// Carpetas numeradas como las tiene el candidato desde el 2026-10-26 ("0. Antiguas" … "4. Cuarta semana")
+assert.deepStrictEqual(['0. Antiguas', '1. Primera semana nueva', '2. Segunda semana', '3. Tercera semana', '4. Cuarta semana']
+  .map((n, i) => J('numeroDeSemana')(n, i)), [0, 1, 2, 3, 4]);
+// Semana recién creada y todavía vacía (2026-10-26: salía «Semana 5» y una HV que no existía): es la Cuarta, con el
+// jefe entero y el Gerente todavía en escena
+{
+  const m = JSON.parse(JSON.stringify(modelo));
+  const nombres = { 'Antiguas': '0. Antiguas', 'Primera semana nueva': '1. Primera semana nueva', 'Segunda semana': '2. Segunda semana', 'Tercera semana': '3. Tercera semana' };
+  m.postulaciones.semanas.forEach(w => { w.semana = nombres[w.semana]; });
+  m.postulaciones.lista.forEach(a => { a.semana = nombres[a.semana]; });
+  m.postulaciones.semanas.push({ semana: '4. Cuarta semana', desde: '2026-10-26', total: 0, rechazada: 0, proceso: 0, sinRespuesta: 0, aplicada: 0 });
+  m.hoy = '2026-10-26';
+  const r = J('simular')(J('construirEventos')(m), m);
+  assert.strictEqual(r.estado.numero, 4);
+  assert.strictEqual(r.estado.semanaActual, 4);
+  assert.strictEqual(r.estado.reclutadorHp, 50, 'sin envíos todavía: el jefe con todo su HP');
+  assert.strictEqual(r.estado.poder, 0);
+  assert.strictEqual(r.estado.jefe.nombre, 'Gerente Gracias por Participar');
+  assert.strictEqual(r.estado.semanas.length, 5);
+  assert.strictEqual(r.efectos.filter(f => f.tipo === 'hv').length, modelo.postulaciones.total, 'ninguna HV de más');
+  const nueva = r.efectos.filter(f => f.tipo === 'semanaNueva').pop();
+  assert.deepStrictEqual([nueva.numero, nueva.dia, nueva.historico], [4, '2026-10-26', false], 'la semana nueva entra al replay de hoy');
+  // Una HV en la Cuarta: el jefe pierde 1 HP
+  m.postulaciones.lista.push({ empresa: 'Nueva', cargo: '', clave: 'aplicada', semana: '4. Cuarta semana', creada: '2026-10-26', estadoFecha: '' });
+  m.postulaciones.semanas[4].total = 1;
+  assert.strictEqual(J('simular')(J('construirEventos')(m), m).estado.reclutadorHp, 49);
+}
+
+// Antigüedad de los datos (hora de Bogotá, UTC−5): con más de 15 min el juego lee Drive al abrir (2026-10-26)
+assert.strictEqual(J('minutosDesde')('2026-10-26T11:52', Date.parse('2026-10-26T17:20:00Z')), 28);
+assert.strictEqual(J('minutosDesde')('2026-10-26T12:15', Date.parse('2026-10-26T17:20:00Z')), 5);
+assert.strictEqual(J('minutosDesde')('', Date.now()), Infinity);
+assert.strictEqual(J('DATOS_VIEJOS_MIN'), 15);
+
 // Daño de rechazo con Avalancha: a la mitad
 {
   const m = { meta: 50, hoy: '2026-10-25', postulaciones: { semanas: [{ semana: 'S1', desde: '2026-10-19', total: 31 }], lista: [] }, correos: { lista: [] } };

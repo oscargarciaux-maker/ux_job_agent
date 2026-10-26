@@ -10,7 +10,7 @@
 function doGet(e) {
   const key = getProp_(PROPS.DASHBOARD_KEY);
   const given = String((e && e.parameter && e.parameter.k) || '');
-  if (e && e.parameter && e.parameter.formato === 'json') return dashboardJson_(given, key);
+  if (e && e.parameter && e.parameter.formato === 'json') return dashboardJson_(given, key, e.parameter.sync === '1');
   if (!dashboardKeyOk(given, key)) {
     return HtmlService.createHtmlOutput(dashboardLockedHtml())
       .setTitle('Búsqueda UX').addMetaTag('viewport', 'width=device-width, initial-scale=1');
@@ -27,10 +27,22 @@ function doGet(e) {
  * Solo los datos (?formato=json&k=...), para la página servida aparte (GitHub Pages): el navegador los pide con fetch sin
  * cookies, así que no choca con varias cuentas de Google abiertas (con ellas la app web da "No se puede abrir el archivo").
  * Se guardan en caché (DASHBOARD_CACHE_KEY) para que el Cargador los devuelva sin descargar el agente; sincronizarAplicadas
- * los renueva cada hora y el botón "Actualizar" (&fresco=1) los recalcula.
+ * los renueva cada hora y &fresco=1 los recalcula. El botón "Actualizar" pide además &sync=1 (2026-10-26): primero lee
+ * Drive de nuevo (sincronizarRegistro_), así se ven las carpetas movidas, las HV nuevas y las descartadas de ese momento.
  */
-function dashboardJson_(given, key) {
-  const json = dashboardKeyOk(given, key) ? warmDashboardCache_() : JSON.stringify({ error: 'clave' });
+function dashboardJson_(given, key, sync) {
+  if (!dashboardKeyOk(given, key)) {
+    return ContentService.createTextOutput(JSON.stringify({ error: 'clave' })).setMimeType(ContentService.MimeType.JSON);
+  }
+  let json = null;
+  if (sync) {
+    try {
+      json = sincronizarRegistro_();
+    } catch (e) {
+      console.error('Actualizar desde el tablero -> ERROR: ' + e.message);
+    }
+  }
+  json = json || warmDashboardCache_();
   return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -72,7 +84,14 @@ function readDashboardTabs_() {
     const links = rich ? rich.map(row => row.map(cell => (cell && cell.getLinkUrl()) || '')) : [];
     return { values: values, links: links };
   };
+  let weeks = [];
+  try {
+    weeks = listWeekFolders_();
+  } catch (e) {
+    console.warn('Semanas de CV/ -> ' + e.message);
+  }
   return {
+    semanasCarpetas: weeks,
     registro: ss.getSheets()[0].getDataRange().getDisplayValues(),
     aplicadas: tab(CONFIG.APPLIED_SHEET_NAME, true),
     porEnviar: tab(CONFIG.PENDING_CV_SHEET_NAME, true),
@@ -215,6 +234,12 @@ function buildDashboardModel(tabs, now, timeZone) {
     w.total++;
     w[a.clave]++;
     if (a.creada && a.creada < w.desde) w.desde = a.creada;
+  });
+  // Carpetas de semana de CV/ (2026-10-26): una semana recién creada aparece aunque no tenga envíos todavía
+  (tabs.semanasCarpetas || []).forEach(f => {
+    const name = dashboardWeekName(f.nombre);
+    const w = weekMap[name] = weekMap[name] || { semana: name, desde: '9999', total: 0, rechazada: 0, proceso: 0, sinRespuesta: 0, aplicada: 0 };
+    if (f.creada && f.creada < w.desde) w.desde = f.creada;
   });
   const weeks = Object.keys(weekMap).map(k => weekMap[k]).sort((a, b) => a.desde < b.desde ? -1 : a.desde > b.desde ? 1 : 0);
   const responded = count(sent, 'proceso') + count(sent, 'rechazada');

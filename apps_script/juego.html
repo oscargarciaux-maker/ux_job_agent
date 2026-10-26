@@ -95,7 +95,6 @@ h2.cab, h3.cab { font-size: inherit; font-weight: inherit; }
 .estado .sem .etq { color: var(--texto); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .estado .meta { display: block; margin-top: 2px; }
 .estado .der { display: flex; align-items: center; gap: 2px; flex: none; }
-.sync { font-family: var(--f-num); font-size: 12px; color: var(--cian); }
 .racha { display: flex; gap: 3px; align-items: center; min-height: 48px; padding: 0 8px; background: none; border: 0; cursor: pointer; }
 .racha .n { font-family: var(--f-num); font-size: 16px; color: var(--ambar); margin: 0 6px 0 4px; }
 .racha i { width: 5px; height: 12px; display: block; background: linear-gradient(180deg, #f0bd6c, #a8702a); }
@@ -220,6 +219,14 @@ h2.cab, h3.cab { font-size: inherit; font-weight: inherit; }
 .card .in { min-height: 112px; }
 .card .n { font-family: var(--f-num); font-size: 28px; line-height: 1.1; margin-top: 2px; }
 .sub { font-size: 14px; color: var(--texto-2); margin: 4px 0 0; }
+/* Hora de los datos y botón Actualizar: lee Drive en ese momento (2026-10-26) */
+.datos { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; }
+.datos .cuando { font-size: 14px; color: var(--texto-2); min-width: 0; }
+.datos .cuando.cia { color: var(--cian); }
+.datos .cuando.mag { color: var(--magenta); }
+.datos .btn[aria-disabled="true"] { opacity: .55; cursor: progress; }
+.datos .btn[aria-busy="true"] .ico { animation: gira-ico 1s steps(4) infinite; }
+@keyframes gira-ico { to { transform: rotate(360deg); } }
 
 /* ---------- Nav bar ---------- */
 nav.tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; height: calc(var(--nav) + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom);
@@ -317,7 +324,7 @@ html.reducido .num { transform: translateX(-50%); }
   .derrame { top: 314px; }
   .stats { grid-template-columns: repeat(4, 1fr); }
   .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: start; }
-  .cols > div { display: grid; gap: 10px; }
+  .cols > div:not(.datos) { display: grid; gap: 10px; }
 }
 </style>
 </head>
@@ -326,7 +333,6 @@ html.reducido .num { transform: translateX(-50%); }
   <header class="estado" aria-label="Estado de la semana">
     <div class="sem"><span class="etq" id="sem">El juego laboral</span><span class="meta" id="reloj" aria-hidden="true">NEO-BOGOTÁ</span></div>
     <div class="der">
-      <span class="sync" id="sync" role="status"></span>
       <button class="racha" id="racha" type="button" aria-label="Racha"></button>
       <button class="iconbtn" id="ajustes" type="button" aria-label="Ajustes"></button>
     </div>
@@ -434,6 +440,17 @@ function numeroDeSemana(nombre, i) {
   if (d) return Number(d[1]);
   var w = (t.match(/[a-z]+/g) || []).filter(function (x) { return ORDINALES[x]; })[0];
   return w ? ORDINALES[w] : i + 1;
+}
+
+/**
+ * Minutos desde que se calcularon los datos (`generado`, "yyyy-MM-ddTHH:mm" en hora de Bogotá, siempre UTC−5) hasta
+ * `ahoraMs`. Si los datos tienen más de DATOS_VIEJOS_MIN, el juego lee Drive de nuevo al abrir (2026-10-26). Sin fecha: Infinity.
+ */
+var DATOS_VIEJOS_MIN = 15;
+function minutosDesde(generado, ahoraMs) {
+  var m = /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/.exec(String(generado || ''));
+  if (!m) return Infinity;
+  return Math.floor((ahoraMs - Date.parse(m[1] + 'T' + m[2] + ':00-05:00')) / 60000);
 }
 
 /** Daño de un rechazo con rendimientos decrecientes por Resiliencia (con 10, quita 4 en vez de 8). */
@@ -788,6 +805,8 @@ var ARTE = {
   function espera(ms) { return new Promise(function (r) { setTimeout(r, reducido() ? Math.min(ms, 250) : ms); }); }
   var HORA = new Intl.DateTimeFormat('es-CO', { timeZone: 'America/Bogota', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
   function horaBogota() { return HORA.format(new Date()); }
+  var DIA_BOGOTA = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota', year: 'numeric', month: '2-digit', day: '2-digit' });
+  function hoyBogota() { return DIA_BOGOTA.format(new Date()); }
 
   // ===================== PÍXELES =====================
   // Pintor de píxeles con contorno automático: siluetas provisionales e íconos propios.
@@ -843,6 +862,7 @@ var ARTE = {
     carpeta: ['###.....', '#..####.', '#######.', '#.....#.', '#.....#.', '#.....#.', '#######.', '........'],
     correo: ['########', '##....##', '#.#..#.#', '#..##..#', '#......#', '#......#', '########', '........'],
     hoja: ['#####...', '#...##..', '#.....#.', '#.###.#.', '#.....#.', '#.###.#.', '#######.', '........'],
+    actualizar: ['..####.#', '.#....##', '#....###', '#.......', '#......#', '.#....#.', '..####..', '........'],
     reloj: ['..###...', '.#...#..', '#..#..#.', '#..##.#.', '#.....#.', '.#...#..', '..###...', '........'],
   };
   function icono(nombre, grande) {
@@ -858,6 +878,7 @@ var ARTE = {
   var MODO_COACH = params.modo === 'coach';
   var CLAVE = 'juego:' + (params.api || 'sin-api');
   var modelo = null, resultado = null, mostrado = null, pestana = 'arena', replayActivo = false;
+  var URL_DATOS = '', sincronizando = false, avisoDatos = '', tonoDatos = '';
   var prefs = leer(CLAVE + ':prefs') || {};
   /** Movimiento reducido y efectos (texturas, lluvia, parpadeo, glitch). Sin elección guardada, siguen al sistema. */
   function aplicarPrefs() {
@@ -1188,6 +1209,7 @@ var ARTE = {
   function verPanel() {
     var m = modelo, P = m.postulaciones, sem = P.semanas[P.semanas.length - 1] || { total: 0, semana: '' }, meta = m.meta || 50;
     var p = $('panel'); p.textContent = '';
+    p.appendChild(filaDatos());
     var faltan = Math.max(0, meta - sem.total);
     p.appendChild(panel([
       cab('01', 'HV esta semana'),
@@ -1212,7 +1234,56 @@ var ARTE = {
       el('span', { text: mun === 1 ? '1 HV lista para enviar' : mun + ' HV listas para enviar' }), el('span', { 'aria-hidden': 'true', text: '▶' }),
     ]));
   }
-  function verEstado(sync) {
+  // ===================== DATOS: hora y botón Actualizar (lee Drive en ese momento, 2026-10-26) =====================
+  function textoBase() {
+    var g = /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/.exec((modelo && modelo.generado) || '');
+    return g ? 'Datos ' + (g[1] === hoyBogota() ? 'de hoy' : 'del ' + fecha(g[1])) + ', ' + g[2] : '';
+  }
+  function filaDatos() {
+    var n = el('div', { class: 'datos' }, [el('span', { class: 'cuando' }),
+      el('button', { class: 'btn', type: 'button', onclick: function () { sincronizar(false); } }, [icono('actualizar'), el('span')])]);
+    pintarDatos(n);
+    return n;
+  }
+  /** Actualiza en su sitio cada fila de datos (así el botón no pierde el foco). */
+  function pintarDatos(solo) {
+    var filas = solo ? [solo] : Array.prototype.slice.call(document.querySelectorAll('.datos'));
+    var ocupado = sincronizando || replayActivo;
+    filas.forEach(function (n) {
+      var c = n.querySelector('.cuando'), b = n.querySelector('button');
+      c.textContent = avisoDatos || textoBase(); c.className = 'cuando ' + tonoDatos;
+      b.lastChild.textContent = sincronizando ? 'Leyendo…' : 'Actualizar';
+      if (ocupado) b.setAttribute('aria-disabled', 'true'); else b.removeAttribute('aria-disabled');
+      if (sincronizando) b.setAttribute('aria-busy', 'true'); else b.removeAttribute('aria-busy');
+      b.setAttribute('aria-label', sincronizando ? 'Leyendo tus carpetas de Drive' : replayActivo ? 'Actualizar (espera a que termine la repetición)'
+        : 'Actualizar: leer ahora tus carpetas de Drive. ' + textoBase());
+    });
+  }
+  /**
+   * Lee Drive y el Sheet en ese momento (&sync=1) y repinta: lo nuevo (HV enviadas, respuestas) se reproduce en la arena.
+   * `auto`: al abrir con datos de más de DATOS_VIEJOS_MIN; si falla, el replay sigue con los datos que ya hay.
+   */
+  function sincronizar(auto) {
+    if (sincronizando || (replayActivo && !auto) || !URL_DATOS) return Promise.resolve();
+    sincronizando = true; avisoDatos = 'Leyendo Drive…'; tonoDatos = 'cia'; pintarDatos();
+    if (!auto) anunciar('Leyendo tus carpetas de Drive.');
+    return fetch(URL_DATOS + '&fresco=1&sync=1', { credentials: 'omit' }).then(function (r) { return r.json(); })
+      .then(function (d) {
+        sincronizando = false;
+        if (d && d.error) return bloqueado();
+        if (!d || !d.postulaciones) throw new Error('sin datos');
+        guardar(CLAVE + ':modelo', d);
+        avisoDatos = ''; tonoDatos = '';
+        pintarTodo(d, null, true);
+        if (!auto) anunciar('Listo. ' + textoBase() + '.');
+      })
+      .catch(function () {
+        sincronizando = false; avisoDatos = 'No se pudo leer Drive. ' + textoBase(); tonoDatos = 'mag';
+        if (auto && modelo) pintarTodo(modelo, null, true); else pintarDatos();
+        if (!auto) anunciar(avisoDatos);
+      });
+  }
+  function verEstado(sync, tono) {
     var m = modelo, P = m.postulaciones, sem = P.semanas[P.semanas.length - 1] || { semana: '' }, e = resultado.estado;
     var hoy = m.hoy || '';
     var d = hoy ? new Date(hoy + 'T12:00:00Z') : null;
@@ -1223,7 +1294,7 @@ var ARTE = {
     r.appendChild(el('span', { class: 'etq', text: 'Racha' })); r.appendChild(el('span', { class: 'n', text: String(e.racha) }));
     for (var i = 0; i < 7; i++) r.appendChild(el('i', { class: i < e.racha ? null : 'off', 'aria-hidden': 'true' }));
     r.setAttribute('aria-label', 'Racha: ' + e.racha + ' días hábiles seguidos con envíos. Ver cómo se cuenta');
-    if (sync != null) $('sync').textContent = sync;
+    if (sync != null) { avisoDatos = sync; tonoDatos = tono || (sync ? 'cia' : ''); pintarDatos(); }
   }
   function reloj() { $('reloj').textContent = 'NEO-BOGOTÁ · ' + horaBogota(); }
   reloj(); setInterval(reloj, 20000);
@@ -1265,7 +1336,7 @@ var ARTE = {
     var maxV = Math.max.apply(null, porDia.map(function (x) { return x.n; }).concat([1]));
     porDia.forEach(function (x) { radar.appendChild(el('i', { style: 'height:' + Math.max(4, 100 * x.n / maxV) + '%', title: fecha(x.dia) + ': ' + x.n })); });
     var k3 = [cab('03', 'Radar', 'h2', 'h-radar'), el('p', { text: NF.format((m.vacantes && m.vacantes.ultimos14) || 0) + ' vacantes encontradas en 14 días.' }), radar];
-    v.appendChild(el('div', { class: 'pagina cols' }, [el('div', null, [panel(k1, '', { 'aria-labelledby': 'h-mun' })]),
+    v.appendChild(el('div', { class: 'pagina cols' }, [filaDatos(), el('div', null, [panel(k1, '', { 'aria-labelledby': 'h-mun' })]),
       el('div', null, [panel(k2, '', { 'aria-labelledby': 'h-seg' }), panel(k3, '', { 'aria-labelledby': 'h-radar' })])]));
   }
 
@@ -1334,11 +1405,11 @@ var ARTE = {
     var alTerminar = function () {
       var it = Object.assign({}, f, { ids: [f.id], delta: Object.assign({}, f.delta), empresas: f.empresa ? [f.empresa] : [] });
       var sig = estadoDe(f.despues, { meta: final.meta, aturdido: f.tipo === 'proceso', burla: false });
-      replayActivo = true; saltar = false;
+      replayActivo = true; saltar = false; pintarDatos();
       if (it.tamano === 'dialogo') { var t = dialogoDe(it); decir(t.voz, t.dato, []); anunciar(t.voz + ' ' + t.dato); }
       coreografia(it, sig, mostrado)
         .then(function () { return it.tamano === 'mediano' || it.tamano === 'grande' ? modalEvento(it) : espera(1500); })
-        .then(function () { replayActivo = false; verArena(final); decirReposo(); });
+        .then(function () { replayActivo = false; pintarDatos(); verArena(final); decirReposo(); });
     };
     alCerrar = null; cerrarModal(); irA('arena'); setTimeout(alTerminar, 0);
   }
@@ -1545,6 +1616,7 @@ var ARTE = {
     // Arranca solo (decisión del usuario, 2026-10-25: al abrir quiere ver las animaciones seguidas); "Ver" lo adelanta
     return esperarClic(1800).then(function () { if (!saltar) decir('', '', []); return paso(); }).then(function () {
       replayActivo = false; enCoreo = false;
+      pintarDatos();
       verArena(final, saltar ? undefined : actual);
       var r = reposo(final);
       var resumen = cola.resumen ? (cola.resumen === 1 ? ' Y 1 evento más: velo en la Bitácora.' : ' Y ' + cola.resumen + ' eventos más: velos en la Bitácora.') : '';
@@ -1608,7 +1680,7 @@ var ARTE = {
   function bloqueado() {
     decir('', 'Este juego es privado. Ábrelo con el enlace completo que te compartieron.', []);
     $('panel').textContent = '';
-    $('sync').textContent = '';
+    avisoDatos = ''; sincronizando = false;
   }
   function pintarTodo(m, sync, conReplay) {
     modelo = m;
@@ -1629,25 +1701,28 @@ var ARTE = {
     if (!cola.items.length) { verArena(resultado.estado); decirReposo(); guardar(CLAVE + ':visto', ultimoVistoDe(resultado.efectos)); return; }
     var desde = null;
     for (var i = 0; i < resultado.efectos.length; i++) if (resultado.efectos[i].id === visto.id) { desde = resultado.efectos[i].despues; break; }
-    replayActivo = true;
+    if (pestana !== 'arena') irA('arena');  // tras Actualizar desde Misiones: lo nuevo se ve en la arena
+    replayActivo = true; pintarDatos();
     arteListo.then(function () { reproducir(cola, desde, resultado.estado); });
   }
   function arrancar() {
     if (!/^[\w-]+$/.test(params.api || '') || !params.k) { pintarTabs(); return bloqueado(); }
     var foto = leer(CLAVE + ':modelo');
     var fotoValida = foto && foto.postulaciones;
-    if (fotoValida) pintarTodo(foto, '▶ Actualizando…', false);
-    var url = 'https://script.google.com/macros/s/' + params.api + '/exec?formato=json&k=' + encodeURIComponent(params.k);
+    if (fotoValida) pintarTodo(foto, 'Actualizando…', false);
+    var url = URL_DATOS = 'https://script.google.com/macros/s/' + params.api + '/exec?formato=json&k=' + encodeURIComponent(params.k);
     var pedir = function (fresco) { return fetch(url + (fresco ? '&fresco=1' : ''), { credentials: 'omit' }).then(function (r) { return r.json(); }); };
     pedir(false).then(function (d) { return d && !d.error && !('acciones' in d) ? pedir(true) : d; })
       .then(function (d) {
         if (d && d.error) return bloqueado();
         if (!d || !d.postulaciones) throw new Error('sin datos');
         guardar(CLAVE + ':modelo', d);
+        // Datos de la caché con más de 15 min: se muestran ya y se lee Drive antes del replay (2026-10-26)
+        if (minutosDesde(d.generado, Date.now()) > DATOS_VIEJOS_MIN) { pintarTodo(d, '', false); return sincronizar(true); }
         pintarTodo(d, '', true);
       })
       .catch(function () {
-        if (fotoValida) { var g = /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/.exec(foto.generado || ''); verEstado('Sin conexión · datos del ' + (g ? fecha(g[1]) + ', ' + g[2] : '')); pintarTodo(foto, null, true); }
+        if (fotoValida) { verEstado('Sin conexión. ' + textoBase(), 'mag'); pintarTodo(foto, null, true); }
         else { pintarTabs(); decir('', 'No se pudieron cargar los datos. Revisa la conexión y vuelve a abrir el juego.', []); }
       });
   }

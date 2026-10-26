@@ -82,6 +82,7 @@ Borradores de postulación y de correos en frío (nunca se envían solos), y res
 | cada 10 min (7–23 h) | `generarCVsDesdeIA` | HV armadas; descartadas a la papelera, dudosas apartadas |
 | 8:53 (11:53 respaldo) | IA "Revisión HV diaria" | `Revision.txt`: LISTA_PARA_ENVIAR o REVISAR |
 | cada hora | `sincronizarAplicadas` + correos en frío | pestañas `Aplicadas` y `Por enviar` al día; caché del tablero renovada |
+| a pedido | botón «Actualizar» del juego o del tablero (`&sync=1`) | lo mismo que la sincronización de cada hora, sin los correos en frío |
 | 18:13 | IA "Seguimiento diario" | colores de carpetas, `Correos en frío` y `Seguimiento` actualizados |
 
 Meta del usuario: **50 postulaciones por semana**. La semana es la carpeta de `CV/` (`Primera semana nueva`, `Segunda
@@ -97,7 +98,8 @@ juego, puede partir de aquí:
   generado: "2026-10-25T11:05", hoy: "2026-10-25", meta: 50,
   postulaciones: {
     total, rechazada, proceso, sinRespuesta, aplicada, preparadas, tasaRespuesta,   // tasa en %
-    semanas: [{ semana, desde, total, rechazada, proceso, sinRespuesta, aplicada }], // en orden
+    semanas: [{ semana, desde, total, rechazada, proceso, sinRespuesta, aplicada }], // en orden; incluye las carpetas
+             // de semana de CV/ todavía vacías (total 0, desde = día en que se creó la carpeta)
     lista:   [{ empresa, cargo, estado, clave, semana, creada, carpeta, estadoFecha }] // clave: rechazada|proceso|preparada|sinRespuesta|aplicada
              // creada: día de creación de la carpeta en hora de Bogotá (≈ fecha de envío); estadoFecha: día del cambio a
              // proceso/rechazada según Seguimiento, vacío si no hay hallazgo
@@ -119,7 +121,9 @@ Valores al 2026-10-25, como referencia de escala: 89 postulaciones en 4 semanas 
 ## 6. Cómo se sirve (ya funciona)
 
 - **Datos:** la app web de Apps Script con `?formato=json&k=<clave>` devuelve el JSON de la sección 5. El `doGet` del
-  Cargador lo saca de una caché de ~1 h (unos 1,1 s); `&fresco=1` lo recalcula (unos 3,6 s).
+  Cargador lo saca de una caché de ~1 h (unos 1,1 s); `&fresco=1` lo recalcula (unos 3,6 s) y `&fresco=1&sync=1`
+  (2026-10-26) primero vuelve a leer Drive (`sincronizarRegistro_`: pestañas `Aplicadas` y `Por enviar`), para que el
+  botón «Actualizar» muestre las carpetas movidas en ese momento. El juego lo pide solo si la caché tiene más de 15 min.
 - **Página:** `apps_script/dashboard.html` servida por **GitHub Pages** desde la rama `deploy`. La lee el `fetch` sin
   cookies, así que funciona con varias cuentas de Google abiertas. Enlace:
   `https://oscargarciaux-maker.github.io/ux_job_agent/apps_script/<página>.html#api=<id de la implementación>&k=<clave>`.

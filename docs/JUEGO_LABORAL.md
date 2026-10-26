@@ -270,8 +270,10 @@ Quedan fuera del Home para no saturar: correos en frío y vacantes encontradas. 
 
 ### Estados de la pantalla
 
-- **Cargando:** muestra al instante la última foto guardada en el navegador y un «▶ ACTUALIZANDO…» pequeño en la barra de estado. Nunca una pantalla vacía.
-- **Sin conexión o error:** última foto guardada con el aviso «Datos del 25 oct, 11:05».
+- **Cargando:** muestra al instante la última foto guardada en el navegador y el aviso «Actualizando…». Nunca una pantalla vacía.
+- **Hora de los datos y botón Actualizar (26 oct):** sobre el panel de números (y arriba en Misiones) va «Datos de hoy, 11:52» con un botón «Actualizar» que lee Drive en ese momento (ver sección 11). Mientras lee dice «Leyendo Drive…»; durante el replay el botón espera. Lo nuevo que traiga se reproduce en la arena, aunque se haya tocado desde Misiones.
+- **Sin conexión o error:** última foto guardada con el aviso «Sin conexión. Datos del 25 oct, 11:05» o «No se pudo leer Drive», en magenta.
+- **Semana recién creada (26 oct):** una carpeta de semana nueva y vacía en `CV/` ya es la semana actual, con su jefe con 50/50 HP; antes salía como una HV enviada en una «Semana 5» sin nombre.
 - **Hay eventos nuevos:** la caja de diálogo dice «¡Pasaron 5 cosas desde tu última visita!» y arranca el replay (sección 7), con botón Saltar.
 - **Semana nueva:** entra un Reclutador nuevo con HP 50/50 y el cartel «SEMANA 5».
 - **Meta cumplida:** el Reclutador queda KO en el suelo hasta que empiece la siguiente semana.
@@ -508,6 +510,13 @@ Las stats del juego (HP, XP, nivel, Resiliencia, Poder) no se guardan: se recalc
 | Fecha del cambio de estado (respuesta o rechazo) | Ubicar golpes críticos y ataques en el tiempo | `Seguimiento` (Fecha del mensaje) |
 | Identificador estable por evento | Saber qué eventos ya se vieron | Se puede derivar de empresa, cargo, estado y fecha |
 | Envíos por día | Racha | Calculable desde `Creada` |
+
+### Frescura de los datos (decidido el 26 oct)
+
+- `sincronizarAplicadas` lee Drive cada hora y deja las pestañas `Aplicadas` y `Por enviar` y la caché del JSON. Al abrir, el juego pide la caché (rápida).
+- Si esos datos tienen más de 15 minutos (`DATOS_VIEJOS_MIN`, `minutosDesde` en el motor, con pruebas), el juego los muestra sin replay y pide `&fresco=1&sync=1`: Apps Script vuelve a leer Drive (`sincronizarRegistro_`, una sola consulta para todas las carpetas), reescribe las dos pestañas y devuelve el JSON; con eso arranca el replay.
+- El botón «Actualizar» hace lo mismo a pedido. El tablero del coach usa la misma petición en su botón.
+- Las carpetas de primer nivel de `CV/` son siempre semanas: una vacía no es una postulación, y el JSON trae todas las semanas aunque no tengan envíos (`semanasCarpetas` → `postulaciones.semanas` con `total: 0`).
 
 ### Restricciones heredadas de la arquitectura
 

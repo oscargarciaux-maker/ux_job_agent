@@ -329,7 +329,7 @@ assert.strictEqual(verdict('Sin veredicto, solo notas: descartar luego').verdict
 // Aplicadas (2026-10-25): cada vacante lleva la carpeta de semana de primer nivel, aunque esté dentro de una fecha
 context.Drive = { Files: { list: ({ q }) => {
   const tree = {
-    cv: [{ id: 'w1', name: 'Primera semana nueva' }, { id: 'w2', name: 'Tercera semana' }],
+    cv: [{ id: 'w1', name: 'Primera semana nueva' }, { id: 'w2', name: 'Tercera semana' }, { id: 'w4', name: '4. Cuarta semana' }],
     w1: [{ id: 'd1', name: '30-09' }], d1: [{ id: 'v1', name: 'Clara', createdTime: '2026-10-01T10:00:00Z' }],
     w2: [{ id: 'v2', name: 'Sole_UX UI Designer', createdTime: '2026-10-22T10:00:00Z' }, { id: 'p', name: 'Prueba' }],
     p: [{ id: 'v3', name: 'Ursus_UX Designer III', createdTime: '2026-10-23T10:00:00Z' }],
@@ -342,7 +342,28 @@ assert.deepStrictEqual(JSON.parse(JSON.stringify(appliedRows.map(r => [r.group, 
   ['30-09', 'Primera semana nueva', 'Clara', 'Aplicada'],
   ['Tercera semana', 'Tercera semana', 'Sole', 'Aplicada'],
   ['Prueba', 'Tercera semana', 'Ursus', 'Preparada, sin enviar'],
-]);
+], 'una semana recién creada y vacía no es una HV enviada (2026-10-26)');
+// Todas las carpetas en una sola consulta (paginada), con la misma respuesta que la lectura carpeta por carpeta (2026-10-26)
+{
+  const all = [{ id: 'w1', name: 'S1', parents: ['cv'] }, { id: 'v1', name: 'Clara', parents: ['w1'] }, { id: 'w2', name: 'S2', parents: ['cv'] }];
+  let calls = 0;
+  context.Drive = { Files: { list: ({ q, pageToken }) => {
+    calls++;
+    assert.ok(!/in parents/.test(q), 'una sola consulta para todas las carpetas');
+    return pageToken ? { files: all.slice(2) } : { files: all.slice(0, 2), nextPageToken: 't2' };
+  } } };
+  const kids = context.folderChildren_();
+  const ids = id => JSON.parse(JSON.stringify(kids(id).map(f => f.id)));
+  assert.deepStrictEqual(ids('cv'), ['w1', 'w2']);
+  assert.deepStrictEqual(ids('w1'), ['v1']);
+  assert.deepStrictEqual(ids('nada'), []);
+  assert.strictEqual(calls, 2);
+  const rows2 = [];
+  context.collectAppliedFolders_('cv', '', rows2, false, '', kids);
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(rows2.map(r => r.week + ':' + r.company))), ['S1:Clara'], 'S2 está vacía: es una semana, no una vacante');
+  context.Drive = { Files: { list: () => { throw new Error('cuota'); } } };
+  assert.strictEqual(context.folderChildren_(), context.listChildFolders_, 'si falla, vuelve a leer carpeta por carpeta');
+}
 assert.strictEqual(run("CONFIG.APPLIED_SHEET_HEADERS[7]"), 'Semana (carpeta)');
 // Carpeta de postulaciones antiguas junto a CV/ (2026-10-25)
 assert.ok(['Antigua', 'antiguas', 'Antiguo', ' ANTIGUA '].every(n => run('CONFIG.APPLIED_OLD_FOLDER_PATTERN').test(n.trim())));
@@ -621,6 +642,19 @@ assert.strictEqual(dashModel.postulaciones.preparadas, 1);
 assert.strictEqual(dashModel.postulaciones.tasaRespuesta, 66.7);
 assert.deepStrictEqual(Array.from(dashModel.postulaciones.semanas.map(w => w.semana + ':' + w.total)), ['Primera semana:1', 'Tercera semana:2']);
 assert.strictEqual(dashModel.postulaciones.lista[0].carpeta, 'https://drive.google.com/a');
+// Semanas de CV/ sin envíos todavía (2026-10-26): aparecen al final con 0 HV, así el juego sabe que empezó la Cuarta
+{
+  const conCarpetas = run('buildDashboardModel')({
+    semanasCarpetas: [{ nombre: '3. Tercera semana', creada: '2026-10-20' }, { nombre: '4. Cuarta semana', creada: '2026-10-26' }],
+    registro: [['Fecha']],
+    aplicadas: { values: [['Grupo (carpeta)', 'Empresa', 'Cargo', 'Estado', 'Color', 'Carpeta', 'Creada', 'Semana (carpeta)'],
+                          ['x', 'Sole', '', 'Aplicada', '', 'Abrir', '2026-10-18', '3. Tercera semana']], links: [] },
+    porEnviar: { values: [], links: [] }, correos: [], seguimiento: [], objetivo: [],
+  }, new Date('2026-10-26T15:00:00Z'), 'America/Bogota');
+  assert.deepStrictEqual(Array.from(conCarpetas.postulaciones.semanas.map(w => w.semana + ':' + w.total + ':' + w.desde)),
+    ['3. Tercera semana:1:2026-10-18', '4. Cuarta semana:0:2026-10-26']);
+  assert.strictEqual(conCarpetas.postulaciones.total, 1);
+}
 assert.deepStrictEqual([dashModel.correos.enviados, dashModel.correos.entregados, dashModel.correos.rebotados, dashModel.correos.borradores],
   [3, 2, 1, 1], 'rebote parcial: solo la dirección que nombra la respuesta');
 assert.strictEqual(dashModel.correos.empresasRespondieron, 1);
