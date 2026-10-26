@@ -78,6 +78,16 @@ const CONFIG = {
       maxDetails: 40,   // descripciones completas que se piden por corrida
       bonus: 9,         // mismo bono de fuente que LinkedIn en SOURCE_PRIORITY
     },
+    // elempleo.com (2026-10-26): portal colombiano con avisos server-side; la lista trae fecha relativa ("Hace 4 días") y
+    // cada aviso un JSON-LD JobPosting con datePosted, validThrough y la descripción completa. Indeed responde 401 sin
+    // sesión y Computrabajo casi solo trae diseño gráfico: no se usan.
+    elempleo: {
+      searchUrl: 'https://www.elempleo.com/co/ofertas-empleo/?trabajo=',
+      base: 'https://www.elempleo.com',
+      queries: ['diseñador ux', 'diseñador ui', 'product designer', 'diseñador de producto', 'experiencia de usuario'],
+      maxDetails: 30,
+      bonus: 3,
+    },
   },
   // Ubicaciones de vacantes remotas a las que se puede aplicar desde Colombia
   REACHABLE_REMOTE_LOCATION: /worldwide|anywhere|latam|latin|(?<!north )am[eé]ricas?\b|south america|colombia|global|international|(utc|gmt)\s*[-−]\s*0?[3-6]\b/i,

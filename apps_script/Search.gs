@@ -33,7 +33,7 @@ function searchUxJobs_() {
                 (remote ? ', ' + (recent.length - usable.length) + ' no accesibles desde Colombia' : ''));
     usable.forEach(v => { byKey[vacancyKey(v)] = byKey[vacancyKey(v)] || v; });
   });
-  [searchLinkedInJobs_, searchRemotive_, searchGetOnBoard_, searchJobicy_].forEach(source => {
+  [searchLinkedInJobs_, searchElempleo_, searchRemotive_, searchGetOnBoard_, searchJobicy_].forEach(source => {
     try {
       source().forEach(v => { byKey[vacancyKey(v)] = byKey[vacancyKey(v)] || v; });
     } catch (e) {
@@ -199,6 +199,87 @@ function parseLinkedInJobDetail(html) {
     description: stripHtml_(markup),
     closed: /No longer accepting applications|Ya no se aceptan solicitudes|closed-job/i.test(text),
   };
+}
+
+/**
+ * elempleo.com: avisos de diseño en Colombia. La lista da cargo, empresa, ciudad y fecha relativa; la ficha de cada aviso
+ * (JSON-LD JobPosting) da la fecha exacta, el vencimiento y la descripción completa.
+ */
+function searchElempleo_() {
+  const cfg = CONFIG.EXTRA_SOURCES.elempleo;
+  const headers = { 'User-Agent': 'Mozilla/5.0', 'Accept-Language': 'es-CO,es;q=0.9' };
+  const today = new Date();
+  const byLink = {};
+  let failed = 0;
+  UrlFetchApp.fetchAll(cfg.queries.map(q => ({ url: cfg.searchUrl + encodeURIComponent(q), headers: headers, muteHttpExceptions: true })))
+    .forEach(r => {
+      if (r.getResponseCode() !== 200) { failed++; return; }
+      parseElempleoList(r.getContentText(), cfg.base, today).forEach(v => { byLink[v.link] = byLink[v.link] || v; });
+    });
+  const jobs = Object.keys(byLink).map(k => byLink[k]);
+  const kept = jobs.filter(v => acceptRoleTitle_(v) && isRecent(v.postedAt, CONFIG.MAX_POST_AGE_DAYS, today)).slice(0, cfg.maxDetails);
+  const details = kept.length
+    ? UrlFetchApp.fetchAll(kept.map(v => ({ url: v.link, headers: headers, muteHttpExceptions: true })))
+    : [];
+  details.forEach((r, i) => {
+    if (r.getResponseCode() === 404 || r.getResponseCode() === 410) { kept[i].closed = true; return; }
+    if (r.getResponseCode() !== 200) return;
+    const d = parseJobPostingJsonLd(r.getContentText());
+    if (d.datePosted) kept[i].postedAt = d.datePosted;
+    if (d.description) kept[i].description = d.description;
+    kept[i].closed = isExpired(d.validThrough, today) || !isRecent(kept[i].postedAt, CONFIG.MAX_POST_AGE_DAYS, today);
+  });
+  const open = kept.filter(v => !v.closed);
+  console.log('elempleo: ' + jobs.length + ' avisos (' + failed + ' de ' + cfg.queries.length + ' búsquedas fallaron), ' +
+              kept.length + ' de diseño recientes, ' + (kept.length - open.length) + ' vencidos o viejos según su ficha');
+  return open;
+}
+
+/** Fecha ISO a partir de "Hace 3 días", "Hace 2 semanas", "Hace 1 mes", "Ayer", "Hoy" (null si no se entiende). */
+function relativeDateEs(text, today) {
+  const t = String(text || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  let days = null;
+  if (/\bhoy\b|hace \d+ (minuto|hora)s?|hace (un|una) (minuto|hora)/.test(t)) days = 0;
+  else if (/\bayer\b/.test(t)) days = 1;
+  else {
+    const m = t.match(/hace (\d+|un|una) (dia|semana|mes)/);
+    if (m) days = (/^\d+$/.test(m[1]) ? Number(m[1]) : 1) * ({ dia: 1, semana: 7, mes: 30 })[m[2]];
+  }
+  if (days === null) return null;
+  const d = new Date(today.getTime() - days * 86400000);
+  return d.toISOString().slice(0, 10);
+}
+
+/** Tarjetas de la lista de elempleo (datos del atributo data-ga4-offerdata y la fecha relativa). */
+function parseElempleoList(html, base, today) {
+  return String(html || '').split('result-item mb-3').slice(1).map(item => {
+    const data = (item.match(/data-ga4-offerdata="([^"]+)"/) || [])[1];
+    const url = (item.match(/data-url="([^"]+)"/) || [])[1];
+    if (!data || !url) return null;
+    let o;
+    try { o = JSON.parse(decodeHtml_(data).replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))); } catch (e) { return null; }
+    const rel = (item.match(/Hace [^<]{1,25}|\bAyer\b|\bHoy\b/) || [])[0];
+    return {
+      title: o.title || '', company: o.company || '', location: (o.location || '') + ', Colombia',
+      description: '', snippet: '', link: base + url, postedAt: relativeDateEs(decodeHtml_(rel).replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n))), today) || '',
+      source: 'elempleo', sourceBonus: CONFIG.EXTRA_SOURCES.elempleo.bonus,
+    };
+  }).filter(Boolean);
+}
+
+/** JSON-LD JobPosting de una página de aviso: fechas y descripción (texto). */
+function parseJobPostingJsonLd(html) {
+  const dates = extractJobPostingDates(html);
+  let description = '';
+  const blocks = String(html || '').match(/<script[^>]*application\/ld\+json[^>]*>[\s\S]*?<\/script>/g) || [];
+  blocks.forEach(b => {
+    try {
+      [].concat(JSON.parse(b.replace(/^<script[^>]*>|<\/script>$/g, ''))).forEach(x => {
+        if (x && /JobPosting/.test(String(x['@type'])) && x.description) description = stripHtml_(x.description);
+      });
+    } catch (e) { /* bloque JSON-LD inválido: se ignora */ }
+  });
+  return { datePosted: dates.posted, validThrough: dates.validThrough, description: description };
 }
 
 /** Rol de diseño UX/UI/producto (no diseño gráfico puro, no otros oficios). */
