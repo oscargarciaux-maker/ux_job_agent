@@ -2,8 +2,8 @@
  * Vacantes a las que el usuario YA aplicó: viven en la carpeta CONFIG.APPLIED_FOLDER_NAME (dentro de la carpeta
  * raíz), organizadas como CV/<fecha o semana>/<Empresa[_Cargo]>. El color de cada carpeta es su estado:
  * rojo = rechazada, verde = en proceso, amarillo = aplicada sin respuesta (sin color = aplicada).
- * sincronizarAplicadas (activador cada hora y al inicio del pipeline) vuelca todo a la hoja "Aplicadas" del
- * registro, y el pipeline descarta vacantes nuevas de esas empresas para no volver a postular.
+ * sincronizarAplicadas (activador cada hora) y el botón "Actualizar" del juego y del tablero vuelcan todo a la hoja
+ * "Aplicadas" del registro, y el pipeline descarta vacantes nuevas de esas empresas para no volver a postular.
  */
 
 /** Recorre la carpeta de aplicadas y reescribe la hoja "Aplicadas" (con el color de cada carpeta). */
@@ -14,43 +14,88 @@ function sincronizarAplicadas() {
   } catch (e) {
     console.error('Correos en frío -> ERROR: ' + e.message);
   }
-  const root = DriveApp.getFolderById(getProp_(PROPS.ROOT_FOLDER_ID));
-  const folders = root.getFoldersByName(CONFIG.APPLIED_FOLDER_NAME);
-  if (!folders.hasNext()) {
-    console.warn('No existe la carpeta ' + CONFIG.APPLIED_FOLDER_NAME + ' dentro de ' + root.getName());
-    return;
-  }
-  const rows = [];
-  collectAppliedFolders_(folders.next().getId(), '', rows, false, '');
-  // Postulaciones antiguas (2026-10-25): una carpeta "Antigua" (o "Antiguas") junto a CV/ cuenta como una semana más
-  listChildFolders_(root.getId()).filter(f => CONFIG.APPLIED_OLD_FOLDER_PATTERN.test(String(f.name).trim()))
-    .forEach(f => collectAppliedFolders_(f.id, f.name, rows, false, f.name));
+  sincronizarRegistro_();
+}
 
-  const ss = SpreadsheetApp.openById(getProp_(PROPS.SHEET_ID));
-  const sheet = ss.getSheetByName(CONFIG.APPLIED_SHEET_NAME) ||
-                ss.insertSheet(CONFIG.APPLIED_SHEET_NAME, ss.getNumSheets());  // Al final: la hoja 1 sigue siendo el registro
-  sheet.clear();
-  const header = CONFIG.APPLIED_SHEET_HEADERS;
-  const values = [header].concat(rows.map(r => [r.group, r.company, r.title, r.status, r.color || '',
-    '=HYPERLINK("https://drive.google.com/drive/folders/' + r.id + '","Abrir")', r.created, r.week]));
-  sheet.getRange(1, 1, values.length, header.length).setValues(values);
-  sheet.getRange(1, 1, 1, header.length).setFontWeight('bold');
-  sheet.setFrozenRows(1);
-  if (rows.length) {
-    sheet.getRange(2, 4, rows.length, 1).setBackgrounds(rows.map(r => [r.color || null]));
-  }
-  const count = {};
-  rows.forEach(r => { count[r.status] = (count[r.status] || 0) + 1; });
-  console.log('Aplicadas sincronizadas: ' + rows.length + ' ' + JSON.stringify(count));
-  try {
-    writePendingCvs_(ss, root);
-  } catch (e) {
-    console.error('Por enviar -> ERROR: ' + e.message);
+/**
+ * Lo que ve el tablero y el juego: pestañas "Aplicadas" y "Por enviar" desde Drive, y la caché del tablero. Lo corre
+ * sincronizarAplicadas cada hora y el botón "Actualizar" del juego y del tablero (&sync=1, 2026-10-26: antes el botón solo
+ * recalculaba con el Sheet de la última hora y no se veían las carpetas recién movidas). Las carpetas se leen con una sola
+ * consulta a Drive (folderChildren_) para que el botón responda en segundos. Si otra sincronización está corriendo, espera
+ * hasta un minuto a que termine; si sigue ocupada, se usa lo que ella deje. Devuelve el JSON del tablero (o null).
+ */
+function sincronizarRegistro_() {
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(60000)) {
+    console.warn('Otra sincronización sigue corriendo: se usa lo que ella deje');
+    return null;
   }
   try {
-    warmDashboardCache_();
+    const root = DriveApp.getFolderById(getProp_(PROPS.ROOT_FOLDER_ID));
+    const folders = root.getFoldersByName(CONFIG.APPLIED_FOLDER_NAME);
+    if (!folders.hasNext()) {
+      console.warn('No existe la carpeta ' + CONFIG.APPLIED_FOLDER_NAME + ' dentro de ' + root.getName());
+      return null;
+    }
+    const children = folderChildren_();
+    const rows = [];
+    collectAppliedFolders_(folders.next().getId(), '', rows, false, '', children);
+    // Postulaciones antiguas (2026-10-25): una carpeta "Antigua" (o "Antiguas") junto a CV/ cuenta como una semana más
+    children(root.getId()).filter(f => CONFIG.APPLIED_OLD_FOLDER_PATTERN.test(String(f.name).trim()))
+      .forEach(f => collectAppliedFolders_(f.id, f.name, rows, false, f.name, children));
+
+    const ss = SpreadsheetApp.openById(getProp_(PROPS.SHEET_ID));
+    const sheet = ss.getSheetByName(CONFIG.APPLIED_SHEET_NAME) ||
+                  ss.insertSheet(CONFIG.APPLIED_SHEET_NAME, ss.getNumSheets());  // Al final: la hoja 1 sigue siendo el registro
+    sheet.clear();
+    const header = CONFIG.APPLIED_SHEET_HEADERS;
+    const values = [header].concat(rows.map(r => [r.group, r.company, r.title, r.status, r.color || '',
+      '=HYPERLINK("https://drive.google.com/drive/folders/' + r.id + '","Abrir")', r.created, r.week]));
+    sheet.getRange(1, 1, values.length, header.length).setValues(values);
+    sheet.getRange(1, 1, 1, header.length).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+    if (rows.length) {
+      sheet.getRange(2, 4, rows.length, 1).setBackgrounds(rows.map(r => [r.color || null]));
+    }
+    const count = {};
+    rows.forEach(r => { count[r.status] = (count[r.status] || 0) + 1; });
+    console.log('Aplicadas sincronizadas: ' + rows.length + ' ' + JSON.stringify(count));
+    try {
+      writePendingCvs_(ss, root, children);
+    } catch (e) {
+      console.error('Por enviar -> ERROR: ' + e.message);
+    }
+    try {
+      return warmDashboardCache_();
+    } catch (e) {
+      console.error('Tablero -> ERROR: ' + e.message);
+      return null;
+    }
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
+ * Subcarpetas de cualquier carpeta, leídas de una vez: una sola consulta (paginada) trae todas las carpetas de Drive con su
+ * carpeta madre. Antes era una consulta por carpeta (unas 110 para CV/). Si la consulta falla, se vuelve a la de siempre.
+ */
+function folderChildren_() {
+  try {
+    const byParent = {};
+    let pageToken;
+    do {
+      const res = Drive.Files.list({
+        q: "mimeType = 'application/vnd.google-apps.folder' and trashed = false",
+        fields: 'nextPageToken, files(id, name, folderColorRgb, createdTime, parents)', pageSize: 1000, pageToken: pageToken,
+      });
+      (res.files || []).forEach(f => (f.parents || []).forEach(p => { (byParent[p] = byParent[p] || []).push(f); }));
+      pageToken = res.nextPageToken;
+    } while (pageToken);
+    return parentId => (byParent[parentId] || []).slice();
   } catch (e) {
-    console.error('Tablero -> ERROR: ' + e.message);
+    console.warn('Carpetas de una vez -> ' + e.message + '; se leen una por una');
+    return listChildFolders_;
   }
 }
 
@@ -59,12 +104,13 @@ function sincronizarAplicadas() {
  * PDF HV_/CV_) va a la hoja "Por enviar" con su verificación y su revisión. Al enviarla, el usuario mueve la carpeta a
  * CV/<semana> y sale de esta lista en la siguiente sincronización.
  */
-function writePendingCvs_(ss, root) {
+function writePendingCvs_(ss, root, children) {
+  children = children || listChildFolders_;
   const rows = [];
   const pending = root.getFoldersByName(CONFIG.PENDING_FOLDER_NAME);
   if (pending.hasNext()) {
-    listChildFolders_(pending.next().getId()).forEach(day => {
-      listChildFolders_(day.id).forEach(f => {
+    children(pending.next().getId()).forEach(day => {
+      children(day.id).forEach(f => {
         if (f.name === CONFIG.POSTS_FOLDER_NAME || f.name === CONFIG.DOUBTFUL_FOLDER_NAME) return;
         const files = listChildFiles_(f.id);
         const hv = files.find(isCvFile_);
@@ -130,20 +176,37 @@ function listChildFiles_(parentId) {
  * carpeta "Prueba" son HV preparadas que el usuario aún no envió: estado "Preparada, sin enviar" (siguen contando para
  * no proponer de nuevo la misma vacante). weekName es la carpeta de primer nivel (la semana del usuario: "Primera
  * semana nueva", "Segunda semana"...), aunque la vacante esté dentro de una subcarpeta por fecha (2026-10-25).
+ * Las carpetas de primer nivel de CV/ siempre son semanas: una vacía es una semana que empieza, no una vacante (2026-10-26:
+ * "4. Cuarta semana" recién creada salía como una HV enviada en una quinta semana sin nombre).
  */
-function collectAppliedFolders_(parentId, groupName, rows, inTest, weekName) {
-  listChildFolders_(parentId).forEach(f => {
+function collectAppliedFolders_(parentId, groupName, rows, inTest, weekName, children) {
+  children = children || listChildFolders_;
+  const topLevel = !groupName && !weekName;
+  children(parentId).forEach(f => {
     const test = inTest || /^prueba$/i.test(String(f.name).trim());
-    const children = listChildFolders_(f.id);
-    if (children.length) {
-      collectAppliedFolders_(f.id, f.name, rows, test, weekName || f.name);
+    const sub = children(f.id);
+    if (sub.length) {
+      collectAppliedFolders_(f.id, f.name, rows, test, weekName || f.name, children);
       return;
     }
+    if (topLevel) return;
     const parsed = parseAppliedFolderName(f.name);
     rows.push({ id: f.id, group: groupName, company: parsed.company, title: parsed.title,
                 status: test ? 'Preparada, sin enviar' : colorToStatus(f.folderColorRgb), color: f.folderColorRgb,
                 created: localDay(f.createdTime, tz_()), week: weekName || groupName });
   });
+}
+
+/**
+ * Carpetas de semana (primer nivel de CV/ y la carpeta de antiguas junto a CV/), con su día de creación: así el tablero y
+ * el juego muestran la semana nueva aunque todavía no tenga envíos (2026-10-26).
+ */
+function listWeekFolders_() {
+  const root = DriveApp.getFolderById(getProp_(PROPS.ROOT_FOLDER_ID));
+  const cv = root.getFoldersByName(CONFIG.APPLIED_FOLDER_NAME);
+  const weeks = cv.hasNext() ? listChildFolders_(cv.next().getId()) : [];
+  const old = listChildFolders_(root.getId()).filter(f => CONFIG.APPLIED_OLD_FOLDER_PATTERN.test(String(f.name).trim()));
+  return weeks.concat(old).map(f => ({ nombre: f.name, creada: localDay(f.createdTime, tz_()) }));
 }
 
 /**
