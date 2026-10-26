@@ -64,6 +64,20 @@ const CONFIG = {
     jobicy: { url: 'https://jobicy.com/api/v2/remote-jobs?count=100&geo=latam' },
     getonbrd: { url: 'https://www.getonbrd.com/api/v0/search/jobs?per_page=100&expand=%5B%22company%22%5D&query=' ,
                 queries: ['ux', 'ui', 'product designer', 'diseñador', 'figma', 'experiencia de usuario', 'diseño de producto'] },
+    // LinkedIn: buscador público de empleos (sin sesión, 0 créditos), solo avisos de la última semana (f_TPR=r604800).
+    // 2026-10-26: los días anteriores solo llegaban publicaciones; esta fuente trae vacantes formales y recientes de
+    // Colombia y remotas para LATAM, con fecha real y descripción completa (endpoint jobPosting/<id>).
+    linkedin: {
+      searchUrl: 'https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search',
+      detailUrl: 'https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/',
+      queries: ['diseñador ux', 'diseñador ui ux', 'product designer', 'diseñador de producto', 'ux researcher', 'design system'],
+      // Colombia (todas las modalidades) y remotas abiertas a Colombia; 'Latin America' traía sobre todo avisos de Brasil
+      // y Argentina que solo aceptan residentes de esos países
+      searches: [{ location: 'Colombia' }, { location: 'Colombia', f_WT: '2' }],
+      pages: 2,         // 10 avisos por página
+      maxDetails: 40,   // descripciones completas que se piden por corrida
+      bonus: 9,         // mismo bono de fuente que LinkedIn en SOURCE_PRIORITY
+    },
   },
   // Ubicaciones de vacantes remotas a las que se puede aplicar desde Colombia
   REACHABLE_REMOTE_LOCATION: /worldwide|anywhere|latam|latin|(?<!north )am[eé]ricas?\b|south america|colombia|global|international|(utc|gmt)\s*[-−]\s*0?[3-6]\b/i,
@@ -114,7 +128,8 @@ const CONFIG = {
   PENDING_FOLDER_NAME: 'Sin revisar',
   CV_TEST_FOLDER: 'PRUEBA_IA',       // Carpeta de prueba en la raíz para probarCVsDesdeIA
   CV_EXPORT_PDF: false,      // En pausa: el usuario ajusta a mano el Google Doc del CV y exporta él mismo
-  CV_FILE_PREFIX: 'HV_',     // HV_Nombre_Apellido_Cargo (guía Adaptia); el nombre completo lo da _nombre_archivo
+  CV_FILE_PREFIX: 'HV_',     // HV_Nombre_Apellido_Cargo (guía Adaptia), en español; el nombre completo lo da _nombre_archivo
+  CV_FILE_PREFIX_EN: 'CV_',  // en inglés la hoja de vida es CV (decisión del usuario 2026-10-26): CV_Nombre_Apellido_Cargo
   // Arma CV/PDF/borrador con los CV_IA.json de hoy cada CV_EVERY_MINUTES, entre CV_FIRST_HOUR y CV_LAST_HOUR (decisión
   // del usuario 2026-10-25: compactar la mañana; antes una sola vez a las 10:00–11:00). Las corridas sin trabajo son cortas.
   CV_EVERY_MINUTES: 10,

@@ -361,14 +361,21 @@ function cargoErrors(cv, vacancy) {
   return errors;
 }
 
+/** Prefijo del archivo según el idioma: HV_ en español, CV_ en inglés (decisión del usuario 2026-10-26). */
+function cvFilePrefix(cv) {
+  return cv && cv._idioma === 'en' ? CONFIG.CV_FILE_PREFIX_EN : CONFIG.CV_FILE_PREFIX;
+}
+
 /**
- * Nombre del CV: HV_Oscar_Garcia_<Cargo> (guía 2026-10-22). La IA lo propone en _nombre_archivo; si falta o no empieza
- * por HV_, se usa HV_ + cargo de la vacante. Nunca lleva el nombre de la empresa, palabras prohibidas (junior solo si la
- * vacante lo pide)
+ * Nombre del CV: HV_Oscar_Garcia_<Cargo> en español y CV_Oscar_Garcia_<Cargo> en inglés (guía 2026-10-22; prefijo por
+ * idioma desde 2026-10-26). La IA lo propone en _nombre_archivo; si trae el prefijo del otro idioma se cambia, y si no
+ * trae ninguno se usa el prefijo + cargo de la vacante. Nunca lleva el nombre de la empresa, palabras prohibidas (junior
+ * solo si la vacante lo pide)
  * ni sufijos como "(3)" (arruinan el adjunto); si el cargo queda vacío se usa CONFIG.CV_DEFAULT_ROLE.
  */
 function buildCvFileName(cv, vacancy, label) {
   const allowJunior = vacancyAllowsJunior(vacancy);
+  const prefix = cvFilePrefix(cv);
   const clean = t => String(t || '').normalize('NFC').replace(/\(\d+\)/g, ' ')
     .replace(CONFIG.CV_FORBIDDEN_WORDS, w => (allowJunior && /^(junior|jr)$/i.test(w) ? w : ' '))
     .replace(/[\\/:*?"<>|#%]+/g, ' ').trim().replace(/[\s_]+/g, '_').replace(/^_+|_+$/g, '');
@@ -376,10 +383,10 @@ function buildCvFileName(cv, vacancy, label) {
   const withoutCompany = t => company.length >= 3
     ? String(t || '').replace(new RegExp('[\\s_-]*' + escapeRegex_(company).replace(/\s+/g, '[\\s_]+') + '[\\s_-]*', 'gi'), ' ')
     : String(t || '');
-  const proposed = clean(withoutCompany(cv._nombre_archivo));
-  if (proposed.indexOf(CONFIG.CV_FILE_PREFIX) === 0 && proposed.length > CONFIG.CV_FILE_PREFIX.length) return proposed;
+  const proposed = clean(withoutCompany(cv._nombre_archivo)).replace(/^(HV|CV)_(?!IA)/, prefix);
+  if (proposed.indexOf(prefix) === 0 && proposed.length > prefix.length) return proposed;
   const role = clean(withoutCompany((vacancy && vacancy.title) || label)) || clean(CONFIG.CV_DEFAULT_ROLE);
-  return CONFIG.CV_FILE_PREFIX + role;
+  return prefix + role;
 }
 
 /** Un párrafo se elimina si todos sus marcadores quedan vacíos (p. ej. una 4.ª experiencia que no aplica). */

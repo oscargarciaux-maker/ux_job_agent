@@ -51,7 +51,7 @@ function crearBorradoresEnFrio() {
         built.errors.forEach(e => check.errors.push(CONFIG.CV_JSON_NAME + ': ' + e));
         hv = built.hv;
       }
-      if (!hv && !check.errors.length) check.errors.push('No hay una HV (Google Doc que empiece por ' + CONFIG.CV_FILE_PREFIX + ') ni un ' + CONFIG.CV_JSON_NAME + ' en la carpeta');
+      if (!hv && !check.errors.length) check.errors.push('No hay una HV (Google Doc que empiece por ' + CONFIG.CV_FILE_PREFIX + ' o ' + CONFIG.CV_FILE_PREFIX_EN + ') ni un ' + CONFIG.CV_JSON_NAME + ' en la carpeta');
       if (check.errors.length) {
         replaceFile_(folder, CONFIG.COLD_ERRORS_FILE, check.errors.join('\n'));
         console.error(label + ' -> Correos.json rechazado:\n  ' + check.errors.join('\n  '));
@@ -147,8 +147,8 @@ function collectColdEmailFolders_(folder, out, depth) {
 }
 
 /**
- * La HV indicada en Correos.json ("hv"); si no se indica o no está con ese nombre exacto, el primer Google Doc HV_ de
- * la carpeta (las anteriores se renombran "ANTERIOR - HV_…" y no cuentan).
+ * La HV indicada en Correos.json ("hv"); si no se indica o no está con ese nombre exacto, el primer Google Doc HV_ (o CV_
+ * si está en inglés) de la carpeta (las anteriores se renombran "ANTERIOR - HV_…" y no cuentan).
  */
 function findColdHv_(folder, name) {
   const docs = folder.getFilesByType(MimeType.GOOGLE_DOCS);
@@ -156,7 +156,7 @@ function findColdHv_(folder, name) {
   while (docs.hasNext()) {
     const doc = docs.next();
     if (name && doc.getName() === name) return doc;
-    if (!first && doc.getName().indexOf(CONFIG.CV_FILE_PREFIX) === 0) first = doc;
+    if (!first && (doc.getName().indexOf(CONFIG.CV_FILE_PREFIX) === 0 || doc.getName().indexOf(CONFIG.CV_FILE_PREFIX_EN) === 0)) first = doc;
   }
   return first;
 }
