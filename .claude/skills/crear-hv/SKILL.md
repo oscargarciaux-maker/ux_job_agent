@@ -166,6 +166,16 @@ Blandas; cámbialas, ordénalas o deja una en `""` si la vacante pide otra cosa.
 **Extensión:** nunca más de 2 páginas (Arial 11, márgenes de la plantilla). Para recortar: primero la cuarta experiencia,
 luego un cuarto logro, luego palabras de los logros; nunca la ubicación ni el perfil.
 
+**Presupuesto de largo** (26 oct 2026: Bancolombia y Michael Page salieron en 3 páginas con logros de 3 renglones). En una
+viñeta caben unos 88 caracteres por renglón y en un párrafo unos 95. Antes de entregar, cuenta los caracteres:
+- Cada logro: máximo 170 caracteres (2 renglones). Nunca 3 renglones.
+- Cada descripción de experiencia: máximo 95 caracteres (1 renglón) si hay 4 experiencias; 190 (2 renglones) si hay 3.
+- Perfil: máximo 380 caracteres (4 renglones). Cada habilidad: máximo 170 caracteres contando su categoría.
+- Logros en total: 13 como máximo con 4 experiencias (4 + 3 + 3 + 3) y 12 con 3 experiencias.
+- Sin renglones huérfanos: si un texto queda a pocos caracteres de pasar al renglón siguiente (más de 80 en una viñeta o
+  más de 87 en un párrafo en su último renglón), recórtalo; si su último renglón tendría 1 a 3 palabras, recórtalo o
+  complétalo. Con ese presupuesto la página 2 queda casi llena: no la dejes con más de un cuarto vacío.
+
 ## Reglas duras (Apps Script rechaza el CV si se incumplen)
 
 - Toda cifra (números, %, $, años) debe aparecer en `CONTEXTO_CV`. Cada `EMPRESA_EXP_n`, escrita igual que en `CONTEXTO_CV`.
