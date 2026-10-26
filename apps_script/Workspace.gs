@@ -215,7 +215,13 @@ function emailPlainText(bodyText) {
 function emailHtml(bodyText) {
   const linkify = p => escapeHtml_(p)
     .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)|(https?:\/\/[^\s<]+)/g,
-             (m, label, url, bare) => '<a href="' + (url || bare) + '">' + (label || bare) + '</a>')
+             (m, label, url, bare) => {
+               if (url) return '<a href="' + url + '">' + label + '</a>';
+               // El punto o la coma que cierran la frase no son parte del enlace (2026-10-26: "…lovable.app." quedó roto)
+               const tail = (bare.match(/[.,;:!?)]+$/) || [''])[0];
+               const link = bare.slice(0, bare.length - tail.length);
+               return '<a href="' + link + '">' + link + '</a>' + tail;
+             })
     .replace(/\n/g, '<br>');
   return '<div style="font-family: Arial, Helvetica, sans-serif;">' +
     bodyText.split('\n\n').map(p => '<p>' + linkify(p) + '</p>').join('') + '</div>';
