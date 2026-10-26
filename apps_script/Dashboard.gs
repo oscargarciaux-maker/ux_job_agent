@@ -177,6 +177,24 @@ function pendingFollowups(rows) {
     .reverse();
 }
 
+/**
+ * ¿La empresa sigue en algún lado (carpeta de CV/, Por enviar o Correos en frío)? Mismo nombre, uno empieza como el otro
+ * ("Kanguro Insurance" / "Kanguro") o la misma primera palabra ("Dazzle (Blue Storm)" / "Dazzle: Commercial…").
+ */
+function companyStillListed(company, names) {
+  const words = x => followupKey_(x).split(' ');
+  const key = followupKey_(company).replace(/ /g, '');
+  if (!key) return false;
+  return names.some(n => {
+    const other = followupKey_(n).replace(/ /g, '');
+    if (!other) return false;
+    if (key === other) return true;
+    if (Math.min(key.length, other.length) >= 4 && (key.indexOf(other) === 0 || other.indexOf(key) === 0)) return true;
+    const a = words(company)[0], b = words(n)[0];
+    return a.length >= 4 && a === b;
+  });
+}
+
 /** El día (yyyy-MM-dd) al inicio de un texto de fecha del Sheet, o vacío ("—", "sin fecha"...). */
 function dayOf_(text) {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(text || '').trim());
@@ -313,7 +331,10 @@ function buildDashboardModel(tabs, now, timeZone) {
     porEnviar: pending,
     seguimiento: followup.slice(0, 40),
     historial: history,
-    acciones: pendingFollowups(history),
+    // Una acción de una empresa que ya no está en ningún lado (2026-10-26: BruntWork, cuya HV el usuario mandó a la
+    // papelera, seguía pidiendo "terminar la postulación") deja de salir
+    acciones: pendingFollowups(history).filter(r => companyStillListed(r.empresa,
+      applications.map(a => a.empresa).concat(pending.map(p => p.empresa), coldRows.map(c => c.empresa)))),
     objetivo: { total: targets.length, porEstado: targetStatus },
   };
 }

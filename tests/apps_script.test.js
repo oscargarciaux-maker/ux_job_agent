@@ -685,6 +685,11 @@ assert.strictEqual(dashModel.meta, 50);
     f('Somewhere', 'Hacer la prueba'), f('EXPERIAN', 'Ninguna'), f('Pavago', 'Esperar respuesta'), f('Ceiba', 'Esperar respuesta'), f('Allinsoft', '')]));
   assert.deepStrictEqual(acc.map(r => r.empresa), ['Somewhere'], 'Pavago y Ceiba ya hechas; Experian rechazada');
   assert.deepStrictEqual(Array.from(dashModel.acciones.map(r => r.siguiente)), ['Entregar prueba']);
+  // Empresa que ya no está en CV/, Por enviar ni Correos en frío: su acción deja de salir (2026-10-26, BruntWork)
+  const vivas = ['Kanguro', 'Dazzle: Commercial & Office Cleaning | London', 'Ceiba', 'Sole'];
+  assert.deepStrictEqual(['Kanguro Insurance', 'Dazzle (Blue Storm)', 'CEIBA', 'Sole', 'BruntWork', '', 'Trazo']
+    .map(c => run('companyStillListed')(c, vivas)), [true, true, true, true, false, false, false],
+    'ante la duda (nombres que empiezan igual) la acción sigue saliendo: es el lado seguro');
 }
 assert.ok(fs.readFileSync(path.join(dir, 'dashboard.html'), 'utf8').includes('/*__DATA__*/null'), 'dashboard.html necesita el marcador de datos');
 {
