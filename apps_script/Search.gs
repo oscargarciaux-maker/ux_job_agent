@@ -33,7 +33,7 @@ function searchUxJobs_() {
                 (remote ? ', ' + (recent.length - usable.length) + ' no accesibles desde Colombia' : ''));
     usable.forEach(v => { byKey[vacancyKey(v)] = byKey[vacancyKey(v)] || v; });
   });
-  [searchRemotive_, searchGetOnBoard_, searchJobicy_].forEach(source => {
+  [searchLinkedInJobs_, searchRemotive_, searchGetOnBoard_, searchJobicy_].forEach(source => {
     try {
       source().forEach(v => { byKey[vacancyKey(v)] = byKey[vacancyKey(v)] || v; });
     } catch (e) {
@@ -124,6 +124,80 @@ function parseGetOnBoardJob(item) {
     description: stripHtml_([a.description_headline, a.description, a.functions, a.desirable].filter(Boolean).join('\n')),
     snippet: '', link: ((item && item.links) || {}).public_url || '',
     postedAt: published, source: 'Get on Board', sourceBonus: 0,
+  };
+}
+
+/**
+ * LinkedIn (buscador público, sin sesión): vacantes de la última semana en Colombia y remotas para LATAM. Pide la
+ * descripción completa de cada una y descarta las que ya no reciben postulaciones. Si LinkedIn bloquea la IP de Google
+ * (429/999) solo se registra: las demás fuentes siguen.
+ */
+function searchLinkedInJobs_() {
+  const cfg = CONFIG.EXTRA_SOURCES.linkedin;
+  const headers = { 'User-Agent': 'Mozilla/5.0', 'Accept-Language': 'es-CO,es;q=0.9,en;q=0.8' };
+  const requests = [];
+  cfg.queries.forEach(q => cfg.searches.forEach(s => {
+    for (let page = 0; page < cfg.pages; page++) {
+      const params = Object.assign({ keywords: q, f_TPR: 'r604800', start: String(page * 10) }, s);
+      const query = Object.keys(params).map(k => k + '=' + encodeURIComponent(params[k])).join('&');
+      requests.push({ url: cfg.searchUrl + '?' + query, headers: headers, muteHttpExceptions: true });
+    }
+  }));
+  const byId = {};
+  let failed = 0;
+  UrlFetchApp.fetchAll(requests).forEach(r => {
+    if (r.getResponseCode() !== 200) { failed++; return; }
+    parseLinkedInJobCards(r.getContentText()).forEach(v => { byId[v.id] = byId[v.id] || v; });
+  });
+  const jobs = Object.keys(byId).map(k => byId[k]);
+  const kept = jobs.filter(v => acceptRoleTitle_(v) && isRecent(v.postedAt, CONFIG.MAX_POST_AGE_DAYS) &&
+                                (/colombia/i.test(v.location) || CONFIG.REACHABLE_REMOTE_LOCATION.test(v.location)))
+    .slice(0, cfg.maxDetails);
+  const details = kept.length
+    ? UrlFetchApp.fetchAll(kept.map(v => ({ url: cfg.detailUrl + v.id, headers: headers, muteHttpExceptions: true })))
+    : [];
+  details.forEach((r, i) => {
+    if (r.getResponseCode() !== 200) return;
+    const d = parseLinkedInJobDetail(r.getContentText());
+    kept[i].description = d.description || kept[i].description;
+    kept[i].closed = d.closed;
+  });
+  const open = kept.filter(v => !v.closed);
+  console.log('LinkedIn: ' + jobs.length + ' avisos de la última semana (' + failed + ' de ' + requests.length +
+              ' búsquedas fallaron), ' + kept.length + ' de diseño en Colombia/LATAM, ' + (kept.length - open.length) + ' ya cerrados');
+  return open;
+}
+
+function decodeHtml_(text) {
+  return String(text || '').replace(/&amp;/g, '&').replace(/&#39;|&rsquo;/g, "'").replace(/&quot;/g, '"')
+    .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/\s+/g, ' ').trim();
+}
+
+/** Tarjetas del buscador público de LinkedIn: id, cargo, empresa, ubicación, fecha y enlace limpio. */
+function parseLinkedInJobCards(html) {
+  return String(html || '').split(/<li[\s>]/).map(card => {
+    const id = (card.match(/urn:li:jobPosting:(\d+)/) || [])[1];
+    if (!id) return null;
+    const pick = re => decodeHtml_(((card.match(re) || [])[1] || '').replace(/<[^>]+>/g, ' '));
+    return {
+      id: id,
+      title: pick(/base-search-card__title[^>]*>([\s\S]*?)<\/h3>/),
+      company: pick(/base-search-card__subtitle[^>]*>([\s\S]*?)<\/h4>/),
+      location: pick(/job-search-card__location[^>]*>([\s\S]*?)<\/span>/),
+      postedAt: (card.match(/datetime="(\d{4}-\d{2}-\d{2})"/) || [])[1] || '',
+      link: 'https://www.linkedin.com/jobs/view/' + id,
+      description: '', snippet: '', source: 'LinkedIn', sourceBonus: CONFIG.EXTRA_SOURCES.linkedin.bonus,
+    };
+  }).filter(Boolean);
+}
+
+/** Página pública de un aviso de LinkedIn: descripción completa y si ya no recibe postulaciones. */
+function parseLinkedInJobDetail(html) {
+  const text = String(html || '');
+  const markup = (text.match(/show-more-less-html__markup[^>]*>([\s\S]*?)<\/div>/) || [])[1] || '';
+  return {
+    description: stripHtml_(markup),
+    closed: /No longer accepting applications|Ya no se aceptan solicitudes|closed-job/i.test(text),
   };
 }
 

@@ -161,6 +161,22 @@ const gob = context.parseGetOnBoardJob({ id: 'ux-designer-acme', attributes: { t
   links: { public_url: 'https://www.getonbrd.com/jobs/design-ux/ux-designer-acme' } });
 assert.strictEqual(gob.company, 'Acme');
 assert.ok(/Remote LATAM Colombia/.test(gob.location) && /^\d{4}-\d{2}-\d{2}$/.test(gob.postedAt));
+// LinkedIn (buscador público): tarjetas y detalle del aviso
+const liCards = context.parseLinkedInJobCards('<ul><li>\n<div class="base-card" data-entity-urn="urn:li:jobPosting:4480720588">' +
+  '<a class="base-card__full-link" href="https://co.linkedin.com/jobs/view/x-4480720588?position=1&amp;pageNum=0"></a>' +
+  '<h3 class="base-search-card__title">\n  1961 -  Diseñador UX/UI &amp; Interfaces\n</h3>' +
+  '<h4 class="base-search-card__subtitle">\n<a class="hidden-nested-link" href="https://www.linkedin.com/company/softgic">\n Softgic\n</a></h4>' +
+  '<span class="job-search-card__location">\n Bogotá, Capital District, Colombia\n</span>' +
+  '<time class="job-search-card__listdate" datetime="2026-10-20">hace 6 días</time></div></li><li><div>sin aviso</div></li></ul>');
+assert.strictEqual(liCards.length, 1);
+assert.strictEqual(liCards[0].title, '1961 - Diseñador UX/UI & Interfaces');
+assert.strictEqual(liCards[0].company, 'Softgic');
+assert.strictEqual(liCards[0].location, 'Bogotá, Capital District, Colombia');
+assert.strictEqual(liCards[0].postedAt, '2026-10-20');
+assert.strictEqual(liCards[0].link, 'https://www.linkedin.com/jobs/view/4480720588');
+const liDetail = context.parseLinkedInJobDetail('<div class="show-more-less-html__markup relative">Buscamos <b>UX</b><br>Figma</div>');
+assert.ok(/Buscamos UX/.test(liDetail.description) && /Figma/.test(liDetail.description) && !liDetail.closed);
+assert.ok(context.parseLinkedInJobDetail('<figure class="closed-job">No longer accepting applications</figure>').closed);
 assert.ok(context.isDesignRole({ title: 'Diseñador UX/UI' }) && !context.isDesignRole({ title: 'Graphic Designer' }));
 assert.ok(!context.isDesignRole({ title: 'Senior SEO & UX Copywriter' }) && !context.isDesignRole({ title: 'UX Writer' }));
 assert.ok(context.isDesignRole({ title: 'Diseñador Digital' }) && context.isDesignRole({ title: 'Visual Designer' }));
@@ -200,7 +216,11 @@ assert.strictEqual(context.selectWithDateRule(posts(8).concat(conFecha(1), sinFe
 // Nombre del archivo del CV (guía Adaptia: HV_Nombre_Apellido_Cargo)
 assert.strictEqual(context.buildCvFileName({ _nombre_archivo: 'HV_Ana_Pérez_Diseñador(a) UX/UI' }, {}, 'x'), 'HV_Ana_Pérez_Diseñador(a)_UX_UI');
 assert.strictEqual(context.buildCvFileName({}, { title: 'UX Designer' }, 'x'), 'HV_UX_Designer');
-assert.strictEqual(context.buildCvFileName({ _nombre_archivo: 'CV_malo' }, null, 'Acme_UX'), 'HV_Acme_UX');
+assert.strictEqual(context.buildCvFileName({ _nombre_archivo: 'malo' }, null, 'Acme_UX'), 'HV_Acme_UX');
+// HV en español, CV en inglés (2026-10-26): el prefijo del otro idioma se corrige
+assert.strictEqual(context.buildCvFileName({ _idioma: 'en', _nombre_archivo: 'HV_Oscar_Garcia_UX_Designer' }, {}, 'x'), 'CV_Oscar_Garcia_UX_Designer');
+assert.strictEqual(context.buildCvFileName({ _idioma: 'es', _nombre_archivo: 'CV_Oscar_Garcia_Diseñador_UX' }, {}, 'x'), 'HV_Oscar_Garcia_Diseñador_UX');
+assert.strictEqual(context.buildCvFileName({ _idioma: 'en' }, { title: 'UX Designer' }, 'x'), 'CV_UX_Designer');
 
 // Publicaciones de LinkedIn
 const post = context.parseLinkedInPost({ title: 'Ana Gómez en LinkedIn: Buscamos diseñador UX/UI junior | LinkedIn',

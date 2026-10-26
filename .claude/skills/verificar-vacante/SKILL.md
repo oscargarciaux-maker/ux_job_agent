@@ -94,6 +94,12 @@ Primero lo barato y sin red (paso 4, repetidas; paso 3 con el texto de `Detalle_
 1. **Sigue abierta y aceptando postulaciones.** La página carga (no 404/410), el botón de postular está activo y no dice
    "No longer accepting applications", "ya no acepta postulaciones", "oferta cerrada/caducada/vencida" ni "proceso
    cerrado". Si trae fecha límite, que no haya pasado. Nadie publicó que el cargo ya se ocupó.
+   **"Cargo abierto" en la página no basta** (26 oct 2026: el aviso de Qentaz decía "Cargo abierto" pero su JSON-LD
+   tenía `datePosted: 2022-03-23`, la empresa ya se llamaba de otra forma y el formulario fallaba): lee siempre la fecha
+   real (`datePosted` del JSON-LD `JobPosting` en el HTML, `createdAt` de Lever/Ashby/Greenhouse o la fecha del aviso
+   en LinkedIn) y aplica la regla de antigüedad; sin fecha comprobable, no es LISTA. Si el dominio de la empresa
+   redirige a otra marca o el portal de empleo está fuera de servicio, es señal de aviso abandonado: DESCARTAR, y si la
+   empresa nueva encaja, propón un correo en frío.
 2. **Acepta candidatos desde Colombia.** Ubicación explícita: Colombia (presencial, híbrido o remoto) o remoto LATAM /
    mundial / UTC-3 a UTC-6. Se descarta: solo EE. UU., Norteamérica, Europa, India, un solo país distinto de Colombia
    (p. ej. "solo Uruguay") o presencial fuera de Colombia (p. ej. Sídney, Copenhague, México).

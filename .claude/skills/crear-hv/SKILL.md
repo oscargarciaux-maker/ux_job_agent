@@ -179,8 +179,8 @@ luego un cuarto logro, luego palabras de los logros; nunca la ubicación ni el p
 - El nombre de la empresa de la vacante no aparece en ninguna parte de la HV (`targetCompanyErrors`), salvo que sea una
   empresa donde el candidato ya trabajó.
 - `UBICACION`, `TITULO_SUBTITULO_PROFESIONAL` y `PERFIL_PERSONALIZADO` nunca vacíos.
-- Nombre del archivo: `HV_Oscar_Garcia_<Cargo>` con el cargo tal como lo pide la vacante, palabras separadas por `_`,
-  siempre `HV_` (también en inglés), **sin el nombre de la empresa ni sufijos** como `(3)`, `_3`, `copia` o fechas.
+- Nombre del archivo: `HV_Oscar_Garcia_<Cargo>` en español y `CV_Oscar_Garcia_<Cargo>` en inglés (decisión del usuario
+  2026-10-26: HV es la palabra en español, CV en inglés), con el cargo tal como lo pide la vacante, palabras separadas por `_`, **sin el nombre de la empresa ni sufijos** como `(3)`, `_3`, `copia` o fechas.
 
 ## Paso 4. Salida
 
@@ -195,7 +195,7 @@ Apps Script lo valida y arma la HV en su siguiente pasada (cada 10 minutos, de 7
 
 ### Modo B (empresa en frío): solo `CV_IA.json` (desde 2026-10-25)
 No armes el Google Doc a mano (gasta muchos tokens por HV). Escribe `CV_IA.json` en `Correos en frío/<…>/<Empresa>/`
-con el mismo contrato que en la tarea diaria (`_nombre_archivo` = `HV_Oscar_Garcia_<Cargo>`, `_correo_cuerpo` = `""`).
+con el mismo contrato que en la tarea diaria (`_nombre_archivo` = `HV_Oscar_Garcia_<Cargo>`, o `CV_…` si la HV va en inglés; `_correo_cuerpo` = `""`).
 Antes de subirlo, revisa tú las reglas duras y estima el largo: perfil de 3 a 5 líneas y ningún logro, perfil ni línea de
 habilidades que termine con una línea de 1 a 3 palabras. Cuando la carpeta tiene también `Correos.json` (skill
 `correo-en-frio`), Apps Script valida el `CV_IA.json` con las mismas reglas que las vacantes, copia `MASTER_TEMPLATE`,

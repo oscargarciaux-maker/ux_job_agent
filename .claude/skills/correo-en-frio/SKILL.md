@@ -67,7 +67,7 @@ baja ni un poco** por hacer muchas.
 
 Aplica la skill `crear-hv` en **modo B (empresa en frío)** en la misma carpeta. Una HV por empresa (no una por
 correo). Desde 2026-10-25 se deja solo `CV_IA.json` (no el Google Doc): Apps Script arma la HV desde la plantilla en la
-misma corrida que crea los borradores y adjunta su PDF. Si ya hay un Google Doc `HV_...` en la carpeta, se usa ese.
+misma corrida que crea los borradores y adjunta su PDF. Si ya hay un Google Doc `HV_...` (o `CV_...` si la HV va en inglés) en la carpeta, se usa ese.
 Después de la corrida, `revisar-hv` (revisión visual) al menos a una HV por tanda; si hay que corregir una HV cuyos
 borradores ya existen, corrige el Doc y reescribe los borradores con `"reemplazar": true`.
 
@@ -147,7 +147,7 @@ contenido). Si ya hay `Borradores.txt`, esos borradores ya existen: para agregar
 
 - Un objeto por destinatario (un borrador por destinatario, para que nadie vea a los demás). El cuerpo puede variar
   solo en el saludo.
-- `hv` es el nombre exacto del Google Doc de la HV en la carpeta (si se omite, Apps Script usa el primer `HV_...`).
+- `hv` es el nombre exacto del Google Doc de la HV en la carpeta (si se omite, Apps Script usa el primer `HV_...` o `CV_...`).
 - **Rehacer borradores que aún no se enviaron** (2026-10-25): agrega `"reemplazar": true`. Las direcciones cuya fila en
   `Correos en frío` dice "Borrador preparado, no enviado" no se omiten: Apps Script reescribe **ese mismo borrador**
   (asunto, cuerpo y la HV nueva adjunta) y actualiza asunto, HV y Notas de su fila; no crea otro. Si el borrador ya no
