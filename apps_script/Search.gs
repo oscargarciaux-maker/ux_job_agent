@@ -138,14 +138,15 @@ function searchLinkedInJobs_() {
   const requests = [];
   cfg.queries.forEach(q => cfg.searches.forEach(s => {
     for (let page = 0; page < cfg.pages; page++) {
-      const params = Object.assign({ keywords: q, f_TPR: 'r604800', start: String(page * 10) }, s);
+      // Ventana = antigüedad máxima (21 días): lo ya registrado lo descarta la deduplicación sin costo
+      const params = Object.assign({ keywords: q, f_TPR: 'r' + CONFIG.MAX_POST_AGE_DAYS * 86400, start: String(page * 10) }, s);
       const query = Object.keys(params).map(k => k + '=' + encodeURIComponent(params[k])).join('&');
       requests.push({ url: cfg.searchUrl + '?' + query, headers: headers, muteHttpExceptions: true });
     }
   }));
   const byId = {};
   let failed = 0;
-  UrlFetchApp.fetchAll(requests).forEach(r => {
+  fetchAllPaced_(requests, cfg.batch, cfg.pauseMs).forEach(r => {
     if (r.getResponseCode() !== 200) { failed++; return; }
     parseLinkedInJobCards(r.getContentText()).forEach(v => { byId[v.id] = byId[v.id] || v; });
   });
@@ -154,7 +155,7 @@ function searchLinkedInJobs_() {
                                 (/colombia/i.test(v.location) || CONFIG.REACHABLE_REMOTE_LOCATION.test(v.location)))
     .slice(0, cfg.maxDetails);
   const details = kept.length
-    ? UrlFetchApp.fetchAll(kept.map(v => ({ url: cfg.detailUrl + v.id, headers: headers, muteHttpExceptions: true })))
+    ? fetchAllPaced_(kept.map(v => ({ url: cfg.detailUrl + v.id, headers: headers, muteHttpExceptions: true })), cfg.batch, cfg.pauseMs)
     : [];
   details.forEach((r, i) => {
     if (r.getResponseCode() !== 200) return;
@@ -163,9 +164,19 @@ function searchLinkedInJobs_() {
     kept[i].closed = d.closed;
   });
   const open = kept.filter(v => !v.closed);
-  console.log('LinkedIn: ' + jobs.length + ' avisos de la última semana (' + failed + ' de ' + requests.length +
+  console.log('LinkedIn: ' + jobs.length + ' avisos de los últimos ' + CONFIG.MAX_POST_AGE_DAYS + ' días (' + failed + ' de ' + requests.length +
               ' búsquedas fallaron), ' + kept.length + ' de diseño en Colombia/LATAM, ' + (kept.length - open.length) + ' ya cerrados');
   return open;
+}
+
+/** UrlFetchApp.fetchAll por tandas con pausa: a LinkedIn, muchas peticiones simultáneas le dan 429. */
+function fetchAllPaced_(requests, size, pauseMs) {
+  let out = [];
+  for (let i = 0; i < requests.length; i += size) {
+    if (i) Utilities.sleep(pauseMs);
+    out = out.concat(UrlFetchApp.fetchAll(requests.slice(i, i + size)));
+  }
+  return out;
 }
 
 function decodeHtml_(text) {
@@ -403,7 +414,7 @@ function buildLinkedInPostsQuery(roles) {
 function isReachablePost(post) {
   const text = post.description || '';
   // Solo publicaciones reales (no páginas de listados de empleos de LinkedIn) y que no estén cerradas
-  return /linkedin\.com\/(posts|feed\/update)\//i.test(post.link || '') && !/caducad|expirad|expired|cerrad|closed|ya no/i.test(text) &&
+  return /linkedin\.com\/(posts|feed\/update)\//i.test(post.link || '') && !CONFIG.CLOSED_POST_PATTERN.test(text) &&
     CONFIG.LINKEDIN_POST_LOCATION_PATTERN.test(text) && CONFIG.LINKEDIN_POST_ROLE_PATTERN.test(text);
 }
 

@@ -70,11 +70,15 @@ const CONFIG = {
     linkedin: {
       searchUrl: 'https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search',
       detailUrl: 'https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/',
-      queries: ['diseñador ux', 'diseñador ui ux', 'product designer', 'diseñador de producto', 'ux researcher', 'design system'],
+      // 2026-10-26: con 10 términos y 21 días salieron ~25 avisos de diseño en Colombia (con 6 términos y 7 días, muy pocos)
+      queries: ['diseñador ux', 'diseñador ui ux', 'diseñador ux ui', 'ux designer', 'ui designer', 'ux ui designer',
+                'product designer', 'diseñador de producto', 'ux researcher', 'design system'],
       // Colombia (todas las modalidades) y remotas abiertas a Colombia; 'Latin America' traía sobre todo avisos de Brasil
       // y Argentina que solo aceptan residentes de esos países
       searches: [{ location: 'Colombia' }, { location: 'Colombia', f_WT: '2' }],
-      pages: 2,         // 10 avisos por página
+      pages: 3,         // 10 avisos por página
+      batch: 8,         // peticiones a la vez: de a muchas LinkedIn responde 429
+      pauseMs: 1500,    // pausa entre tandas
       maxDetails: 40,   // descripciones completas que se piden por corrida
       bonus: 9,         // mismo bono de fuente que LinkedIn en SOURCE_PRIORITY
     },
@@ -108,6 +112,8 @@ const CONFIG = {
   ],
   LINKEDIN_POST_HIRING_TERMS: '("hiring" OR "contratando" OR "buscamos" OR "vacante" OR "estamos buscando")',
   LINKEDIN_POST_LOCATION_TERMS: '("remoto" OR "remote" OR "LATAM" OR "Colombia")',
+  // Publicación que ya no contrata (2026-10-26: un post de "hiring" terminaba en "we got the people we wanted")
+  CLOSED_POST_PATTERN: /caducad|expirad|expired|cerrad|closed|ya no|we (got|found|have found) (the|our)|position (has been |is )?filled|no longer (hiring|accepting)|ya (contratamos|encontramos|cubrimos)|vacante (ocupada|cubierta)/i,
   LINKEDIN_POST_LOCATION_PATTERN: /remot|remote|latam|latinoam|am[eé]rica latina|colombia|bogot|medell|anywhere|work from home|home office/i,
   MAX_POST_AGE_DAYS: 21,  // Decisión del usuario 2026-10-19 (antes 14)
   // Apps Script corta a los 6 min: se deja de crear vacantes a los 4 (las que falten se retoman en la próxima corrida)
