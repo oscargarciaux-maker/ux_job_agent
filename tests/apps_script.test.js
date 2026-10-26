@@ -583,6 +583,8 @@ cold = run('validateColdEmails')(coldData([mail({ cuerpo: 'Hola, vi que lanzaron
 assert.ok(cold.warnings.some(w => /no menciona a Empresa/.test(w)));
 assert.strictEqual(run('emailPlainText')('Ver [LinkedIn](https://l.in/x).'), 'Ver LinkedIn (https://l.in/x).');
 assert.ok(run('emailHtml')('Ver [LinkedIn](https://l.in/x) y https://p.app').includes('<a href="https://l.in/x">LinkedIn</a> y <a href="https://p.app">https://p.app</a>'));
+// El punto final de la frase no entra en el enlace (2026-10-26: borrador de TK Designs con "…lovable.app." roto)
+assert.ok(run('emailHtml')('Portfolio: https://p.app. Gracias').includes('<a href="https://p.app">https://p.app</a>. Gracias'));
 
 // Empresas objetivo: nombres reales de la pestaña frente al "empresa" corto de Correos.json (2026-10-24)
 const tcm = run('targetCompanyMatches');
