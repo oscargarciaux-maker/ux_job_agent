@@ -189,6 +189,9 @@ explicar; dos o más = DESCARTAR.
 ## Modo lote ("verifica las de hoy")
 
 1. Lista las carpetas de `Sin revisar/<fecha>/` (sin contar `Posts` ni `Dudosas`) y los enlaces del documento `Posts/Posts`.
+   Desde 2026-10-26 las publicaciones que Apps Script leyó completas tienen su propia carpeta (`Detalle_Vacante` con
+   "Tipo: PUBLICACIÓN de LinkedIn"): se verifican como cualquier vacante; si el texto trae un enlace a una vacante
+   formal, se verifica allí; si remite a un tablero de vacantes y no a una empresa que contrata, se descarta.
 2. Salta las que ya tienen `Verificacion.txt` con veredicto, salvo que el usuario pida re-verificar.
 3. Verifica cada una con los pasos de arriba (en el orden de trabajo indicado).
 4. Termina con un resumen corto:

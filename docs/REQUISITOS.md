@@ -22,7 +22,7 @@ Estados: ✅ hecho y probado · 🟡 parcial · ⏳ pendiente · ❓ falta una d
 | Descartar vacantes exclusivas para personas con discapacidad | ✅ | regla "exclusiva para personas con discapacidad" (no descarta las declaraciones de igualdad) |
 | Fintech preferido sin excluir | ✅ | `FINTECH_PATTERN`, `FINTECH_BONUS` |
 | Fuentes: LinkedIn > Indeed > Computrabajo > portal; agregadores nunca como fuente final | ✅ | `SOURCE_PRIORITY`, `BLOCKED_SOURCES` (incluye vacantes.com), `pickApplyOption` |
-| Posts de LinkedIn "estamos contratando" | 🟡 | `searchLinkedInPosts_` (solo el fragmento público; sin sesión de LinkedIn) |
+| Posts de LinkedIn "estamos contratando", con HV (decisión del usuario 2026-10-26) | 🟡 | `searchLinkedInPosts_` + `enrichLinkedInPosts_`/`parseLinkedInPostPage`: la página pública del post trae el texto completo (JSON-LD `SocialMediaPosting`) sin sesión; esas pasan a carpeta + `Detalle_Vacante` ("Tipo: PUBLICACIÓN") + IA; las que no abren siguen en `Posts/Posts`. Falta comprobar que LinkedIn responda a las IP de Google |
 | Búsqueda con la sesión de LinkedIn del usuario | 🚫 | Apps Script no puede usar su sesión; Google Jobs ya trae los avisos de LinkedIn |
 | Búsqueda diaria a las 7 a. m. | ✅ | `PIPELINE_HOUR` = 7 (el activador se mueve al re-ejecutar `configurarAgente`) |
 | Meta de 10 diarias, sin rellenar; reporte honesto | ✅ | sobre-reserva: `DAILY_LIMIT`=20 candidatas, HV a las 10 mejores que pasan la verificación (prompt `ia/prompt_cv_diario.md`, paso 4); `MIN_DAILY`, registro de ejecución |
@@ -51,7 +51,7 @@ Estados: ✅ hecho y probado · 🟡 parcial · ⏳ pendiente · ❓ falta una d
 | Doc del aviso llamado "Vacante" | ❓ | hoy se llama `Detalle_Vacante` |
 | HV en Google Doc + PDF | ✅ | Doc automático; el PDF lo exporta el usuario tras ajustar el Doc (`CV_EXPORT_PDF` = false, decisión del usuario confirmada el 2026-10-24) |
 | Colores: rojo rechazada, verde en proceso, amarillo aplicada sin respuesta | ✅ | `colorToStatus` lee los colores; el agente ya no pinta carpetas |
-| Publicaciones de LinkedIn sin carpeta propia ni color: un documento "Posts" del día con todos los enlaces (decisión del usuario 2026-10-24) | ✅ | `addPostsToDailyDoc_`, `postEntry` |
+| Publicaciones de LinkedIn sin texto completo: un documento "Posts" del día con sus enlaces (2026-10-24; desde 2026-10-26 solo las que no se pudieron leer) | ✅ | `addPostsToDailyDoc_`, `postEntry` |
 | Hoja 1, Aplicadas, Correos en frío | 🟡 | Hoja 1 y Aplicadas ✅; Correos en frío solo se lee |
 | Actualizar estados y colores con los correos de respuesta | ✅ | skill `seguimiento` (conector de Gmail en solo lectura, cuenta laboral; tarea "Seguimiento diario"); colores con `folderColorRgb`, evidencia en la pestaña `Seguimiento`. Apps Script no lee Gmail |
 
