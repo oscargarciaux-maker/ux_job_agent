@@ -205,6 +205,7 @@ const CONFIG = {
   // Tablero web para el coach (2026-10-25, Dashboard.gs): la interfaz se descarga de la rama deploy, como el código
   DASHBOARD_HTML_URL: 'https://raw.githubusercontent.com/oscargarciaux-maker/ux_job_agent/deploy/apps_script/dashboard.html',
   DASHBOARD_WEEKLY_GOAL: 50,                 // Meta del usuario: ~50 postulaciones por semana (en el juego: semana legendaria)
+  PAGES_BASE_URL: 'https://oscargarciaux-maker.github.io/ux_job_agent/apps_script/',  // juego y tablero (GitHub Pages)
   DASHBOARD_WEEKLY_SUBGOAL: 30,              // Submeta de cada semana (decisión del usuario 2026-10-27): con 30 se gana la semana
   // Caché de los datos del tablero (el Cargador la lee con este mismo nombre antes de descargar el agente)
   DASHBOARD_CACHE_KEY: 'dashboard_json',
