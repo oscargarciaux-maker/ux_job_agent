@@ -110,7 +110,10 @@ function runPipeline_(opts) {
     const score = computeMatchScore(v);
     return { vacancy: v, score: score, priority: computePriority(v, score), seniority: classifySeniority(v) };
   });
-  const selected = selectWithDateRule(scored, CONFIG.DAILY_LIMIT, CONFIG.MIN_JUNIOR, CONFIG.MIN_DAILY);
+  const distinct = distinctPostings(scored, CONFIG.MAX_PER_COMPANY);
+  if (distinct.length < scored.length) console.log('   Mismo aviso repetido o más de ' + CONFIG.MAX_PER_COMPANY + ' de la misma empresa: ' +
+                                                  (scored.length - distinct.length) + ' fuera de la selección');
+  const selected = selectWithDateRule(distinct, CONFIG.DAILY_LIMIT, CONFIG.MIN_JUNIOR, CONFIG.MIN_DAILY);
   console.log('3. Seleccionadas: ' + selected.length + ' (Junior: ' + selected.filter(x => x.seniority === 'junior').length + ')');
 
   // Primero las vacantes formales (pasan a la IA), luego las publicaciones (proceso manual)
