@@ -201,7 +201,7 @@ marcador de `MASTER_TEMPLATE` (sin llaves; `""` = se borra ese párrafo) más `_
 "Guía Maestra de Cover Letters" —la guía principal de correos—: [reto crítico de la vacante] + [métrica de `CONTEXTO_CV`]
 + [CTA de reunión] + [adjuntos: HV, LinkedIn, Portafolio], **máximo 35 palabras**, sin clichés ni saludos largos; si no,
 `""`).
-Apps Script lo valida y arma la HV en su siguiente pasada (cada 10 minutos, de 7:00 a 22:59).
+Apps Script lo valida y arma la HV en su siguiente pasada (cada 10 minutos, de 5:00 a 22:59).
 
 ### Modo B (empresa en frío): solo `CV_IA.json` (desde 2026-10-25)
 No armes el Google Doc a mano (gasta muchos tokens por HV). Escribe `CV_IA.json` en `Correos en frío/<…>/<Empresa>/`

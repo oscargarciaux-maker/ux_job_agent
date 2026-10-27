@@ -19,7 +19,7 @@ Regla fija: **nada se envía solo**. Todo correo queda como borrador y lo envía
 
 ```
 VACANTE
-  encontrada (Apps Script 7:00) ─► verificada por la IA ─┬─► DESCARTAR (papelera)
+  encontrada (Apps Script 5:00) ─► verificada por la IA ─┬─► DESCARTAR (papelera)
                                                          ├─► DUDOSA (espera sí/no de Oscar)
                                                          └─► LISTA / MENOR_PRIORIDAD ─► HV armada ─► HV revisada
   ─► POR ENVIAR (carpeta en Sin revisar/<fecha>)
@@ -44,7 +44,7 @@ Lo pone Oscar o la skill `seguimiento` cuando encuentra evidencia en Gmail.
 
 | Pestaña | Una fila es | Columnas | La escribe | Frecuencia |
 |---|---|---|---|---|
-| `Hoja 1` | una vacante encontrada | Fecha, Empresa, Cargo, Link, Match Score, Estado | Apps Script | diario 7:00 y cada 10 min |
+| `Hoja 1` | una vacante encontrada | Fecha, Empresa, Cargo, Link, Match Score, Estado | Apps Script | diario 5:00 (repaso 5:45) y cada 10 min |
 | `Aplicadas` | una postulación enviada | Grupo (carpeta), Empresa, Cargo, Estado, Color, Carpeta, Creada, Semana (carpeta) | `sincronizarAplicadas` (lee las carpetas de `CV/`) | cada hora |
 | `Por enviar` | una HV lista sin enviar | Fecha, Empresa, Cargo, Verificación, Revisión, Carpeta, HV | `sincronizarAplicadas` | cada hora |
 | `Correos en frío` | una dirección contactada | Empresa, Destinatario(s), Fecha y hora envío, Asunto, CV usado, Estado, Respuesta / info, Notas | Apps Script + skill `seguimiento` | cada hora y 18:13 |
@@ -77,10 +77,12 @@ Borradores de postulación y de correos en frío (nunca se envían solos), y res
 
 | Hora | Qué pasa | Resultado visible |
 |---|---|---|
-| 6:45–7:15 | `ejecutarPipeline` busca y filtra | hasta 20 carpetas nuevas en `Sin revisar/<hoy>` |
-| 7:33 | IA "CV con IA diario" | `Verificacion.txt` y `CV_IA.json` en las 10 mejores |
-| cada 10 min (7–23 h) | `generarCVsDesdeIA` | HV armadas; descartadas a la papelera, dudosas apartadas |
-| 8:53 (11:53 respaldo) | IA "Revisión HV diaria" | `Revision.txt`: LISTA_PARA_ENVIAR o REVISAR |
+| 4:17 | GitHub Actions (JobSpy, LinkedIn, elempleo) | `jobspy.json` en la rama `datos` |
+| 4:45–5:15 | `ejecutarPipeline` busca y filtra | hasta 20 carpetas nuevas en `Sin revisar/<hoy>` |
+| 5:30–6:00 | repaso de `ejecutarPipeline` (sin SerpAPI) | lo que la primera no alcanzó a crear |
+| 6:03 y 7:03 | IA "CV con IA diario" (dos tandas) | `Verificacion.txt` y `CV_IA.json`, hasta 10 por tanda |
+| cada 10 min (5–23 h) | `generarCVsDesdeIA` | HV armadas; descartadas a la papelera, dudosas apartadas |
+| 7:53 (8:53 respaldo) | IA "Revisión HV diaria" | `Revision.txt`: LISTA_PARA_ENVIAR o REVISAR |
 | cada hora | `sincronizarAplicadas` + correos en frío | pestañas `Aplicadas` y `Por enviar` al día; caché del tablero renovada |
 | a pedido | botón «Actualizar» del juego o del tablero (`&sync=1`) | lo mismo que la sincronización de cada hora, sin los correos en frío |
 | 18:13 | IA "Seguimiento diario" | colores de carpetas, `Correos en frío` y `Seguimiento` actualizados |

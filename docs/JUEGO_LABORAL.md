@@ -466,7 +466,7 @@ El usuario pidió que el mensaje del jefe ocupe menos: cara de 48 px recortada d
 2. **Seguimientos** (`seguimiento` con `siguiente` no vacío): las 10 acciones más recientes con empresa, acción y fecha.
 3. **Radar** (`vacantes`): «118 vacantes encontradas en 14 días» con una barra pequeña por día.
 
-Estado vacío: «Sin misiones por hoy. La próxima búsqueda llega a las 7:00.»
+Estado vacío: «Sin misiones por hoy. La próxima búsqueda llega a las 5:00.»
 
 ### Bitácora: ¿qué ha pasado? (por semana desde el 26 oct)
 

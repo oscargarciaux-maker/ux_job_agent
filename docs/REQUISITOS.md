@@ -27,7 +27,8 @@ Estados: ✅ hecho y probado · 🟡 parcial · ⏳ pendiente · ❓ falta una d
 | Alertas de LinkedIn por correo (sin usar la cuenta) | 🟡 | `searchEmailAlerts_`, `alertLinksFromHtml`; requiere manifiesto con `gmail.readonly` y que el usuario cree las alertas |
 | Publicaciones con Brave Search y filtro de ruido ("open to work", cursos) | 🟡 | `searchBravePosts_` (requiere `BRAVE_API_KEY`), `POST_NOISE_PATTERN` |
 | Medir vacantes por fuente para comparar antes y después del plan | ✅ | Pestaña `Fuentes` (`logSourceStats_`), con la línea base del 24 al 26 de octubre |
-| Dos búsquedas y dos tandas de HV al día | 🟡 | `CONFIG.PIPELINE_HOURS` (re-ejecutar `configurarAgente`); tareas "CV con IA diario" 7:33 y 13:33 y "Revisión HV diaria" 8:53, 11:53 y 14:53 |
+| Mañana condensada: todo listo hacia las 8:30 (2026-10-27) | 🟡 | `CONFIG.PIPELINE_HOURS` 5:00 y repaso 5:45 (re-ejecutar `configurarAgente`); JobSpy 4:17; tareas "CV con IA diario" 6:03 y 7:03 y "Revisión HV diaria" 7:53 y 8:53 |
+| SerpAPI una vez al día (100 créditos al mes) | ✅ | `serpApiDue`, propiedad `SERPAPI_LAST_DAY` (`tests/apps_script.test.js`) |
 | Posts de LinkedIn "estamos contratando", con HV (decisión del usuario 2026-10-26) | 🟡 | `searchLinkedInPosts_` + `enrichLinkedInPosts_`/`parseLinkedInPostPage`: la página pública del post trae el texto completo (JSON-LD `SocialMediaPosting`) sin sesión; esas pasan a carpeta + `Detalle_Vacante` ("Tipo: PUBLICACIÓN") + IA; las que no abren siguen en `Posts/Posts`. Falta comprobar que LinkedIn responda a las IP de Google |
 | Búsqueda con la sesión de LinkedIn del usuario | 🚫 | Retirada el 2026-10-27 (plan del usuario: nunca automatizar su cuenta). Su alcance llega por las alertas de LinkedIn en Gmail (`searchEmailAlerts_`) |
 | Búsqueda diaria a las 7 a. m. | ✅ | `PIPELINE_HOUR` = 7 (el activador se mueve al re-ejecutar `configurarAgente`) |

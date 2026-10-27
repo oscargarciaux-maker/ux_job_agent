@@ -478,13 +478,18 @@ assert.ok(!context.isCvFile_({ name: 'CV_IA.json', mimeType: 'application/vnd.go
 assert.ok(!context.isCvFile_({ name: 'HV_notas.txt', mimeType: 'text/plain' }));
 
 // Mañana compacta (2026-10-25): generarCVsDesdeIA corre cada 10 min, solo trabaja dentro de su ventana
-assert.ok(!context.isWithinCvWindow(6) && context.isWithinCvWindow(7) && context.isWithinCvWindow(22) &&
+assert.ok(!context.isWithinCvWindow(4) && context.isWithinCvWindow(5) && context.isWithinCvWindow(22) &&
   !context.isWithinCvWindow(23));
 const setupCode = fs.readFileSync(path.join(dir, 'Setup.gs'), 'utf8');
 assert.ok(/'generarCVsDesdeIA'\)\.timeBased\(\)\.everyMinutes\(CONFIG\.CV_EVERY_MINUTES\)/.test(setupCode));
-// Dos búsquedas al día (plan 2026-10-27): 7:00 y 12:30, cada una con nearMinute (±15 min)
+// Mañana condensada (2026-10-27): búsqueda 5:00 y repaso 5:45, cada una con nearMinute (±15 min) y sin cruzarse
 assert.ok(/PIPELINE_HOURS\.forEach\([\s\S]*atHour\(h\)\.nearMinute\(m\)/.test(setupCode));
-assert.deepStrictEqual(JSON.parse(JSON.stringify(run('CONFIG.PIPELINE_HOURS'))), [[7, 0], [12, 30]]);
+assert.deepStrictEqual(JSON.parse(JSON.stringify(run('CONFIG.PIPELINE_HOURS'))), [[5, 0], [5, 45]]);
+// SerpAPI una sola vez al día (100 créditos al mes): el repaso y las corridas a mano no gastan créditos
+assert.ok(context.serpApiDue(null, '2026-10-28') && context.serpApiDue('2026-10-27', '2026-10-28'));
+assert.ok(!context.serpApiDue('2026-10-28', '2026-10-28'));
+const searchCode = fs.readFileSync(path.join(dir, 'Search.gs'), 'utf8');
+assert.ok(/serpDue && CONFIG\.LINKEDIN_POST_ROLE_POOL/.test(searchCode) && /queries = !serpDue \? \[\]/.test(searchCode));
 assert.ok(!/CV_HOUR\b/.test(textFiles().map(f => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n')));
 
 // Guía de búsqueda y HV (2026-10-22): filtros nuevos, avisos cerrados y reglas de la HV

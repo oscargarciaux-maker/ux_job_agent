@@ -11,9 +11,14 @@ function searchUxJobs_(startedAt) {
   const byKey = {};   // Misma vacante en varias fuentes -> una sola (la primera que la trae queda como su origen)
   const add = (v, origin, key) => { v.origin = v.origin || origin; const k = key || vacancyKey(v); byKey[k] = byKey[k] || v; };
   const today = new Date();
-  const queries = [{ q: pickDailyItems(CONFIG.SEARCH_QUERY_POOL, 1, today)[0], remote: false },
-                   { q: pickDailyItems(CONFIG.REMOTE_QUERY_POOL, 1, today)[0], remote: true }];
-  console.log('Búsquedas de hoy: ' + queries.map(x => x.q).join(' | '));
+  // Una sola vez al día (≈3 créditos): el repaso de las 5:45 y las corridas a mano solo usan las fuentes gratuitas
+  const day = Utilities.formatDate(today, tz_(), 'yyyy-MM-dd');
+  const serpDue = serpApiDue(getProp_(PROPS.SERPAPI_LAST_DAY), day);
+  if (serpDue) setProp_(PROPS.SERPAPI_LAST_DAY, day);
+  else console.log('SerpAPI ya se consultó hoy (' + day + '): esta corrida usa solo las fuentes gratuitas.');
+  const queries = !serpDue ? [] : [{ q: pickDailyItems(CONFIG.SEARCH_QUERY_POOL, 1, today)[0], remote: false },
+                                   { q: pickDailyItems(CONFIG.REMOTE_QUERY_POOL, 1, today)[0], remote: true }];
+  if (serpDue) console.log('Búsquedas de hoy: ' + queries.map(x => x.q).join(' | '));
   queries.forEach(({ q, remote }) => {
     // Las remotas no se limitan a Colombia: cualquier país, siempre que la vacante diga remoto/LATAM/Colombia
     const params = remote ? { engine: 'google_jobs', q: q, hl: 'en', api_key: apiKey }
@@ -52,7 +57,7 @@ function searchUxJobs_(startedAt) {
       console.warn('Fuente ' + source.name + ' falló: ' + e.message);
     }
   });
-  if (CONFIG.LINKEDIN_POST_ROLE_POOL.length) {
+  if (serpDue && CONFIG.LINKEDIN_POST_ROLE_POOL.length) {
     searchLinkedInPosts_(apiKey).forEach(v => add(v, 'Publicaciones LinkedIn (SerpAPI)', v.link));
   }
   try {
@@ -72,6 +77,11 @@ function searchUxJobs_(startedAt) {
     if (reason) console.log('Descartada (' + reason + '): ' + v.title + ' @ ' + v.company);
     return !reason;
   });
+}
+
+/** true si hoy aún no se ha consultado SerpAPI (lastDay y today en yyyy-MM-dd, hora de Bogotá). */
+function serpApiDue(lastDay, today) {
+  return String(lastDay || '') !== today;
 }
 
 // ---------- Fuentes gratuitas (API pública, 0 créditos de SerpAPI) ----------

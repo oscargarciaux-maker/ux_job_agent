@@ -1,13 +1,12 @@
 name: Búsqueda JobSpy
 
-# Plan de búsqueda del usuario (2026-10-27): Indeed Colombia y LinkedIn (vista pública) 4 veces al día.
-# El resultado se publica en la rama "datos" (jobspy.json) y Apps Script lo lee en sus búsquedas de las 7:00 y 12:30.
-# Horas en UTC: 6:17, 11:47, 16:17 y 21:17 en Bogotá (GitHub puede retrasar los programados unos minutos).
+# Plan de búsqueda del usuario (2026-10-27): Indeed Colombia, LinkedIn (vista pública) y elempleo 2 veces al día.
+# El resultado se publica en la rama "datos" (jobspy.json) y Apps Script lo lee en su búsqueda de las 5:00 y el repaso
+# de las 5:45 (mañana condensada, 2026-10-27). Horas en UTC: 4:17 y 21:17 (de la noche anterior) en Bogotá; GitHub puede
+# retrasar los programados: si la de las 4:17 llega tarde, la búsqueda usa la de la noche y el repaso la nueva.
 on:
   schedule:
-    - cron: "17 11 * * *"
-    - cron: "47 16 * * *"
-    - cron: "17 21 * * *"
+    - cron: "17 9 * * *"
     - cron: "17 2 * * *"
   workflow_dispatch: {}
 
