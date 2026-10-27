@@ -10,6 +10,7 @@
 function doGet(e) {
   const key = getProp_(PROPS.DASHBOARD_KEY);
   const given = String((e && e.parameter && e.parameter.k) || '');
+  if (e && e.parameter && e.parameter.accion) return dashboardAction_(e.parameter, key);  // Acciones.gs (2026-10-27)
   if (e && e.parameter && e.parameter.formato === 'json') return dashboardJson_(given, key, e.parameter.sync === '1');
   if (!dashboardKeyOk(given, key)) {
     return HtmlService.createHtmlOutput(dashboardLockedHtml())
@@ -66,6 +67,14 @@ function configurarTablero() {
     key = Utilities.getUuid().replace(/-/g, '');
     setProp_(PROPS.DASHBOARD_KEY, key);
   }
+  // Clave de escritura del juego (2026-10-27): solo va en el enlace de Oscar; sin ella el juego es de solo lectura
+  let writeKey = getProp_(PROPS.DASHBOARD_WRITE_KEY);
+  if (!writeKey) {
+    writeKey = Utilities.getUuid().replace(/-/g, '');
+    setProp_(PROPS.DASHBOARD_WRITE_KEY, writeKey);
+  }
+  console.log('Solo para TU enlace del juego (no la compartas con el coach): agrega al final &e=' + writeKey +
+    ' . Con ella aparecen «Ya la envié», «Descartar» y los cambios de estado.');
   const share = dashboardShareUrl(ScriptApp.getService().getUrl(), key);
   console.log(share
     ? 'Enlace del tablero (compártelo solo con quien quieras): ' + share
@@ -195,6 +204,18 @@ function companyStillListed(company, names) {
   });
 }
 
+/**
+ * Enlace de la vacante de una HV por enviar: la fila de Hoja 1 más reciente de esa empresa, la del mismo cargo si hay
+ * varias. Sin fila (publicaciones de LinkedIn registradas como "Post LinkedIn") queda vacío.
+ */
+function vacancyLinkFor(pending, registryRows) {
+  const same = registryRows.filter(r => r['Link'] && /^https:\/\//.test(r['Link']) && followupKey_(r['Empresa']) &&
+    followupKey_(r['Empresa']).replace(/ /g, '') === followupKey_(pending.empresa).replace(/ /g, ''));
+  const byRole = same.filter(r => pending.cargo && followupKey_(r['Cargo']) === followupKey_(pending.cargo));
+  const pick = (byRole.length ? byRole : same).pop();
+  return pick ? pick['Link'] : '';
+}
+
 /** El día (yyyy-MM-dd) al inicio de un texto de fecha del Sheet, o vacío ("—", "sin fecha"...). */
 function dayOf_(text) {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(text || '').trim());
@@ -298,6 +319,8 @@ function buildDashboardModel(tabs, now, timeZone) {
   const pending = dashboardRows(tabs.porEnviar && tabs.porEnviar.values, tabs.porEnviar && tabs.porEnviar.links)
     .map(r => ({ fecha: r['Fecha'], empresa: r['Empresa'], cargo: r['Cargo'], verificacion: r['Verificación'],
                  revision: r['Revisión'], carpeta: r._links['Carpeta'] || '', hv: r._links['HV'] || '' }));
+  // Enlace de la vacante para el botón «Vacante» del juego (2026-10-27), desde Hoja 1
+  pending.forEach(p => { p.vacante = vacancyLinkFor(p, registry); });
   const followup = followupRows.map(r => ({
     fecha: r['Fecha revisión'], empresa: r['Empresa'], cargo: r['Cargo'], hecho: r['Hecho'], fechaMensaje: r['Fecha del mensaje'],
     antes: r['Estado anterior'], ahora: r['Estado nuevo'], siguiente: r['Siguiente acción'], quien: r['Quién'] || '', plazo: r['Plazo'] || '',

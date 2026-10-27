@@ -529,6 +529,16 @@ Las stats del juego (HP, XP, nivel, Resiliencia, Poder) no se guardan: se recalc
 | Identificador estable por evento | Saber qué eventos ya se vieron | Se puede derivar de empresa, cargo, estado y fecha |
 | Envíos por día | Racha | Calculable desde `Creada` |
 
+### Acciones que escriben (decidido el 27 oct)
+
+El principio 6 («Solo lectura») cambia con permiso del usuario: el juego **registra** lo que Oscar ya hizo, nunca envía nada.
+
+- **Misiones, cada HV lista:** enlaces Vacante ↗ (de `Hoja 1`), HV ↗ y Carpeta en una fila; **Ya la envié** y **Descartar** en otra. «Ya la envié» mueve la carpeta de `Sin revisar` a `CV/<semana actual>` (la de número más alto) y deja en su descripción el día de envío real, que la sincronización usa como fecha de la HV. «Descartar» pide el motivo, manda la carpeta a la papelera (recuperable) y lo anota en `Hoja 1`.
+- **Misiones, cada seguimiento** y **ficha de la vacante:** «Ya lo hice» (fila en `Seguimiento` que pasa la acción a «Esperar respuesta»), «Tengo prueba o entrevista» (carpeta verde) y «Me rechazaron» (carpeta roja), con una fila en `Seguimiento` cuya fuente es «Oscar (desde el juego)».
+- **Siempre se confirma** en un modal; nada se mueve con un toque accidental. Al terminar, el juego recibe el JSON actualizado y reproduce el golpe (o el rechazo) en la arena.
+- **Permisos:** además de la clave del enlace (`k`), cada acción exige la clave de escritura (`&e=`, propiedad `DASHBOARD_WRITE_KEY`, la crea `configurarTablero`). El enlace del coach no la lleva y `&modo=coach` nunca muestra los botones. Apps Script solo toca carpetas dentro de `Sin revisar` o `CV/` y escribe celdas sin fórmulas (`safeCell`).
+- Código: `apps_script/Acciones.gs` (`dashboardAction_`, con pruebas de `sentDescription`, `pickCurrentWeek`, `followupRow`, `safeCell`), `vacancyLinkFor` en `Dashboard.gs`.
+
 ### Frescura de los datos (decidido el 26 oct)
 
 - `sincronizarAplicadas` lee Drive cada hora y deja las pestañas `Aplicadas` y `Por enviar` y la caché del JSON. Al abrir, el juego pide la caché (rápida).

@@ -219,6 +219,7 @@ const PROPS = {
   SHEET_ID: 'GOOGLE_SHEET_ID',
   TEMPLATE_ID: 'GOOGLE_DOCS_MASTER_TEMPLATE_ID',
   DASHBOARD_KEY: 'DASHBOARD_KEY',   // Clave del enlace del tablero web (la crea configurarTablero)
+  DASHBOARD_WRITE_KEY: 'DASHBOARD_WRITE_KEY',  // Clave de escritura del juego (&e=), solo en el enlace de Oscar (Acciones.gs)
 };
 
 function getProp_(key) {

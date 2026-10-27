@@ -261,6 +261,12 @@ button.fila:focus-visible { outline: 2px solid var(--cian); outline-offset: -2px
 .fila .t2 { font-size: 14px; color: var(--texto-2); overflow-wrap: anywhere; }
 .fila .ef { font-family: var(--f-num); font-size: 14px; margin-top: 2px; }
 .fila > .ico { margin-top: 4px; }
+.fila .acc { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.fila .acc .btn { min-height: 44px; padding: 0 12px; gap: 6px; letter-spacing: .04em; }
+/* Munición: enlaces en una fila y acciones en otra, a lo ancho (2026-10-27) */
+.fila .acc.rejilla { display: grid; grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); }
+.fila .acc.rejilla .btn { justify-content: center; padding: 0 8px; }
+.fila .acc.acciones { grid-template-columns: 2fr 1fr; margin-top: 6px; }
 .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
 .chips .btn { padding: 0 12px; }
 select.sel { min-height: 48px; padding: 0 12px; background: var(--panel); color: var(--texto); border: 1px solid var(--linea); font: 600 14px var(--f-ui); letter-spacing: .04em; }
@@ -995,6 +1001,8 @@ var ARTE = {
     var i = kv.indexOf('='); if (i > 0) params[decodeURIComponent(kv.slice(0, i))] = decodeURIComponent(kv.slice(i + 1));
   });
   var MODO_COACH = params.modo === 'coach';
+  // Acciones que escriben (2026-10-27): solo con la clave de escritura del enlace de Oscar (&e=) y nunca en modo coach
+  var ESCRIBE = !!params.e && !MODO_COACH;
   var CLAVE = 'juego:' + (params.api || 'sin-api');
   var modelo = null, resultado = null, mostrado = null, pestana = 'arena', replayActivo = false;
   var URL_DATOS = '', sincronizando = false, avisoDatos = '', tonoDatos = '';
@@ -1434,6 +1442,68 @@ var ARTE = {
   function reloj() { $('reloj').textContent = 'NEO-BOGOTÁ · ' + horaBogota(); }
   reloj(); setInterval(reloj, 20000);
 
+  // ===================== ACCIONES (2026-10-27): registrar lo que Oscar ya hizo, sin salir a Drive =====================
+  function idCarpeta(url) { var m = /folders\/([\w-]{10,})/.exec(String(url || '')); return m ? m[1] : ''; }
+  var MENSAJE_ERROR = { escritura: 'Tu enlace no tiene permiso para cambiar cosas (le falta la clave de escritura).' };
+  /** Manda la acción a Apps Script; con la respuesta (el JSON ya actualizado) repinta y reproduce lo nuevo. */
+  function accionJuego(datos, listo) {
+    if (!ESCRIBE || sincronizando || replayActivo || !URL_DATOS) return;
+    sincronizando = true; avisoDatos = 'Registrando en Drive…'; tonoDatos = 'cia'; pintarDatos();
+    anunciar('Registrando en Drive.');
+    var q = Object.keys(datos).map(function (k) { return '&' + k + '=' + encodeURIComponent(datos[k] == null ? '' : datos[k]); }).join('');
+    fetch(URL_DATOS + '&fresco=1' + q + '&e=' + encodeURIComponent(params.e), { credentials: 'omit' }).then(function (r) { return r.json(); })
+      .then(function (d) {
+        sincronizando = false;
+        if (d && d.error === 'clave') return bloqueado();
+        if (d && d.error) throw new Error(MENSAJE_ERROR[d.error] || ('No se pudo: ' + (d.detalle || d.error)));
+        if (!d || !d.postulaciones) throw new Error('No se pudo registrar. Revisa la conexión.');
+        guardar(CLAVE + ':modelo', d);
+        avisoDatos = ''; tonoDatos = '';
+        anunciar(listo);
+        pintarTodo(d, null, true);
+      })
+      .catch(function (err) {
+        sincronizando = false; avisoDatos = err.message || 'No se pudo registrar.'; tonoDatos = 'mag'; pintarDatos(); anunciar(avisoDatos);
+      });
+  }
+  /** Paso de confirmación: nada se mueve con un toque accidental. `extra`: nodos opcionales (p. ej. motivos). */
+  function confirmar(titulo, texto, boton, alConfirmar, extra, tono) {
+    var abrir = function () {
+      abrirModal({ tamano: 'mediano', tono: tono || 'cia', cabecera: 'Confirmar', titulo: titulo,
+        nodos: [el('p', { text: texto })].concat(extra || []),
+        botones: [el('button', { class: 'btn ancho continuar', type: 'button', onclick: function () { alCerrar = null; cerrarModal(); setTimeout(alConfirmar, 0); } },
+          [el('span', { text: boton }), el('span', { 'aria-hidden': 'true', text: '▶' })]), botonContinuar('Cancelar')] });
+    };
+    if (modal.open) { alCerrar = null; cerrarModal(); setTimeout(abrir, 0); } else abrir();
+  }
+  function semanaActualNombre() { var w = modelo.postulaciones.semanas; return w.length ? w[w.length - 1].semana : 'la semana actual'; }
+  function yaLaEnvie(p) {
+    confirmar('¿Ya la enviaste?', 'La carpeta de ' + p.empresa + ' pasa a CV/' + semanaActualNombre() + ' con la fecha de hoy y el jefe recibe el golpe. Nada se envía desde aquí.',
+      'Sí, ya la envié', function () { accionJuego({ accion: 'enviada', id: idCarpeta(p.carpeta) }, 'HV de ' + p.empresa + ' registrada.'); });
+  }
+  function descartar(p) {
+    var motivos = ['Ya no está abierta', 'No encaja con mi perfil', 'Pide inglés avanzado', 'Pide más experiencia', 'Otro motivo'], elegido = motivos[0];
+    var grupo = el('div', { class: 'chips', role: 'group', 'aria-label': 'Motivo' });
+    motivos.forEach(function (mo) {
+      grupo.appendChild(el('button', { class: 'btn', type: 'button', 'aria-pressed': String(mo === elegido), text: mo, onclick: function (e) {
+        elegido = mo; Array.prototype.forEach.call(grupo.children, function (b) { b.setAttribute('aria-pressed', String(b === e.currentTarget)); });
+      } }));
+    });
+    confirmar('¿Descartar ' + p.empresa + '?', 'La carpeta va a la papelera de Drive (se puede recuperar) y Hoja 1 guarda el motivo.', 'Descartar',
+      function () { accionJuego({ accion: 'descartar', id: idCarpeta(p.carpeta), motivo: elegido }, p.empresa + ' descartada.'); }, [grupo], 'mag');
+  }
+  function yaLoHice(h) {
+    confirmar('¿Ya lo hiciste?', '«' + h.siguiente + '» (' + h.empresa + ') queda como hecha y Seguimiento pasa a «Esperar respuesta».',
+      'Sí, ya lo hice', function () { accionJuego({ accion: 'hecho', empresa: h.empresa, cargo: h.cargo || '', que: h.siguiente, estado: h.ahora || '' }, 'Acción cerrada.'); });
+  }
+  function cambiarEstado(a, nuevo) {
+    var rech = nuevo === 'rechazada';
+    confirmar(rech ? '¿Te rechazaron?' : '¿Tienes prueba o entrevista?',
+      (rech ? 'La carpeta de ' + a.empresa + ' se pinta de rojo' : 'La carpeta de ' + a.empresa + ' se pinta de verde') + ' y Seguimiento guarda que lo registraste hoy.',
+      rech ? 'Sí, me rechazaron' : 'Sí, tengo prueba o entrevista',
+      function () { accionJuego({ accion: nuevo, id: idCarpeta(a.carpeta), estado: a.estado || '' }, 'Estado de ' + a.empresa + ' actualizado.'); }, null, rech ? 'mag' : 'cia');
+  }
+
   function verMisiones() {
     var m = modelo, v = $('v-misiones'); v.textContent = '';
     var hoy = m.hoy || '';
@@ -1452,8 +1522,16 @@ var ARTE = {
           el('div', { class: 't1', text: p.empresa }),
           el('div', { class: 't2', text: (p.cargo || 'Sin cargo') + ' · lista hace ' + dias + (dias === 1 ? ' día' : ' días') }),
           el('div', { class: 'ef' }, [el('span', { class: lista ? 'verde' : 'amb', text: lista ? '✔ Lista' : '! Revisar' }), dias > 3 ? el('span', { class: 'amb', text: '  · ¡Se enfría!' }) : null]),
+          el('div', { class: 'acc rejilla' }, [
+            safeUrl(p.vacante) ? el('a', { class: 'btn sec', href: safeUrl(p.vacante), target: '_blank', rel: 'noopener', 'aria-label': 'Abrir la vacante de ' + p.empresa }, [el('span', { text: 'Vacante' }), el('span', { 'aria-hidden': 'true', text: '↗' })]) : null,
+            safeUrl(p.hv) ? el('a', { class: 'btn sec', href: safeUrl(p.hv), target: '_blank', rel: 'noopener', 'aria-label': 'Abrir la HV para ' + p.empresa }, [el('span', { text: 'HV' }), el('span', { 'aria-hidden': 'true', text: '↗' })]) : null,
+            safeUrl(p.carpeta) ? el('a', { class: 'btn sec', href: safeUrl(p.carpeta), target: '_blank', rel: 'noopener', 'aria-label': 'Abrir la carpeta de ' + p.empresa }, [icono('carpeta'), el('span', { text: 'Carpeta' })]) : null,
+          ]),
+          ESCRIBE && idCarpeta(p.carpeta) ? el('div', { class: 'acc rejilla acciones' }, [
+            el('button', { class: 'btn', type: 'button', onclick: function () { yaLaEnvie(p); }, 'aria-label': 'Ya envié la HV a ' + p.empresa }, [el('span', { text: 'Ya la envié' })]),
+            el('button', { class: 'btn sec', type: 'button', onclick: function () { descartar(p); }, 'aria-label': 'Descartar ' + p.empresa }, [el('span', { text: 'Descartar' })]),
+          ]) : null,
         ]),
-        safeUrl(p.carpeta) ? el('a', { class: 'btn sec', href: safeUrl(p.carpeta), target: '_blank', rel: 'noopener', 'aria-label': 'Abrir la carpeta de ' + p.empresa }, [el('span', { text: 'Abrir' }), icono('carpeta')]) : null,
       ])]));
     });
     if (mun.length) k1.push(ul);
@@ -1463,7 +1541,8 @@ var ARTE = {
     segs.forEach(function (h) {
       ul2.appendChild(el('li', null, [el('div', { class: 'fila' }, [el('span', { class: 'amb' }, [icono('reloj', true)]),
         el('div', { class: 'txt' }, [el('div', { class: 't1', text: h.siguiente }), el('div', { class: 't2', text: h.empresa + (h.cargo ? ' · ' + h.cargo : '') + ' · ' + fecha(h.fechaMensaje || h.fecha) }),
-          h.plazo ? el('div', { class: 'ef amb', text: 'Plazo: ' + h.plazo }) : null])])]));
+          h.plazo ? el('div', { class: 'ef amb', text: 'Plazo: ' + h.plazo }) : null,
+          ESCRIBE ? el('div', { class: 'acc' }, [el('button', { class: 'btn', type: 'button', onclick: function () { yaLoHice(h); }, 'aria-label': 'Ya hice: ' + h.siguiente + ' (' + h.empresa + ')' }, [el('span', { text: 'Ya lo hice' })])]) : null])])]));
     });
     if (segs.length) k2.push(ul2);
     var radar = el('div', { class: 'radar', 'aria-hidden': 'true' });
@@ -1637,6 +1716,9 @@ var ARTE = {
         acc ? el('p', { class: 'amb' }, ['▶ Pendiente: ' + acc]) : null, ol],
       efectos: efs,
       botones: [revivir ? el('button', { class: 'btn ancho', type: 'button', onclick: function () { repetir(revivir); } }, [el('span', { text: 'Ver de nuevo en la arena' }), el('span', { 'aria-hidden': 'true', text: '▶' })]) : null,
+        ESCRIBE && acc ? el('button', { class: 'btn ancho', type: 'button', onclick: function () { yaLoHice({ empresa: a.empresa, cargo: a.cargo, siguiente: acc, ahora: a.estado }); } }, [el('span', { text: 'Ya hice: ' + acc }), el('span', { 'aria-hidden': 'true', text: '✔' })]) : null,
+        ESCRIBE && idCarpeta(a.carpeta) && a.clave !== 'proceso' && a.clave !== 'rechazada' ? el('button', { class: 'btn ancho sec', type: 'button', onclick: function () { cambiarEstado(a, 'proceso'); } }, [el('span', { text: 'Tengo prueba o entrevista' }), icono('espada')]) : null,
+        ESCRIBE && idCarpeta(a.carpeta) && a.clave !== 'rechazada' ? el('button', { class: 'btn ancho sec', type: 'button', onclick: function () { cambiarEstado(a, 'rechazada'); } }, [el('span', { text: 'Me rechazaron' }), icono('escudo')]) : null,
         botonCarpeta(safeUrl(a.carpeta)), botonContinuar('Cerrar')],
       fuente: 'Fuente · carpeta en CV/ y pestaña Seguimiento', fecha: 'ENVIADA ' + fecha(a.creada).toUpperCase() });
   }

@@ -422,7 +422,7 @@ context.Drive = { Files: { list: ({ q }) => {
   const tree = {
     cv: [{ id: 'w1', name: 'Primera semana nueva' }, { id: 'w2', name: 'Tercera semana' }, { id: 'w4', name: '4. Cuarta semana' }],
     w1: [{ id: 'd1', name: '30-09' }], d1: [{ id: 'v1', name: 'Clara', createdTime: '2026-10-01T10:00:00Z' }],
-    w2: [{ id: 'v2', name: 'Sole_UX UI Designer', createdTime: '2026-10-22T10:00:00Z' }, { id: 'p', name: 'Prueba' }],
+    w2: [{ id: 'v2', name: 'Sole_UX UI Designer', createdTime: '2026-10-22T10:00:00Z', description: 'Enviada el 2026-10-27 (registrado desde el juego)' }, { id: 'p', name: 'Prueba' }],
     p: [{ id: 'v3', name: 'Ursus_UX Designer III', createdTime: '2026-10-23T10:00:00Z' }],
   };
   return { files: tree[/'([^']+)' in parents/.exec(q)[1]] || [] };
@@ -455,6 +455,8 @@ assert.deepStrictEqual(JSON.parse(JSON.stringify(appliedRows.map(r => [r.group, 
   context.Drive = { Files: { list: () => { throw new Error('cuota'); } } };
   assert.strictEqual(context.folderChildren_(), context.listChildFolders_, 'si falla, vuelve a leer carpeta por carpeta');
 }
+assert.strictEqual(appliedRows[1].created, '2026-10-27', '«Ya la envié» guarda el día de envío real en la descripción de la carpeta');
+assert.strictEqual(appliedRows[0].created, '2026-10-01');
 assert.strictEqual(run("CONFIG.APPLIED_SHEET_HEADERS[7]"), 'Semana (carpeta)');
 // Carpeta de postulaciones antiguas junto a CV/ (2026-10-25)
 assert.ok(['Antigua', 'antiguas', 'Antiguo', ' ANTIGUA '].every(n => run('CONFIG.APPLIED_OLD_FOLDER_PATTERN').test(n.trim())));
@@ -774,6 +776,39 @@ assert.strictEqual(run('localDay')('', 'America/Bogota'), '');
 }
 assert.strictEqual(dashModel.meta, 50);
 assert.strictEqual(dashModel.submeta, 30, 'submeta semanal (2026-10-27): con 30 se gana la semana');
+// Acciones del juego (2026-10-27): fecha de envío real, semana actual, filas de Seguimiento sin fórmulas y enlace de la vacante
+assert.strictEqual(run('sentDayFromDescription')(run('sentDescription')('2026-10-27')), '2026-10-27');
+assert.strictEqual(run('sentDayFromDescription')('Notas del usuario'), '');
+assert.strictEqual(run('sentDayFromDescription')(undefined), '');
+assert.strictEqual(run('pickCurrentWeek')([{ name: '0. Antiguas' }, { name: '4. Cuarta semana' }, { name: '3. Tercera semana' }]).name, '4. Cuarta semana');
+assert.strictEqual(run('pickCurrentWeek')([{ name: 'Segunda semana', createdTime: '2026-10-08T00:00:00Z' }, { name: 'Tercera semana', createdTime: '2026-10-20T00:00:00Z' }]).name,
+  'Tercera semana', 'sin números: la creada más tarde');
+assert.strictEqual(run('pickCurrentWeek')([]), null);
+assert.deepStrictEqual(Array.from(run('followupRow')(['Fecha revisión', 'Empresa', 'Hecho', 'Plazo'], { 'Empresa': 'Pavago', 'Hecho': '=IMPORTXML(1)', 'Otra': 'x', 'Fecha revisión': '2026-10-27' })),
+  ['2026-10-27', 'Pavago', "'=IMPORTXML(1)", ''], 'en el orden del encabezado y sin fórmulas');
+assert.strictEqual(run('safeCell')('+57 300'), "'+57 300");
+assert.strictEqual(run('safeCell')('Rechazada (rojo)'), 'Rechazada (rojo)');
+{
+  const reg = [{ 'Empresa': 'PadSplit', 'Cargo': 'Senior Product Designer', 'Link': 'https://jobicy.com/1' },
+    { 'Empresa': 'Seguros Bolívar', 'Cargo': 'Diseñador UX', 'Link': 'https://magneto/1' },
+    { 'Empresa': 'Seguros Bolívar', 'Cargo': 'Otro cargo', 'Link': 'https://magneto/2' },
+    { 'Empresa': 'Post LinkedIn', 'Cargo': "Ursus, Inc.'s Post", 'Link': 'https://linkedin/posts/1' },
+    { 'Empresa': 'Rara', 'Cargo': '', 'Link': 'javascript:alert(1)' }];
+  const link = (empresa, cargo) => run('vacancyLinkFor')({ empresa, cargo }, reg);
+  assert.strictEqual(link('PadSplit', 'Senior Product Designer'), 'https://jobicy.com/1');
+  assert.strictEqual(link('Seguros Bolívar', 'Diseñador UX'), 'https://magneto/1', 'con varias filas, la del mismo cargo');
+  assert.strictEqual(link('Ursus', 'UX Designer III'), '', 'sin fila de esa empresa no hay enlace');
+  assert.strictEqual(link('Rara', ''), '', 'solo enlaces https');
+  const conPorEnviar = run('buildDashboardModel')({
+    registro: [['Fecha', 'Empresa', 'Cargo', 'Link', 'Match Score', 'Estado'], ['2026-10-24', 'PadSplit', 'Senior Product Designer', 'https://jobicy.com/1', '90', 'Pendiente']],
+    aplicadas: { values: [], links: [] },
+    porEnviar: { values: [['Fecha', 'Empresa', 'Cargo', 'Verificación', 'Revisión', 'Carpeta', 'HV'], ['2026-10-24', 'PadSplit', 'Senior Product Designer', 'Menor prioridad', 'Lista para enviar', 'Abrir', 'HV_x']],
+      links: [[], [, , , , , 'https://drive.google.com/drive/folders/abc', 'https://drive.google.com/open?id=def']] },
+    correos: [], seguimiento: [], objetivo: [],
+  }, new Date('2026-10-27T15:00:00Z'), 'America/Bogota');
+  assert.strictEqual(conPorEnviar.porEnviar[0].vacante, 'https://jobicy.com/1');
+  assert.strictEqual(conPorEnviar.porEnviar[0].carpeta, 'https://drive.google.com/drive/folders/abc');
+}
 // Acciones pendientes: por empresa manda la fila más reciente; esperar respuesta no es una acción (2026-10-25)
 {
   const f = (empresa, siguiente) => ({ empresa, siguiente });
