@@ -35,7 +35,9 @@ function parseJobSpyJob(job) {
     sourceBonus: known ? known.bonus : site === 'elempleo' ? CONFIG.EXTRA_SOURCES.elempleo.bonus : 0,
     // Nombre en la pestaña "Fuentes"; elempleo se busca en GitHub Actions desde el 27 oct 2026 (ahí ya se leyó su ficha)
     origin: ({ indeed: 'Indeed (JobSpy)', linkedin: 'LinkedIn (JobSpy)', elempleo: 'elempleo (GitHub Actions)' })[site] || 'JobSpy (GitHub Actions)',
-    pageChecked: site === 'elempleo',
+    // No se reabren desde Google: Indeed le responde 401, y de LinkedIn y elempleo GitHub ya trajo fecha y descripción.
+    // Si sigue abierta lo comprueba la verificación de la IA.
+    pageChecked: true,
   };
 }
 
