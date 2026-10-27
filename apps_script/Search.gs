@@ -442,6 +442,8 @@ function verifyPostingDates_(vacancies, startedAt) {
   // Por tandas, mirando el reloj antes de cada una: el 27 oct 2026 (9:46) un solo fetchAll de todas las páginas tardó
   // más de 5 min y Apps Script cortó la corrida sin crear carpetas. Las que no alcanzan a abrirse quedan para la IA.
   let opened = 0;
+  if (pending.length) console.log('Verificando las páginas de ' + pending.length + ' vacantes (tandas de ' + CONFIG.VERIFY_BATCH + '): ' +
+                                  pending.map(v => hostOf_(v.link)).join(', '));
   for (let i = 0; i < pending.length; i += CONFIG.VERIFY_BATCH) {
     if (startedAt && Date.now() - startedAt > CONFIG.VERIFY_BUDGET_MS) break;
     const batch = pending.slice(i, i + CONFIG.VERIFY_BATCH);
