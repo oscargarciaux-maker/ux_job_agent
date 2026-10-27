@@ -79,6 +79,37 @@ assert.strictEqual(demo.agentes.equipo.length, idsGs.length);
 assert.strictEqual(demo.agentes.mensajes[0].hora, '2026-10-28 13:59');
 assert.ok(demo.agentes.mensajes.every(m => !/@/.test(m.detalle)), 'la demostración no trae correos ni datos reales');
 
+
+// Vista 3D: cada uno tiene su puesto; el guion sale de los mensajes de las últimas 24 h, del más viejo al más nuevo
+Object.keys(F('EQUIPO')).concat(['oscar']).forEach(id => assert.ok(F('ESTACIONES_3D')[id], 'puesto 3D para ' + id));
+const msgs3d = [
+  { hora: '2026-10-28 06:44', de: 'escriba', para: 'jefe', tipo: 'avance', asunto: 'HV para Acme' },
+  { hora: '2026-10-28 06:40', de: 'jefe', para: 'escriba', tipo: 'encargo', asunto: 'Escribe la HV' },
+  { hora: '2026-10-28 06:30', de: 'maquina', para: 'todos', tipo: 'aviso', asunto: '14 carpetas' },
+  { hora: '2026-10-28 06:20', de: 'radio', para: 'oscar', tipo: 'pregunta', asunto: '¿Respondiste a X?' },
+  { hora: '2026-10-28 06:10', de: 'oscar', para: 'jefe', tipo: 'pedido', asunto: 'HV y correo' },
+  { hora: '2026-10-28 06:05', de: 'jefe', para: 'jefe', tipo: 'aviso', asunto: 'consigo mismo' },
+  { hora: '2026-10-28 06:00', de: 'jefe', para: 'desconocido', tipo: 'aviso', asunto: 'x' },
+  { hora: '2026-10-26 06:00', de: 'vigia', para: 'jefe', tipo: 'resultado', asunto: 'viejo' },
+];
+const guion = J(F('guionInteracciones')(msgs3d, '2026-10-28 07:00', 8));
+assert.deepStrictEqual(guion.map(p => p.de + '>' + p.para), ['oscar>jefe', 'radio>oscar', 'maquina>null', 'jefe>escriba', 'escriba>jefe'],
+  'cronológico, sin mensajes viejos, a sí mismo ni a puestos que no existen');
+assert.strictEqual(guion[0].respuesta, '¡Lo reparto!');
+assert.strictEqual(guion[1].respuesta, '', 'a Oscar no le responde un pingüino');
+assert.strictEqual(J(F('guionInteracciones')(msgs3d, '2026-10-28 07:00', 2)).length, 2, 'solo los más recientes');
+assert.deepStrictEqual(J(F('guionInteracciones')(null, '2026-10-28 07:00')), []);
+assert.strictEqual(F('quienCamina')(guion[3]), 'jefe', 'el que encarga camina hasta el otro');
+assert.strictEqual(F('quienCamina')(guion[2]), null, 'un aviso para todos se dice desde el puesto');
+assert.strictEqual(F('quienCamina')({ de: 'maquina', para: 'inspector' }), null, 'las máquinas no caminan: mandan un cubo de hielo');
+assert.strictEqual(F('quienCamina')(guion[1]), null, 'un mensaje para Oscar se dice desde el puesto');
+// El visitante se para al lado del otro, del lado por donde llega (no delante: lo taparía desde la cámara)
+assert.deepStrictEqual(J(F('puntoDeVisita')('editor', 'jefe', 1.25)), [1.25, -5.8, 1]);
+assert.deepStrictEqual(J(F('puntoDeVisita')('oscar', 'jefe', 1.25)), [-1.25, -5.8, -1]);
+// Three.js fijo en una versión y cargado solo al abrir la vista 3D
+assert.ok(/var VERSION_THREE = '\d+\.\d+\.\d+';/.test(html), 'versión exacta de Three.js');
+assert.ok(!/<script[^>]+src="https:\/\/cdn\.jsdelivr/.test(html), 'Three.js no se carga al abrir la página, solo con la vista 3D');
+
 // Seguridad y estándares de la página
 const ui = html.slice(html.indexOf('</script>', motor.index) + 9);
 const usos = ui.match(/\.innerHTML\s*=\s*[^;]+;/g) || [];
