@@ -133,6 +133,9 @@ const CONFIG = {
   SEARCH_BUDGET_MS: 90 * 1000,
   VERIFY_BUDGET_MS: 120 * 1000,
   VERIFY_BATCH: 6,
+  // Avisos por empresa en la selección del día (27 oct 2026: Blacksmith Agency ocupó 7 de 20 cupos)
+  MAX_PER_COMPANY: 2,
+  DISABILITY_TITLE_PATTERN: /personas?\s+con\s+discapacidad|\bpcd\b|with\s+disabilit/i,
   TIME_BUDGET_MS: 5 * 60 * 1000,
   // La publicación debe ser de un rol de diseño (evita "remote hiring" de otros oficios, p. ej. video annotation)
   LINKEDIN_POST_ROLE_PATTERN: /ux\s*\/\s*ui|ui\s*\/\s*ux|(ux|ui|product)\s+design|designer\s+(ux|ui)|dise[nñ]ador|design system|figma|ux research/i,

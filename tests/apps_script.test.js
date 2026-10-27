@@ -214,6 +214,23 @@ assert.strictEqual(liCards[0].link, 'https://www.linkedin.com/jobs/view/44807205
 const liDetail = context.parseLinkedInJobDetail('<div class="show-more-less-html__markup relative">Buscamos <b>UX</b><br>Figma</div>');
 assert.ok(/Buscamos UX/.test(liDetail.description) && /Figma/.test(liDetail.description) && !liDetail.closed);
 assert.ok(context.parseLinkedInJobDetail('<figure class="closed-job">No longer accepting applications</figure>').closed);
+// Mismo aviso por ciudad, misma descripción con otro cargo y tope por empresa (27 oct 2026: Blacksmith ocupó 7 de 20 cupos)
+const bsDesc = 'We are hiring a designer to build and maintain our design system. '.repeat(6);
+const bs = ['UI Systems Designer (Remote, Cucuta)', 'Design Systems Lead (Remote, Ibague)', 'Design Systems Lead (Remote, Cartagena)',
+            'Senior Product Designer, Design Systems (Remote, Barranquilla)', 'Senior Product Designer, Design Systems (Remote, Cali)']
+  .map((t, i) => ({ vacancy: { title: t, company: 'Blacksmith Agency', description: i ? '' : bsDesc }, priority: 90 - i }));
+const conf = ['Profesional de comunicaciones y experiencia de usuario', 'Especialista en  comunicaciones y experiencia de usuario']
+  .map((t, i) => ({ vacancy: { title: t, company: 'Empresa confidencial', description: bsDesc }, priority: 80 - i }));
+const otraConf = { vacancy: { title: 'Diseñador UX', company: 'Empresa Confidencial', description: 'Otro texto distinto. '.repeat(15) }, priority: 70 };
+const postBs = { vacancy: { title: 'Post', company: 'Blacksmith Agency', isPost: true }, priority: 10 };
+const distintas = context.distinctPostings(bs.concat(conf, [otraConf, postBs]), 2);
+assert.deepStrictEqual(distintas.map(x => x.vacancy.title),
+  ['UI Systems Designer (Remote, Cucuta)', 'Design Systems Lead (Remote, Ibague)',
+   'Profesional de comunicaciones y experiencia de usuario', 'Diseñador UX', 'Post']);
+assert.strictEqual(context.distinctPostings(bs.slice(1, 3), 5).length, 1, 'mismo cargo en otra ciudad = mismo aviso');
+assert.strictEqual(context.exclusionReason({ title: 'Diseñador/a de Experiencia de Cliente para personas con Discapacidad', description: '' }),
+                   'exclusiva para personas con discapacidad');
+assert.strictEqual(context.exclusionReason({ title: 'Diseñador UX', description: 'Promovemos la inclusión de personas con discapacidad.' }), null);
 // elempleo (fecha relativa, tarjetas y ficha) se prueba en tests/jobspy_test.py: se busca en GitHub Actions
 // Publicaciones de LinkedIn: la página pública trae el texto completo en su JSON-LD SocialMediaPosting (2026-10-26)
 const liPost = context.parseLinkedInPostPage('<script type="application/ld+json">{"@context":"http://schema.org","@type":"SocialMediaPosting",' +

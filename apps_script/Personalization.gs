@@ -97,6 +97,8 @@ function exclusionReason(vacancy) {
   const text = vacancyText_(vacancy) + ' ' + (vacancy.company || '');
   const rule = CONFIG.EXCLUDED_VACANCY_RULES.filter(r => r.pattern.test(text) && !(r.unless && r.unless.test(text)))[0];
   if (rule) return rule.reason;
+  // En el título basta con nombrarlo (27 oct 2026: "Diseñador/a de Experiencia de Cliente para personas con Discapacidad")
+  if (CONFIG.DISABILITY_TITLE_PATTERN.test(vacancy.title || '')) return 'exclusiva para personas con discapacidad';
   // Cargos de liderazgo muy por encima de junior (Senior sí entra, con la regla de años)
   return CONFIG.EXCLUDED_TITLE_PATTERN.test(vacancy.title || '') ? 'cargo de liderazgo (staff/principal/head/director/manager)' : null;
 }
@@ -144,6 +146,32 @@ function isHiddenCompanyRepeat(vacancy, existing) {
 }
 
 /** Clave para reconocer la misma vacante publicada con enlaces distintos: empresa|cargo normalizados. */
+/**
+ * Quita de la selección del día los avisos repetidos dentro de la misma corrida y limita los de una misma empresa
+ * (27 oct 2026: Blacksmith Agency ocupó 7 de 20 cupos con el mismo aviso por ciudad y dos "Empresa confidencial" eran el
+ * mismo texto con otro cargo). Mismo aviso = misma empresa y mismo cargo sin la ciudad entre paréntesis, o misma
+ * empresa y la misma descripción. Se queda el de mayor prioridad. Las "confidenciales" no cuentan como una sola empresa.
+ */
+function distinctPostings(scored, maxPerCompany) {
+  const norm = t => String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+  const rank = x => (x.priority !== undefined ? x.priority : x.score);
+  const seen = {}, perCompany = {};
+  return scored.slice().sort((a, b) => rank(b) - rank(a)).filter(x => {
+    const v = x.vacancy;
+    if (v.isPost) return true;
+    const company = norm(v.company);
+    const hidden = !company || /confiden/.test(company);
+    const titleKey = company + '|' + norm(String(v.title || '').replace(/\([^)]*\)/g, ' ').replace(/\b(remote|remoto|work)\b/gi, ' '));
+    const desc = norm(v.description);
+    const keys = (hidden ? [] : [titleKey]).concat(desc.length >= 200 ? [company + '#' + desc.slice(0, 400)] : []);
+    if (keys.some(k => seen[k])) return false;
+    if (!hidden && (perCompany[company] || 0) >= maxPerCompany) return false;
+    keys.forEach(k => { seen[k] = true; });
+    if (!hidden) perCompany[company] = (perCompany[company] || 0) + 1;
+    return true;
+  });
+}
+
 function vacancyKey(vacancy) {
   const norm = t => String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
   return norm(vacancy.company) + '|' + norm(vacancy.title);
