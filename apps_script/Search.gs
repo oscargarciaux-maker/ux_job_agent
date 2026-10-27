@@ -438,7 +438,14 @@ function verifyPostingDates_(vacancies, startedAt) {
   // Se abre la página original de todas las vacantes formales (gratis): da la fecha si Google Jobs no la trajo y
   // permite descartar las que ya no reciben postulaciones (guía 2026-10-22: solo vacantes abiertas y verificadas).
   // Las publicaciones y los avisos cuya página ya se leyó al buscarlos (LinkedIn, elempleo, alertas) no se abren de nuevo.
-  const pending = vacancies.filter(v => !v.isPost && !v.fromPost && !v.pageChecked);
+  // Desde el 27 oct 2026 solo se abren las que no traen fecha (la regla de 21 días la necesita) y nunca las de
+  // linkedin.com: tres corridas seguidas se colgaron más de 4 min en la primera tanda de páginas, con LinkedIn en ella,
+  // después de las 60 búsquedas públicas a LinkedIn (UrlFetchApp no tiene tiempo límite). Si siguen abiertas lo
+  // comprueba la verificación de la IA (verificar-vacante), que abre cada aviso.
+  vacancies.filter(v => !v.isPost && !v.fromPost && !v.postedAt && /linkedin\.com/i.test(hostOf_(v.link || '')))
+    .forEach(v => { v.dateUnverified = true; });
+  const pending = vacancies.filter(v => !v.isPost && !v.fromPost && !v.pageChecked && !v.postedAt &&
+                                        !/linkedin\.com/i.test(hostOf_(v.link || '')));
   // Por tandas, mirando el reloj antes de cada una: el 27 oct 2026 (9:46) un solo fetchAll de todas las páginas tardó
   // más de 5 min y Apps Script cortó la corrida sin crear carpetas. Las que no alcanzan a abrirse quedan para la IA.
   let opened = 0;

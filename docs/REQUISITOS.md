@@ -38,7 +38,7 @@ Estados: ✅ hecho y probado · 🟡 parcial · ⏳ pendiente · ❓ falta una d
 | Regla | Estado | Dónde / cómo se comprueba |
 |---|---|---|
 | El enlace funciona | ✅ | `verifyPostingDates_` descarta 404/410 |
-| La vacante sigue recibiendo postulaciones | ✅ | `isClosedPosting` lee la página original (`CLOSED_POSTING_PATTERN`) |
+| La vacante sigue recibiendo postulaciones | ✅ | LinkedIn (`parseLinkedInJobDetail`), elempleo (vencimiento del JSON-LD) y alertas al buscarlas; las demás, la IA con `verificar-vacante`. Desde el 27 oct 2026 Apps Script solo abre las páginas sin fecha y nunca las de linkedin.com (`isClosedPosting` sobre esas): tres corridas se colgaron más de 4 min abriendo páginas |
 | Dedupe por enlace y por empresa + cargo contra la Hoja 1 | ✅ | `getExistingUrls_`, `vacancyKey`; avisos "confidential" cuyo texto nombra una empresa del registro con el mismo cargo: `isHiddenCompanyRepeat` (2026-10-24) |
 | Dedupe contra la pestaña Aplicadas | ✅ | `getAppliedCompanies_`, `isAppliedCompany` |
 | Dedupe contra la pestaña Correos en frío | ✅ | `getColdEmailCompanies_` |
