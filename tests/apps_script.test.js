@@ -112,6 +112,16 @@ const sinTiempo = context.verifyPostingDates_([{ link: 'https://x.co/1', postedA
                                              Date.now() - run("CONFIG.VERIFY_BUDGET_MS") - 1000);
 assert.strictEqual(abiertas, 0);
 assert.ok(sinTiempo.length === 2 && sinTiempo[0].dateUnverified && !sinTiempo[1].dateUnverified);
+// Por tandas mirando el reloj (27 oct 2026, 9:46: un solo fetchAll de todas las páginas tardó más de 5 min): si una
+// tanda se come el tiempo, las demás no se abren y quedan "sin verificar" para la IA
+let tandas = 0;
+run('var __desfase = 0; Date.now = (orig => () => orig() + __desfase)(Date.now)');
+context.UrlFetchApp = { fetchAll: reqs => { tandas++; run('__desfase += ' + (run('CONFIG.VERIFY_BUDGET_MS') + 1000)); return reqs.map(() => ({ getResponseCode: () => 200, getContentText: () => '' })); } };
+const lentas = context.verifyPostingDates_(Array.from({ length: 20 }, (_, i) => ({ link: 'https://x.co/' + i, postedAt: '' })), run('Date.now()'));
+run('__desfase = 0');
+assert.strictEqual(tandas, 1, 'después de una tanda lenta no se abren más');
+assert.ok(lentas.length === 20 && lentas.every(v => v.dateUnverified));
+assert.ok(context.parseJobSpyJob({ sitio: 'indeed', enlace: 'https://co.indeed.com/viewjob?jk=1' }).pageChecked, 'Indeed responde 401 a Google: no se reabre');
 assert.ok(run("CONFIG.SEARCH_BUDGET_MS") < run("CONFIG.VERIFY_BUDGET_MS") && run("CONFIG.TIME_BUDGET_MS") <= 5 * 60 * 1000);
 // elempleo (3 min desde Google) ya no se consulta en la corrida: llega en el JSON de GitHub Actions, con su ficha leída
 const fuentesSrc = fs.readFileSync(path.join(__dirname, '..', 'apps_script', 'Search.gs'), 'utf8');

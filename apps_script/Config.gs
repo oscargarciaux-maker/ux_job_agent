@@ -130,8 +130,9 @@ const CONFIG = {
   // (elempleo solo, 3) y se cortó antes de crear carpetas: desde entonces cada fase mira el reloj de toda la corrida.
   // A los SEARCH_BUDGET_MS no se consultan más fuentes, la verificación de páginas solo corre si queda tiempo y las
   // carpetas se dejan de crear a los TIME_BUDGET_MS (las que falten se retoman en la próxima corrida).
-  SEARCH_BUDGET_MS: 150 * 1000,
-  VERIFY_BUDGET_MS: 200 * 1000,
+  SEARCH_BUDGET_MS: 90 * 1000,
+  VERIFY_BUDGET_MS: 120 * 1000,
+  VERIFY_BATCH: 6,
   TIME_BUDGET_MS: 5 * 60 * 1000,
   // La publicación debe ser de un rol de diseño (evita "remote hiring" de otros oficios, p. ej. video annotation)
   LINKEDIN_POST_ROLE_PATTERN: /ux\s*\/\s*ui|ui\s*\/\s*ux|(ux|ui|product)\s+design|designer\s+(ux|ui)|dise[nñ]ador|design system|figma|ux research/i,

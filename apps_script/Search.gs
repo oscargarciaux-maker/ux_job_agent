@@ -439,19 +439,22 @@ function verifyPostingDates_(vacancies, startedAt) {
   // permite descartar las que ya no reciben postulaciones (guía 2026-10-22: solo vacantes abiertas y verificadas).
   // Las publicaciones y los avisos cuya página ya se leyó al buscarlos (LinkedIn, elempleo, alertas) no se abren de nuevo.
   const pending = vacancies.filter(v => !v.isPost && !v.fromPost && !v.pageChecked);
-  if (pending.length && startedAt && Date.now() - startedAt > CONFIG.VERIFY_BUDGET_MS) {
-    // Sin tiempo: no se abren las páginas; las que no traen fecha quedan "sin verificar" y la IA las revisa
-    console.warn('Sin tiempo para abrir las páginas de ' + pending.length + ' vacantes: quedan para la verificación de la IA');
-    pending.forEach(v => { if (!v.postedAt) v.dateUnverified = true; });
-  } else if (pending.length) {
+  // Por tandas, mirando el reloj antes de cada una: el 27 oct 2026 (9:46) un solo fetchAll de todas las páginas tardó
+  // más de 5 min y Apps Script cortó la corrida sin crear carpetas. Las que no alcanzan a abrirse quedan para la IA.
+  let opened = 0;
+  for (let i = 0; i < pending.length; i += CONFIG.VERIFY_BATCH) {
+    if (startedAt && Date.now() - startedAt > CONFIG.VERIFY_BUDGET_MS) break;
+    const batch = pending.slice(i, i + CONFIG.VERIFY_BATCH);
+    const t0 = Date.now();
     let responses = [];
     try {
-      responses = UrlFetchApp.fetchAll(pending.map(v => ({ url: v.link, muteHttpExceptions: true, followRedirects: true })));
+      responses = UrlFetchApp.fetchAll(batch.map(v => ({ url: v.link, muteHttpExceptions: true, followRedirects: true })));
     } catch (e) {
       console.warn('No se pudieron leer las páginas de las vacantes para verificar su fecha: ' + e.message);
     }
-    pending.forEach((v, i) => {
-      const r = responses[i];
+    if (Date.now() - t0 > 20000) console.warn('Páginas lentas (' + Math.round((Date.now() - t0) / 1000) + ' s): ' + batch.map(v => hostOf_(v.link)).join(', '));
+    batch.forEach((v, j) => {
+      const r = responses[j];
       if (r && (r.getResponseCode() === 404 || r.getResponseCode() === 410)) v.deadLink = true;  // La vacante ya no existe
       const html = r && r.getResponseCode() === 200 ? r.getContentText() : '';
       if (isClosedPosting(html)) v.closed = true;
@@ -461,6 +464,11 @@ function verifyPostingDates_(vacancies, startedAt) {
       if (dates.validThrough) v.validThrough = dates.validThrough;
       if (!dates.posted) v.dateUnverified = true;
     });
+    opened += batch.length;
+  }
+  if (opened < pending.length) {
+    console.warn('Sin tiempo para abrir las páginas de ' + (pending.length - opened) + ' vacantes: quedan para la verificación de la IA');
+    pending.slice(opened).forEach(v => { if (!v.postedAt) v.dateUnverified = true; });
   }
   const today = new Date();
   return vacancies.filter(v => {
