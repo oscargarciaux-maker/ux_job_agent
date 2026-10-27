@@ -92,10 +92,16 @@ function runPipeline_(opts) {
                 '; de empresas con carpeta pero otro cargo: ' + raw.filter(v => v.companyNote).length);
   }
   if (!opts.useSample) fresh = verifyPostingDates_(fresh);
+  const stats = { found: countByOrigin(raw), fresh: countByOrigin(fresh), created: {} };
+  const logStats = () => {
+    if (opts.dryRun || opts.useSample) return;
+    try { logSourceStats_(stats.found, stats.fresh, stats.created); } catch (e) { console.warn('No se pudo escribir la pestaña Fuentes: ' + e.message); }
+  };
   console.log('2. Vacantes nuevas y con <= ' + CONFIG.MAX_POST_AGE_DAYS + ' días: ' + fresh.length +
               ' (sin fecha verificable: ' + fresh.filter(v => v.dateUnverified).length + ')');
   if (!fresh.length) {
     console.log('No hay vacantes nuevas hoy. Pipeline finalizado.');
+    logStats();
     return;
   }
 
@@ -137,6 +143,7 @@ function runPipeline_(opts) {
       createVacancyDetailDoc_(folder, v, item, language);
       // El CV personalizado y el borrador de Gmail los arma generarCVsDesdeIA (CV.gs) desde CV_IA.json.
       appendVacancyRow_(sheet, v, item.score, 'Esperando CV (IA)');
+      stats.created[v.origin || 'Sin fuente'] = (stats.created[v.origin || 'Sin fuente'] || 0) + 1;
       console.log(label + ' -> carpeta, Detalle_Vacante y registro OK');
     } catch (e) {
       console.error(label + ' -> ERROR: ' + e.message);
@@ -150,6 +157,7 @@ function runPipeline_(opts) {
     try {
       addPostsToDailyDoc_(posts.map(x => x.vacancy));
       posts.forEach(x => appendVacancyRow_(sheet, x.vacancy, x.score, 'Manual (publicación)'));
+      posts.forEach(x => { const o = x.vacancy.origin || 'Sin fuente'; stats.created[o] = (stats.created[o] || 0) + 1; });
       console.log('Publicaciones: ' + posts.length + ' enlaces en ' + CONFIG.PENDING_FOLDER_NAME + '/<hoy>/' +
                   CONFIG.POSTS_FOLDER_NAME + '/' + CONFIG.POSTS_DOC_NAME + ' (proceso manual)');
     } catch (e) {
@@ -157,5 +165,6 @@ function runPipeline_(opts) {
     }
   }
 
+  logStats();
   console.log('--- Pipeline Diario Finalizado ---');
 }

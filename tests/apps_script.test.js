@@ -201,6 +201,45 @@ const liPost = context.parseLinkedInPostPage('<script type="application/ld+json"
   '"datePublished":"2026-10-15T08:07:24.932Z","author":{"@type":"Person","name":"Ana Gómez"},"articleBody":"HIRING! Remote UI/UX Designer. Escribe a talento@empresa.co"}</script>');
 assert.ok(liPost.date === '2026-10-15' && liPost.author === 'Ana Gómez' && /talento@empresa\.co/.test(liPost.text));
 assert.strictEqual(context.parseLinkedInPostPage('<html>sin datos</html>'), null);
+
+// Plan de búsqueda (2026-10-27): JobSpy, ATS de empresas objetivo, alertas de LinkedIn por correo, Brave y conteo por fuente
+const jsj = context.parseJobSpyJob({ sitio: 'indeed', titulo: 'Diseñador UX/UI', empresa: 'Acme', ubicacion: 'Bogotá, D.C.',
+  enlace: 'https://co.indeed.com/viewjob?jk=abc123', fecha: '2026-10-26', descripcion: 'Figma' });
+assert.ok(jsj.source === 'Indeed' && jsj.link.includes('jk=abc123') && jsj.postedAt === '2026-10-26' && jsj.description === 'Figma');
+let atc = context.atsCandidates('Treinta', 'https://treinta.co', 'https://jobs.lever.co/treinta/123');
+assert.ok(atc.length === 1 && atc[0].ats === 'lever' && atc[0].slug === 'treinta');
+atc = context.atsCandidates('Widetech Group', 'https://widetech.co', 'https://widetech.co/contactanos');
+assert.ok(atc.some(t => t.ats === 'greenhouse' && t.slug === 'widetech') && atc.some(t => t.ats === 'ashby'));
+assert.ok(context.atsApiUrl('ashby', 'x').includes('api.ashbyhq.com/posting-api/job-board/x'));
+assert.ok(context.atsHasJobsShape('greenhouse', '{"jobs":[]}') && !context.atsHasJobsShape('greenhouse', '{"error":1}') &&
+          context.atsHasJobsShape('lever', '[]') && !context.atsHasJobsShape('lever', '<html>'));
+const gh = context.parseAtsJobs('greenhouse', JSON.stringify({ jobs: [{ title: 'Product Designer', location: { name: 'Bogotá' },
+  absolute_url: 'https://boards.greenhouse.io/x/jobs/1', first_published: '2026-10-20T10:00:00Z', content: '&lt;p&gt;Figma&lt;/p&gt;' }] }), 'X');
+assert.ok(gh[0].title === 'Product Designer' && gh[0].postedAt === '2026-10-20' && gh[0].description === 'Figma' && gh[0].company === 'X');
+const lv = context.parseAtsJobs('lever', JSON.stringify([{ text: 'UX Designer', categories: { location: 'Remote LATAM' },
+  hostedUrl: 'https://jobs.lever.co/x/1', createdAt: Date.UTC(2026, 9, 21), descriptionPlain: 'Research' }]), 'X');
+assert.ok(lv[0].location.includes('Remote LATAM') && lv[0].postedAt === '2026-10-21' && lv[0].link.includes('lever.co'));
+const ab = context.parseAtsJobs('ashby', JSON.stringify({ jobs: [{ title: 'Designer', location: 'Colombia', isRemote: true,
+  jobUrl: 'https://jobs.ashbyhq.com/x/1', publishedAt: '2026-10-22T00:00:00Z', descriptionPlain: 'UI' }] }), 'X');
+assert.ok(ab[0].location === 'Colombia Remote' && ab[0].postedAt === '2026-10-22');
+const wk = context.parseAtsJobs('workable', JSON.stringify({ jobs: [{ title: 'UI Designer', city: 'Bogotá', country: 'Colombia',
+  url: 'https://apply.workable.com/x/j/1', published_on: '2026-10-23' }] }), 'X');
+assert.ok(wk[0].location.startsWith('Bogotá Colombia') && wk[0].postedAt === '2026-10-23');
+const al = context.alertLinksFromHtml('<a href="https://www.linkedin.com/comm/jobs/view/4480720588/?trackingId=x&amp;refId=y">x</a>' +
+  '<a href="https://www.linkedin.com/jobs/view/4480720588">dup</a><a href="https://www.linkedin.com/feed/update/urn%3Ali%3Aactivity%3A7516409382549766144">p</a>');
+assert.deepStrictEqual(Array.from(al.jobIds), ['4480720588']);
+assert.deepStrictEqual(Array.from(al.activityIds), ['7516409382549766144']);
+const ljd = context.parseLinkedInJobDetail('<h1 class="top-card-layout__title topcard__title">UX/UI Designer</h1>' +
+  '<a class="topcard__org-name-link topcard__flavor--black-link" href="#"> Softgic </a>' +
+  '<span class="topcard__flavor topcard__flavor--bullet"> Bogotá, Colombia </span><span class="posted-time-ago__text"> 6 days ago </span>');
+assert.ok(ljd.title === 'UX/UI Designer' && ljd.company === 'Softgic' && ljd.location === 'Bogotá, Colombia' && ljd.postedAgo === '6 days ago');
+const bq = context.buildBraveQueries(['hiring', 'buscamos'], ['ux designer'], 1, new Date('2026-10-27T12:00:00Z'));
+assert.ok(bq.length === 1 && /^site:linkedin\.com\/posts "(hiring|buscamos)" "ux designer"$/.test(bq[0]));
+assert.ok(!context.isReachablePost({ link: 'https://www.linkedin.com/posts/x-activity-1', description: '#OpenToWork Diseñador UX/UI remoto busco empleo' }));
+const sr = context.sourceStatsRows({ date: '2026-10-27', time: '07:05', run: 'Búsqueda 07 h' }, { elempleo: 3, LinkedIn: 9 }, { LinkedIn: 4 }, { LinkedIn: 2 });
+assert.deepStrictEqual(JSON.parse(JSON.stringify(sr)), [['2026-10-27', '07:05', 'Búsqueda 07 h', 'LinkedIn', 9, 4, 2],
+                                                        ['2026-10-27', '07:05', 'Búsqueda 07 h', 'elempleo', 3, 0, 0]]);
+assert.deepStrictEqual(JSON.parse(JSON.stringify(context.countByOrigin([{ origin: 'a' }, { origin: 'a' }, {}]))), { a: 2, 'Sin fuente': 1 });
 assert.ok(!context.isReachablePost({ link: 'https://www.linkedin.com/posts/x-activity-1', description: 'Hiring remote UI/UX Designer, Figma. Thank you for the response, we got the people we wanted' }));
 assert.ok(context.isReachablePost({ link: 'https://www.linkedin.com/posts/x-activity-1', description: 'Hiring remote UI/UX Designer, Figma' }));
 assert.ok(context.isDesignRole({ title: 'Diseñador UX/UI' }) && !context.isDesignRole({ title: 'Graphic Designer' }));
@@ -389,7 +428,9 @@ assert.ok(!context.isWithinCvWindow(6) && context.isWithinCvWindow(7) && context
   !context.isWithinCvWindow(23));
 const setupCode = fs.readFileSync(path.join(dir, 'Setup.gs'), 'utf8');
 assert.ok(/'generarCVsDesdeIA'\)\.timeBased\(\)\.everyMinutes\(CONFIG\.CV_EVERY_MINUTES\)/.test(setupCode));
-assert.ok(/atHour\(CONFIG\.PIPELINE_HOUR\)\.nearMinute\(0\)/.test(setupCode));
+// Dos búsquedas al día (plan 2026-10-27): 7:00 y 12:30, cada una con nearMinute (±15 min)
+assert.ok(/PIPELINE_HOURS\.forEach\([\s\S]*atHour\(h\)\.nearMinute\(m\)/.test(setupCode));
+assert.deepStrictEqual(JSON.parse(JSON.stringify(run('CONFIG.PIPELINE_HOURS'))), [[7, 0], [12, 30]]);
 assert.ok(!/CV_HOUR\b/.test(textFiles().map(f => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n')));
 
 // Guía de búsqueda y HV (2026-10-22): filtros nuevos, avisos cerrados y reglas de la HV

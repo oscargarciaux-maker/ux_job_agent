@@ -7,7 +7,8 @@ function searchUxJobs_() {
   const apiKey = getProp_(PROPS.SERPAPI_API_KEY);
   if (!apiKey) throw new Error('Falta la propiedad SERPAPI_API_KEY en Propiedades del script.');
 
-  const byKey = {};   // Misma vacante en ambas búsquedas -> una sola
+  const byKey = {};   // Misma vacante en varias fuentes -> una sola (la primera que la trae queda como su origen)
+  const add = (v, origin, key) => { v.origin = v.origin || origin; const k = key || vacancyKey(v); byKey[k] = byKey[k] || v; };
   const today = new Date();
   const queries = [{ q: pickDailyItems(CONFIG.SEARCH_QUERY_POOL, 1, today)[0], remote: false },
                    { q: pickDailyItems(CONFIG.REMOTE_QUERY_POOL, 1, today)[0], remote: true }];
@@ -31,17 +32,25 @@ function searchUxJobs_() {
     console.log('"' + q + '": ' + jobs.length + ' resultados, ' + blocked + ' solo en sitios bloqueados, ' +
                 (jobs.length - blocked - recent.length) + ' viejas' +
                 (remote ? ', ' + (recent.length - usable.length) + ' no accesibles desde Colombia' : ''));
-    usable.forEach(v => { byKey[vacancyKey(v)] = byKey[vacancyKey(v)] || v; });
+    usable.forEach(v => add(v, 'Google Jobs (SerpAPI)'));
   });
-  [searchLinkedInJobs_, searchElempleo_, searchRemotive_, searchGetOnBoard_, searchJobicy_].forEach(source => {
+  // Fuentes gratuitas; el nombre es el que aparece en la pestaña "Fuentes" del registro (conteo por corrida)
+  [[searchLinkedInJobs_, 'LinkedIn (búsqueda pública)'], [searchElempleo_, 'elempleo'], [searchJobSpy_, 'JobSpy (GitHub Actions)'],
+   [searchAtsBoards_, 'Portales de empresas objetivo'], [searchEmailAlerts_, 'Alertas de LinkedIn (correo)'],
+   [searchRemotive_, 'Remotive'], [searchGetOnBoard_, 'Get on Board'], [searchJobicy_, 'Jobicy']].forEach(([source, origin]) => {
     try {
-      source().forEach(v => { byKey[vacancyKey(v)] = byKey[vacancyKey(v)] || v; });
+      source().forEach(v => add(v, v.isPost || v.fromPost ? origin + ' · publicaciones' : origin, v.isPost || v.fromPost ? v.link : null));
     } catch (e) {
       console.warn('Fuente ' + source.name + ' falló: ' + e.message);
     }
   });
   if (CONFIG.LINKEDIN_POST_ROLE_POOL.length) {
-    searchLinkedInPosts_(apiKey).forEach(v => { byKey[v.link] = byKey[v.link] || v; });
+    searchLinkedInPosts_(apiKey).forEach(v => add(v, 'Publicaciones LinkedIn (SerpAPI)', v.link));
+  }
+  try {
+    searchBravePosts_().forEach(v => add(v, 'Publicaciones LinkedIn (Brave)', v.link));
+  } catch (e) {
+    console.warn('Fuente searchBravePosts_ falló: ' + e.message);
   }
   return Object.keys(byKey).map(k => byKey[k]).filter(v => {
     let reason = exclusionReason(v);
@@ -206,9 +215,15 @@ function parseLinkedInJobCards(html) {
 function parseLinkedInJobDetail(html) {
   const text = String(html || '');
   const markup = (text.match(/show-more-less-html__markup[^>]*>([\s\S]*?)<\/div>/) || [])[1] || '';
+  // Encabezado del aviso (lo usan las alertas por correo, que solo traen el id): cargo, empresa, ciudad y "hace N días"
+  const field = re => decodeHtml_(stripHtml_((text.match(re) || [])[1] || ''));
   return {
     description: stripHtml_(markup),
     closed: /No longer accepting applications|Ya no se aceptan solicitudes|closed-job/i.test(text),
+    title: field(/top-card-layout__title[^>]*>([\s\S]*?)<\/h[12]>/),
+    company: field(/topcard__org-name-link[^>]*>([\s\S]*?)<\/a>/),
+    location: field(/topcard__flavor topcard__flavor--bullet[^>]*>([\s\S]*?)<\/span>/),
+    postedAgo: field(/posted-time-ago__text[^>]*>([\s\S]*?)<\/span>/),
   };
 }
 
@@ -415,6 +430,7 @@ function isReachablePost(post) {
   const text = post.description || '';
   // Solo publicaciones reales (no páginas de listados de empleos de LinkedIn) y que no estén cerradas
   return /linkedin\.com\/(posts|feed\/update)\//i.test(post.link || '') && !CONFIG.CLOSED_POST_PATTERN.test(text) &&
+    !CONFIG.POST_NOISE_PATTERN.test(text) &&
     CONFIG.LINKEDIN_POST_LOCATION_PATTERN.test(text) && CONFIG.LINKEDIN_POST_ROLE_PATTERN.test(text);
 }
 

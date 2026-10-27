@@ -82,6 +82,21 @@ const CONFIG = {
       maxDetails: 40,   // descripciones completas que se piden por corrida
       bonus: 9,         // mismo bono de fuente que LinkedIn en SOURCE_PRIORITY
     },
+    // Plan de búsqueda del usuario (2026-10-27): ver apps_script/Fuentes.gs
+    jobspy: {   // JSON que deja .github/workflows/jobspy.yml (tools/jobspy_buscar.py) 4 veces al día
+      url: 'https://raw.githubusercontent.com/oscargarciaux-maker/ux_job_agent/datos/jobspy.json',
+    },
+    ats: { maxDetectPerRun: 15, recheckDays: 14, batch: 30 },   // Greenhouse, Lever, Ashby, Workable
+    alertas: {   // Correos de LinkedIn en el Gmail del usuario (solo lectura; scope gmail.readonly)
+      query: 'from:(jobalerts-noreply@linkedin.com OR jobs-listings@linkedin.com OR notifications-noreply@linkedin.com) newer_than:3d',
+      maxMessages: 40, maxJobs: 60, maxPosts: 30,
+    },
+    brave: {     // Solo si existe la propiedad BRAVE_API_KEY (plan gratuito de Brave Search API)
+      url: 'https://api.search.brave.com/res/v1/web/search',
+      phrases: ['estamos contratando', 'estamos buscando', 'hiring', 'buscamos'],
+      roles: ['diseñador ux', 'diseñador ui', 'ux designer', 'ui ux designer', 'product designer', 'diseñador de producto'],
+      queriesPerRun: 8, pauseMs: 1100,
+    },
     // elempleo.com (2026-10-26): portal colombiano con avisos server-side; la lista trae fecha relativa ("Hace 4 días") y
     // cada aviso un JSON-LD JobPosting con datePosted, validThrough y la descripción completa. Indeed responde 401 sin
     // sesión y Computrabajo casi solo trae diseño gráfico: no se usan.
@@ -113,6 +128,8 @@ const CONFIG = {
   LINKEDIN_POST_HIRING_TERMS: '("hiring" OR "contratando" OR "buscamos" OR "vacante" OR "estamos buscando")',
   LINKEDIN_POST_LOCATION_TERMS: '("remoto" OR "remote" OR "LATAM" OR "Colombia")',
   // Publicación que ya no contrata (2026-10-26: un post de "hiring" terminaba en "we got the people we wanted")
+  // Publicaciones que no son vacantes (plan 2026-10-27): gente buscando empleo, cursos, webinars
+  POST_NOISE_PATTERN: /#?open ?to ?work|busco (empleo|trabajo|oportunidad)|estoy buscando (empleo|trabajo|oportunidad|nuevos retos)|i'?m (currently )?looking for (a )?(new )?(role|job|position|opportunit)|webinar|inscr[ií]bete|bootcamp|masterclass/i,
   CLOSED_POST_PATTERN: /caducad|expirad|expired|cerrad|closed|ya no|we (got|found|have found) (the|our)|position (has been |is )?filled|no longer (hiring|accepting)|ya (contratamos|encontramos|cubrimos)|vacante (ocupada|cubierta)/i,
   LINKEDIN_POST_LOCATION_PATTERN: /remot|remote|latam|latinoam|am[eé]rica latina|colombia|bogot|medell|anywhere|work from home|home office/i,
   MAX_POST_AGE_DAYS: 21,  // Decisión del usuario 2026-10-19 (antes 14)
@@ -123,7 +140,7 @@ const CONFIG = {
   // Si Google Jobs no trae la fecha, se lee "datePosted" de la página original (gratis, sin SerpAPI). Las que siguen
   // sin fecha solo entran (marcadas "SIN VERIFICAR") si con las verificadas no se llega a MIN_DAILY.
   MIN_DAILY: 5,              // Pueden ser menos de DAILY_LIMIT, pero no menos de 5 (decisión del usuario)
-  PIPELINE_HOUR: 7,          // 7:00 AM hora de Bogotá (guía 2026-10-22; antes 8). Con nearMinute(0): 6:45–7:15
+  PIPELINE_HOURS: [[7, 0], [12, 30]],   // 7:00 y 12:30 (segunda tanda, decisión del usuario 2026-10-27), ±15 min
   ROOT_FOLDER_NAME: 'Vacantes con IA',
   SHEET_TITLE: 'Vacantes UX - Registro',
   TEMPLATE_TITLE: 'Plantilla CV Maestra',
@@ -171,6 +188,8 @@ const CONFIG = {
   COLD_EMAIL_MAX_WORDS: 35,                  // Guía Maestra de Cover Letters (la guía principal de correos del usuario)
   // Skill investigar-empresas (2026-10-24): empresas que contratan diseñadores UX/UI, con correos verificados
   TARGET_COMPANIES_SHEET_NAME: 'Empresas objetivo',
+  SOURCES_SHEET_NAME: 'Fuentes',   // Conteo por fuente en cada búsqueda (plan 2026-10-27: comparar antes y después)
+  SOURCES_HEADERS: ['Fecha', 'Hora', 'Corrida', 'Fuente', 'Traídas', 'Nuevas', 'Carpetas creadas'],
   TARGET_COMPANIES_HEADERS: ['Fecha', 'Empresa', 'Ámbito', 'Ciudad / país', 'Tipo', 'Sector', 'Por qué encaja (fuente)',
                              'Web', 'Página de empleo', 'Correos (fuente, fecha)', 'Estado', 'Notas'],
   // Palabras que nunca van en una HV ni en su nombre de archivo (guía 2026-10-22). Ojo: "internacional" no cuenta.
