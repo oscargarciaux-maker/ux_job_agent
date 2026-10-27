@@ -241,7 +241,7 @@ Registro:
   ```
   Después, el reporte con el formato de arriba. Las publicaciones del documento `Posts` van en
   `Posts/Verificacion_Posts.txt`, una línea por publicación: `<veredicto> | <autor o empresa> | <enlace> | <motivo>`.
-- Carpetas de `Sin revisar/<hoy>`: con eso basta. En su siguiente pasada (cada 10 minutos, de 7:00 a 22:59) `generarCVsDesdeIA` manda las DESCARTAR a la papelera
+- Carpetas de `Sin revisar/<hoy>`: con eso basta. En su siguiente pasada (cada 10 minutos, de 5:00 a 22:59) `generarCVsDesdeIA` manda las DESCARTAR a la papelera
   de Drive (recuperables 30 días), mueve las DUDOSA a `Sin revisar/<fecha>/Dudosas/` y deja en el registro
   (`Hoja 1`, columna F Estado) `Descartada: <motivo>` o `Dudosa: <motivo>`. Las de `Dudosas` cuyo veredicto cambie a
   LISTA vuelven al día; a DESCARTAR, a la papelera.

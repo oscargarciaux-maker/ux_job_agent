@@ -1,5 +1,5 @@
 /**
- * Orquestador del pipeline diario (se ejecuta solo a las 7:00 AM).
+ * Orquestador del pipeline diario (se ejecuta solo a las 5:00 AM y repasa a las 5:45).
  * Funciones para usar desde el editor: ejecutarPipeline, ejecutarPrueba, ejecutarSimulacion, generarCVsDesdeIA (CV.gs).
  */
 

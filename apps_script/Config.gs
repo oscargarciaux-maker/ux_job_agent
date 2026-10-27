@@ -146,7 +146,10 @@ const CONFIG = {
   // Si Google Jobs no trae la fecha, se lee "datePosted" de la página original (gratis, sin SerpAPI). Las que siguen
   // sin fecha solo entran (marcadas "SIN VERIFICAR") si con las verificadas no se llega a MIN_DAILY.
   MIN_DAILY: 5,              // Pueden ser menos de DAILY_LIMIT, pero no menos de 5 (decisión del usuario)
-  PIPELINE_HOURS: [[7, 0], [12, 30]],   // 7:00 y 12:30 (segunda tanda, decisión del usuario 2026-10-27), ±15 min
+  // Mañana condensada (decisión del usuario 2026-10-27: "que todo quede listo más temprano"): búsqueda a las 5:00 y un
+  // repaso a las 5:45 que retoma lo que la primera no alcanzó a crear (o la reemplaza si se cortó). ±15 min cada una.
+  // SerpAPI solo se consulta en la primera corrida del día (SERPAPI_LAST_DAY): el plan gratuito da 100 créditos al mes.
+  PIPELINE_HOURS: [[5, 0], [5, 45]],
   ROOT_FOLDER_NAME: 'Vacantes con IA',
   SHEET_TITLE: 'Vacantes UX - Registro',
   TEMPLATE_TITLE: 'Plantilla CV Maestra',
@@ -172,7 +175,7 @@ const CONFIG = {
   // Arma CV/PDF/borrador con los CV_IA.json de hoy cada CV_EVERY_MINUTES, entre CV_FIRST_HOUR y CV_LAST_HOUR (decisión
   // del usuario 2026-10-25: compactar la mañana; antes una sola vez a las 10:00–11:00). Las corridas sin trabajo son cortas.
   CV_EVERY_MINUTES: 10,
-  CV_FIRST_HOUR: 7,
+  CV_FIRST_HOUR: 5,         // Desde la búsqueda de las 5:00 (mañana condensada, 2026-10-27)
   CV_LAST_HOUR: 22,          // Hasta las 22:59: también arma las dudosas que el usuario apruebe en la tarde
   SHEET_HEADERS: ['Fecha', 'Empresa', 'Cargo', 'Link', 'Match Score', 'Estado', 'Fuente', 'Notas'],
   // Vacantes ya aplicadas por el usuario (carpetas coloreadas: rojo rechazada, verde en proceso, amarillo sin respuesta)
@@ -228,6 +231,7 @@ const PROPS = {
   TEMPLATE_ID: 'GOOGLE_DOCS_MASTER_TEMPLATE_ID',
   DASHBOARD_KEY: 'DASHBOARD_KEY',   // Clave del enlace del tablero web (la crea configurarTablero)
   DASHBOARD_WRITE_KEY: 'DASHBOARD_WRITE_KEY',  // Clave de escritura del juego (&e=), solo en el enlace de Oscar (Acciones.gs)
+  SERPAPI_LAST_DAY: 'SERPAPI_LAST_DAY',   // Último día (yyyy-MM-dd) en que se gastaron créditos de SerpAPI
 };
 
 function getProp_(key) {

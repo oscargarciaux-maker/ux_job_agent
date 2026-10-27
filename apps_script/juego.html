@@ -1510,8 +1510,8 @@ var ARTE = {
     var mun = (m.porEnviar || []).slice().sort(function (a, b) { return (a.fecha || '') < (b.fecha || '') ? -1 : 1; });
     var segs = (m.acciones || []).slice(0, 10);
     var k1 = [cab('01', 'Munición lista · ' + mun.length, 'h2', 'h-mun')];
-    if (!mun.length && !segs.length) k1.push(el('p', { class: 'vacio', text: 'Sin misiones por hoy. La próxima búsqueda llega a las 7:00.' }));
-    else if (!mun.length) k1.push(el('p', { class: 'vacio', text: 'No hay HV listas. Mañana a las 7:00 llegan vacantes nuevas.' }));
+    if (!mun.length && !segs.length) k1.push(el('p', { class: 'vacio', text: 'Sin misiones por hoy. La próxima búsqueda llega a las 5:00.' }));
+    else if (!mun.length) k1.push(el('p', { class: 'vacio', text: 'No hay HV listas. Mañana a las 5:00 llegan vacantes nuevas.' }));
     var ul = el('ul', { class: 'lista' });
     mun.forEach(function (p) {
       var dias = hoy && p.fecha ? diasEntre(p.fecha.slice(0, 10), hoy) : 0;
