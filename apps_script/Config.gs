@@ -230,6 +230,7 @@ const PROPS = {
   SHEET_ID: 'GOOGLE_SHEET_ID',
   TEMPLATE_ID: 'GOOGLE_DOCS_MASTER_TEMPLATE_ID',
   DASHBOARD_KEY: 'DASHBOARD_KEY',   // Clave del enlace del tablero web (la crea configurarTablero)
+  DASHBOARD_API_ID: 'DASHBOARD_API_ID',  // Id de la implementación (api= de los enlaces); lo guarda doGet (2026-10-27)
   DASHBOARD_WRITE_KEY: 'DASHBOARD_WRITE_KEY',  // Clave de escritura del juego (&e=), solo en el enlace de Oscar (Acciones.gs)
   SERPAPI_LAST_DAY: 'SERPAPI_LAST_DAY',   // Último día (yyyy-MM-dd) en que se gastaron créditos de SerpAPI
 };
