@@ -4,13 +4,16 @@
  *   descartar -> la carpeta de Sin revisar va a la papelera (recuperable); Hoja 1: Descartada: <motivo>.
  *   rechazada / proceso -> la carpeta de CV/ cambia de color y Seguimiento gana una fila con fuente «Oscar (desde el juego)».
  *   hecho     -> Seguimiento gana una fila que cierra la acción pendiente de esa empresa (queda «Esperar respuesta»).
+ *   correos   -> las filas de borradores de esa empresa en Correos en frío (las direcciones que Oscar marcó) pasan a
+ *                «Enviado (registrado desde el juego)» con la fecha y hora (2026-10-27, correos en frío como misión).
  * Nunca envía nada (HITL): solo registra lo que Oscar hizo. Exige la clave del enlace (k) y además la clave de escritura
  * (e, propiedad DASHBOARD_WRITE_KEY, la crea configurarTablero): el enlace del coach no la lleva, así que su vista sigue
  * siendo de solo lectura. Solo toca carpetas que estén dentro de Sin revisar o de CV/ (y la de antiguas junto a CV/).
  * Llega por doGet (&accion=...) porque el Cargador solo tiene doGet; así no hay que volver a pegarlo.
  */
 
-const GAME_ACTIONS_ = ['enviada', 'descartar', 'rechazada', 'proceso', 'hecho'];
+const GAME_ACTIONS_ = ['enviada', 'descartar', 'rechazada', 'proceso', 'hecho', 'correos'];
+const COLD_SENT_STATUS_ = 'Enviado (registrado desde el juego)';
 const GAME_FOLDER_COLORS_ = { rechazada: '#f83a22', proceso: '#16a765' };  // los mismos de la skill seguimiento
 
 /** Responde una acción del juego: la aplica, vuelve a leer Drive y devuelve el JSON del tablero (o { error }). */
@@ -64,6 +67,26 @@ function runGameAction_(p) {
     updateVacancyStatus_(registry, vacancy.link, 'Descartada: ' + reason + ' (Oscar, desde el juego)');
     folder.setTrashed(true);
     return folder.getName() + ' -> descartada (' + reason + '), a la papelera';
+  }
+
+  if (action === 'correos') {
+    const sheet = ss.getSheetByName(CONFIG.COLD_EMAIL_SHEET_NAME);
+    if (!sheet) throw new Error('No existe la pestaña ' + CONFIG.COLD_EMAIL_SHEET_NAME);
+    const values = sheet.getDataRange().getDisplayValues();
+    const header = values[0].map(String);
+    const cStatus = header.indexOf('Estado') + 1, cDate = header.indexOf('Fecha y hora envío') + 1;
+    if (!cStatus || !cDate) throw new Error('A la pestaña ' + CONFIG.COLD_EMAIL_SHEET_NAME + ' le faltan las columnas Estado o Fecha y hora envío');
+    const recipients = String(p.para || '').split('|').filter(x => x.trim());
+    if (!recipients.length) throw new Error('Marca al menos una dirección');  // nunca «todas» por omisión
+    const rows = coldRowsToMark(values, String(p.empresa || ''), recipients);
+    if (!rows.length) throw new Error('No encontré borradores sin enviar de ' + p.empresa);
+    const stamp = Utilities.formatDate(new Date(), tz_(), 'yyyy-MM-dd HH:mm');
+    rows.forEach(r => {
+      // Como texto: si Sheets la vuelve fecha, el valor mostrado deja de empezar por yyyy-MM-dd y el juego pierde el día
+      sheet.getRange(r + 1, cDate).setNumberFormat('@').setValue(stamp);
+      sheet.getRange(r + 1, cStatus).setValue(COLD_SENT_STATUS_);
+    });
+    return p.empresa + ' -> ' + rows.length + ' correos en frío marcados como enviados';
   }
 
   const followup = ss.getSheetByName(CONFIG.FOLLOWUP_SHEET_NAME);
@@ -140,6 +163,25 @@ function pickCurrentWeek(folders) {
 /** Fila para Seguimiento en el orden de su encabezado (columnas que no vienen quedan vacías). */
 function followupRow(header, record) {
   return header.map(h => safeCell(record[h] == null ? '' : String(record[h])));
+}
+
+/**
+ * Filas (índice en `values`, con el encabezado en 0) de Correos en frío que «Ya los envié» marca: las de esa empresa que
+ * siguen como borrador y cuyo destinatario está entre los que Oscar dejó marcados (sin lista, todas las de la empresa).
+ */
+function coldRowsToMark(values, company, recipients) {
+  const header = (values[0] || []).map(String);
+  const cCompany = header.indexOf('Empresa'), cTo = header.indexOf('Destinatario(s)'), cStatus = header.indexOf('Estado');
+  const wanted = recipients.map(r => String(r).trim().toLowerCase()).filter(Boolean);
+  const out = [];
+  for (let i = 1; i < values.length; i++) {
+    const row = values[i];
+    if (!followupKey_(company) || followupKey_(row[cCompany]) !== followupKey_(company)) continue;
+    if (!/^\s*borrador/i.test(String(row[cStatus] || ''))) continue;
+    if (wanted.length && wanted.indexOf(String(row[cTo] || '').trim().toLowerCase()) === -1) continue;
+    out.push(i);
+  }
+  return out;
 }
 
 /** Un texto escrito en el Sheet nunca se interpreta como fórmula. */
