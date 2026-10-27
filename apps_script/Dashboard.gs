@@ -312,6 +312,7 @@ function buildDashboardModel(tabs, now, timeZone) {
     generado: Utilities.formatDate(now, timeZone || 'America/Bogota', "yyyy-MM-dd'T'HH:mm"),
     hoy: today,
     meta: CONFIG.DASHBOARD_WEEKLY_GOAL,
+    submeta: CONFIG.DASHBOARD_WEEKLY_SUBGOAL,
     postulaciones: {
       total: sent.length, rechazada: count(sent, 'rechazada'), proceso: count(sent, 'proceso'),
       sinRespuesta: count(sent, 'sinRespuesta'), aplicada: count(sent, 'aplicada'), preparadas: count(applications, 'preparada'),

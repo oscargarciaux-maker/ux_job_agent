@@ -95,7 +95,7 @@ juego, puede partir de aquí:
 
 ```js
 {
-  generado: "2026-10-25T11:05", hoy: "2026-10-25", meta: 50,
+  generado: "2026-10-25T11:05", hoy: "2026-10-25", meta: 50, submeta: 30,   // submeta: la que gana la semana (2026-10-27)
   postulaciones: {
     total, rechazada, proceso, sinRespuesta, aplicada, preparadas, tasaRespuesta,   // tasa en %
     semanas: [{ semana, desde, total, rechazada, proceso, sinRespuesta, aplicada }], // en orden; incluye las carpetas

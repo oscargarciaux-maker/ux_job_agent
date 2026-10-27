@@ -225,7 +225,7 @@ function dashboardMain(D) {
 
   // ---------- Esta semana ----------
   var thisWeek = current ? current.total : 0;
-  var goal = D.meta || 50;
+  var goal = D.submeta || D.meta || 50;  // submeta de la semana (30, 2026-10-27); la meta grande es D.meta
   var ratio = Math.min(1, thisWeek / goal);
   var R = 40, CIRC = 2 * Math.PI * R;
   var svgNS = 'http://www.w3.org/2000/svg';
@@ -246,7 +246,7 @@ function dashboardMain(D) {
 
   var summary = current
     ? (current.proceso ? current.proceso + ' en proceso · ' : '') + (current.rechazada ? current.rechazada + ' rechazadas · ' : '') +
-      'faltan ' + Math.max(0, goal - thisWeek) + ' para la meta.'
+      'faltan ' + Math.max(0, goal - thisWeek) + ' para la submeta de ' + goal + (D.meta && D.meta > goal ? ' (meta grande: ' + D.meta + ').' : '.')
     : 'Todavía no hay postulaciones registradas.';
   app.appendChild(el('section', { class: 'card hero', 'aria-labelledby': 'h-week' }, [
     ring,
@@ -326,7 +326,7 @@ function dashboardMain(D) {
   });
   var weeksBox = el('div', { class: 'card box' }, [
     el('h3', { text: 'Postulaciones por semana' }),
-    el('p', { class: 'sub', text: 'Barra completa = meta de ' + goal + '. Color = estado actual de cada postulación.' }),
+    el('p', { class: 'sub', text: 'Barra completa = submeta de ' + goal + '. Color = estado actual de cada postulación.' }),
     legend,
     weekRows.length ? el('div', { class: 'weeks' }, weekRows) : el('p', { class: 'empty', text: 'Aún no hay semanas registradas.' })
   ]);

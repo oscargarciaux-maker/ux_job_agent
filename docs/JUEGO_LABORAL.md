@@ -299,6 +299,15 @@ Hay dos capas: las métricas reales, que nunca se maquillan, y las stats del jue
 | Resiliencia | 0 en adelante | +1 por cada rechazo | Nunca baja | Héroe |
 | Racha | Días seguidos | Cada día con al menos 1 envío | Un día sin envíos la reinicia (los fines de semana no cuentan) | Barra de estado |
 
+### Submeta de 30 y semana legendaria (decidido el 27 oct)
+
+Con la meta de 50 el jefe sobrevivió las cuatro primeras semanas (13, 23, 24 y 29 HV) aunque el ritmo subía: una meta que nunca se cumple desmotiva. Desde el 27 oct:
+
+- **Submeta de la semana: 30** (`submeta` en el JSON, `DASHBOARD_WEEKLY_SUBGOAL`). El HP del jefe es exactamente 30 menos las HV reales de la semana; con 30 queda KO y la semana se gana.
+- **Meta grande: 50** (`meta`). Al llegar a 50 la semana es **legendaria** (efecto `legendaria`, modal grande, +150 XP); entre 30 y 50 el panel y el jefe dicen cuántas faltan.
+- **Ritmo** (`ritmoSemana`, con pruebas): bajo «HV esta semana», cuántas HV por día hábil faltan para ganar la semana y con cuántas cerrarías al ritmo de los días anteriores. La semana dura 7 días desde que se creó su carpeta y solo cuentan los días hábiles.
+- La regla de honestidad no cambia: cada punto de HP es una HV real que falta.
+
 ### Stats del Reclutador (jefe semanal)
 
 | Stat | Valor | Comportamiento |

@@ -773,6 +773,7 @@ assert.strictEqual(run('localDay')('', 'America/Bogota'), '');
   assert.deepStrictEqual([cold.Ceiba.clave, cold.Movii.clave, cold.Movii.entregadas, cold.Movii.dia], ['respondio', 'borrador', 0, '']);
 }
 assert.strictEqual(dashModel.meta, 50);
+assert.strictEqual(dashModel.submeta, 30, 'submeta semanal (2026-10-27): con 30 se gana la semana');
 // Acciones pendientes: por empresa manda la fila más reciente; esperar respuesta no es una acción (2026-10-25)
 {
   const f = (empresa, siguiente) => ({ empresa, siguiente });
