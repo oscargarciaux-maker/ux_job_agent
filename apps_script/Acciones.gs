@@ -6,13 +6,15 @@
  *   hecho     -> Seguimiento gana una fila que cierra la acción pendiente de esa empresa (queda «Esperar respuesta»).
  *   correos   -> las filas de borradores de esa empresa en Correos en frío (las direcciones que Oscar marcó) pasan a
  *                «Enviado (registrado desde el juego)» con la fecha y hora (2026-10-27, correos en frío como misión).
+ *   pedido    -> el buzón de la oficina de agentes: una fila «pedido» «pendiente» para el jefe en la pestaña Agentes
+ *                (Agentes.gs, docs/MULTIAGENTE.md). No mueve nada en Drive.
  * Nunca envía nada (HITL): solo registra lo que Oscar hizo. Exige la clave del enlace (k) y además la clave de escritura
  * (e, propiedad DASHBOARD_WRITE_KEY, la crea configurarTablero): el enlace del coach no la lleva, así que su vista sigue
  * siendo de solo lectura. Solo toca carpetas que estén dentro de Sin revisar o de CV/ (y la de antiguas junto a CV/).
  * Llega por doGet (&accion=...) porque el Cargador solo tiene doGet; así no hay que volver a pegarlo.
  */
 
-const GAME_ACTIONS_ = ['enviada', 'descartar', 'rechazada', 'proceso', 'hecho', 'correos'];
+const GAME_ACTIONS_ = ['enviada', 'descartar', 'rechazada', 'proceso', 'hecho', 'correos', 'pedido'];
 const COLD_SENT_STATUS_ = 'Enviado (registrado desde el juego)';
 const GAME_FOLDER_COLORS_ = { rechazada: '#f83a22', proceso: '#16a765' };  // los mismos de la skill seguimiento
 
@@ -23,6 +25,12 @@ function dashboardAction_(p, key) {
   if (!dashboardKeyOk(p.e, getProp_(PROPS.DASHBOARD_WRITE_KEY))) return out({ error: 'escritura' });
   if (GAME_ACTIONS_.indexOf(String(p.accion)) === -1) return out({ error: 'accion', detalle: 'Acción desconocida' });
   try {
+    if (String(p.accion) === 'pedido') {
+      // El buzón no cambia Drive: basta recalcular el JSON (sin releer las carpetas, que tarda)
+      const id = addMailboxRequest_(SpreadsheetApp.openById(getProp_(PROPS.SHEET_ID)), String(p.texto || '').slice(0, 1000));
+      console.log('Buzón de la oficina: pedido ' + id);
+      return ContentService.createTextOutput(warmDashboardCache_()).setMimeType(ContentService.MimeType.JSON);
+    }
     console.log('Acción del juego: ' + runGameAction_(p));
   } catch (err) {
     console.error('Acción del juego ' + p.accion + ' -> ERROR: ' + err.message);
