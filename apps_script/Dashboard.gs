@@ -73,13 +73,20 @@ function configurarTablero() {
     writeKey = Utilities.getUuid().replace(/-/g, '');
     setProp_(PROPS.DASHBOARD_WRITE_KEY, writeKey);
   }
-  console.log('Solo para TU enlace del juego (no la compartas con el coach): agrega al final &e=' + writeKey +
-    ' . Con ella aparecen «Ya la envié», «Descartar» y los cambios de estado.');
-  const share = dashboardShareUrl(ScriptApp.getService().getUrl(), key);
-  console.log(share
-    ? 'Enlace del tablero (compártelo solo con quien quieras): ' + share
-    : 'Copia la "URL de la app web" de Implementar > Gestionar implementaciones (termina en /exec) y agrégale al final ' +
-      '?k=' + key + ' . Ese es el enlace para compartir. (El que termina en /dev es solo de prueba y no abre para otras personas.)');
+  // Los enlaces son los de GitHub Pages (2026-10-27: el usuario pegó la clave en el enlace de script.google.com y, con
+  // varias cuentas de Google abiertas, Google respondió «No se puede abrir el archivo»). <ID> es el api= de su enlace
+  // actual: el id de la implementación (Implementar > Gestionar implementaciones), que desde el editor no se puede leer.
+  console.log('TU enlace del juego (con la clave de escritura: no lo compartas): ' + pagesLink('juego', '<ID>', key, writeKey));
+  console.log('Enlace del juego para el coach (solo lectura): ' + pagesLink('juego', '<ID>', key, '') + '&modo=coach');
+  console.log('Enlace del tablero para el coach: ' + pagesLink('dashboard', '<ID>', key, ''));
+  console.log('Cambia <ID> por lo que va después de api= en tu enlace de siempre (o por el id de la implementación de ' +
+    'Implementar > Gestionar implementaciones). No abras script.google.com/…/exec directamente: con varias cuentas de ' +
+    'Google abiertas responde «No se puede abrir el archivo».');
+}
+
+/** Enlace de GitHub Pages del juego o del tablero (la clave de escritura solo si se pasa). */
+function pagesLink(page, api, key, writeKey) {
+  return CONFIG.PAGES_BASE_URL + page + '.html#api=' + api + '&k=' + key + (writeKey ? '&e=' + writeKey : '');
 }
 
 function readDashboardTabs_(children) {

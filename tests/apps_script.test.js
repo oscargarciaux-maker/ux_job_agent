@@ -714,6 +714,9 @@ assert.strictEqual(run('dashboardShareUrl')('https://script.google.com/macros/s/
 assert.strictEqual(run('dashboardShareUrl')('https://script.google.com/macros/s/X/dev', 'k1'), null,
   'el enlace de prueba /dev no se comparte');
 assert.strictEqual(run('dashboardShareUrl')('', 'k1'), null);
+// Enlaces de GitHub Pages que imprime configurarTablero (2026-10-27): la clave de escritura solo en el del usuario
+assert.strictEqual(run('pagesLink')('juego', 'ID', 'k1', 'w1'), 'https://oscargarciaux-maker.github.io/ux_job_agent/apps_script/juego.html#api=ID&k=k1&e=w1');
+assert.strictEqual(run('pagesLink')('dashboard', 'ID', 'k1', ''), 'https://oscargarciaux-maker.github.io/ux_job_agent/apps_script/dashboard.html#api=ID&k=k1');
 assert.strictEqual(run('dashboardKeyOk')('x', 'abc'), false);
 const unsafe = run('safeJsonForScript')({ a: '</script><script>alert(1)</script>&' });
 assert.ok(!/<|>|&/.test(unsafe));
