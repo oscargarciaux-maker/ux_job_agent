@@ -1,6 +1,6 @@
 /**
  * Fuentes de vacantes del plan de búsqueda del usuario (2026-10-27, "Plan sistema automático de búsqueda de vacantes"):
- * - JobSpy: Indeed Colombia, Google Jobs y LinkedIn desde GitHub Actions (tools/jobspy_buscar.py), 4 veces al día;
+ * - JobSpy: Indeed Colombia y LinkedIn desde GitHub Actions (tools/jobspy_buscar.py), 4 veces al día;
  *   Apps Script lee el JSON que el flujo deja en la rama "datos".
  * - Sistemas de empleo (ATS) de las empresas de la pestaña "Empresas objetivo": Greenhouse, Lever, Ashby y Workable.
  * - Alertas de LinkedIn en el Gmail del usuario (solo lectura): vacantes y publicaciones que la búsqueda pública no ve.

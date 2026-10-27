@@ -22,7 +22,7 @@ Estados: ✅ hecho y probado · 🟡 parcial · ⏳ pendiente · ❓ falta una d
 | Descartar vacantes exclusivas para personas con discapacidad | ✅ | regla "exclusiva para personas con discapacidad" (no descarta las declaraciones de igualdad) |
 | Fintech preferido sin excluir | ✅ | `FINTECH_PATTERN`, `FINTECH_BONUS` |
 | Fuentes: LinkedIn > Indeed > Computrabajo > portal; agregadores nunca como fuente final | ✅ | `SOURCE_PRIORITY`, `BLOCKED_SOURCES` (incluye vacantes.com), `pickApplyOption` |
-| Indeed, Google Jobs y LinkedIn con JobSpy 4 veces al día (plan del usuario 2026-10-27) | 🟡 | `.github/workflows/jobspy.yml`, `tools/jobspy_buscar.py`, `searchJobSpy_`. Falta la primera corrida real |
+| Indeed y LinkedIn con JobSpy 4 veces al día (plan del usuario 2026-10-27) | ✅ | `.github/workflows/jobspy.yml`, `tools/jobspy_buscar.py`, `searchJobSpy_`. Probado el 27 oct en Actions: Indeed 9 nuevos (sin `location`), LinkedIn 7 con algunos 429; Google Jobs daba 0 desde Actions y se quitó (lo cubre SerpAPI) |
 | Vacantes de los portales de empleo de las empresas objetivo (Greenhouse, Lever, Ashby, Workable) | 🟡 | `searchAtsBoards_`, `atsCandidates`, `parseAtsJobs` (pruebas). Falta la primera corrida real |
 | Alertas de LinkedIn por correo (sin usar la cuenta) | 🟡 | `searchEmailAlerts_`, `alertLinksFromHtml`; requiere manifiesto con `gmail.readonly` y que el usuario cree las alertas |
 | Publicaciones con Brave Search y filtro de ruido ("open to work", cursos) | 🟡 | `searchBravePosts_` (requiere `BRAVE_API_KEY`), `POST_NOISE_PATTERN` |

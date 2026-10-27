@@ -1,6 +1,6 @@
 name: Búsqueda JobSpy
 
-# Plan de búsqueda del usuario (2026-10-27): Indeed Colombia, Google Jobs y LinkedIn (vista pública) 4 veces al día.
+# Plan de búsqueda del usuario (2026-10-27): Indeed Colombia y LinkedIn (vista pública) 4 veces al día.
 # El resultado se publica en la rama "datos" (jobspy.json) y Apps Script lo lee en sus búsquedas de las 7:00 y 12:30.
 # Horas en UTC: 6:17, 11:47, 16:17 y 21:17 en Bogotá (GitHub puede retrasar los programados unos minutos).
 on:

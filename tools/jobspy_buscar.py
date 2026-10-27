@@ -1,4 +1,7 @@
-"""Busca vacantes de diseño UX/UI en Indeed Colombia, Google Jobs y LinkedIn con JobSpy (python-jobspy).
+"""Busca vacantes de diseño UX/UI en Indeed Colombia y LinkedIn con JobSpy (python-jobspy).
+
+Google Jobs no va: desde GitHub Actions devolvió "no job data returned" en las 12 búsquedas de las dos primeras
+corridas (27 oct 2026), y Apps Script ya lo consulta con SerpAPI.
 
 Lo corre .github/workflows/jobspy.yml 4 veces al día (plan de búsqueda del usuario, 2026-10-27). El resultado se
 publica en la rama "datos" como jobspy.json y Apps Script lo lee en cada búsqueda (searchJobSpy_ en apps_script/Fuentes.gs).
@@ -33,15 +36,12 @@ def limpio(valor):
 
 
 def buscar(sitio, termino):
-    # Primera corrida (27 oct 2026): con location="Colombia" Indeed buscaba a 50 millas del centro del país y casi no
-    # traía nada (country_indeed ya limita a co.indeed.com), y Google no entendía la consulta en español.
-    extra = {"location": "Colombia"}
+    # Con location="Colombia" Indeed buscaba a 50 millas del centro del país y traía 2 avisos (27 oct 2026);
+    # country_indeed ya limita la búsqueda a co.indeed.com.
     if sitio == "indeed":
         extra = {"country_indeed": "colombia"}
-    if sitio == "google":
-        extra["google_search_term"] = f"{termino} jobs near Colombia in the last week"
-    if sitio == "linkedin":
-        extra["fetch_description"] = True
+    else:
+        extra = {"location": "Colombia", "fetch_description": True}
     df = scrape_jobs(site_name=[sitio], search_term=termino, hours_old=HORAS, results_wanted=POR_BUSQUEDA,
                      description_format="markdown", verbose=0, **extra)
     print(f"{sitio} '{termino}': {len(df)} avisos en total")
@@ -72,8 +72,7 @@ def main(ruta):
 
     resumen = {}
     # LinkedIn con pocos términos y pausas largas: el 27 oct 2026 respondió 429 desde la cuarta búsqueda
-    plan = [("indeed", t) for t in TERMINOS] + [("google", t) for t in TERMINOS[:6]] + \
-           [("linkedin", t) for t in ("diseñador ux", "ux designer", "product designer", "ui designer")]
+    plan = [("indeed", t) for t in TERMINOS] + [("linkedin", t) for t in ("diseñador ux", "ux designer", "product designer", "ui designer")]
     bloqueados = set()
     for sitio, termino in plan:
         if sitio in bloqueados:
