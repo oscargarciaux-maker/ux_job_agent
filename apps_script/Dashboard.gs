@@ -128,7 +128,15 @@ function readDashboardTabs_(children) {
   } catch (e) {
     console.warn('Semanas de CV/ -> ' + e.message);
   }
+  // Cuenta de Gmail del agente (la laboral): el juego abre ahí los borradores de los correos en frío (2026-10-27)
+  let account = '';
+  try {
+    account = Gmail.Users.getProfile('me').emailAddress || '';
+  } catch (e) {
+    console.warn('Cuenta de Gmail -> ' + e.message);
+  }
   return {
+    cuenta: account,
     semanasCarpetas: weeks,
     registro: ss.getSheets()[0].getDataRange().getDisplayValues(),
     aplicadas: tab(CONFIG.APPLIED_SHEET_NAME, true),
@@ -365,6 +373,7 @@ function buildDashboardModel(tabs, now, timeZone) {
     hoy: today,
     meta: CONFIG.DASHBOARD_WEEKLY_GOAL,
     submeta: CONFIG.DASHBOARD_WEEKLY_SUBGOAL,
+    cuenta: tabs.cuenta || '',
     postulaciones: {
       total: sent.length, rechazada: count(sent, 'rechazada'), proceso: count(sent, 'proceso'),
       sinRespuesta: count(sent, 'sinRespuesta'), aplicada: count(sent, 'aplicada'), preparadas: count(applications, 'preparada'),

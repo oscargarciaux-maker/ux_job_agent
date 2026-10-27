@@ -162,6 +162,25 @@ assert.deepStrictEqual(['0. Antiguas', '1. Primera semana nueva', '2. Segunda se
   assert.strictEqual(det.reduce((n, w) => n + w.correos.length, 0), enviados);
 }
 
+// Correos en frío como misión (2026-10-27): tanda de 3 empresas al día, dudosas al final
+{
+  const c = (empresa, clave, extra) => Object.assign({ empresa, clave, para: empresa.toLowerCase() + '@x.co', notas: '', dia: '' }, extra || {});
+  const lista = [c('Movii', 'borrador'), c('Movii', 'borrador', { para: 'b@movii.co', notas: 'Fuente antigua. Oscar decide si la prueba.' }),
+    c('tyba', 'borrador', { notas: 'ADVERTENCIA: ruta de soporte' }), c('Trii', 'borrador'), c('Koombea', 'borrador'), c('Kommy', 'borrador'),
+    c('LinkTic', 'enviado', { dia: '2026-10-27' }), c('Ceiba', 'respondio', { dia: '2026-10-23' })];
+  const t = plain(J('tandaCorreos')(lista, '2026-10-27'));
+  assert.deepStrictEqual(t.grupos.map(g => g.empresa), ['Trii', 'Koombea', 'Kommy', 'Movii', 'tyba'], 'las que tienen destinatarios dudosos van al final');
+  assert.deepStrictEqual([t.enviadasHoy, t.faltan, t.correos], [1, 2, 6], 'hoy ya salió LinkTic: faltan 2 de la tanda de 3');
+  assert.deepStrictEqual(t.tanda.map(g => g.empresa), ['Trii', 'Koombea']);
+  const movii = t.grupos.find(g => g.empresa === 'Movii');
+  assert.deepStrictEqual([movii.aviso, movii.filas.map(f => f.aviso)], [true, [false, true]]);
+  assert.strictEqual(J('tandaCorreos')(lista, '2026-10-28').faltan, 3, 'otro día, tanda completa');
+  assert.strictEqual(J('tandaCorreos')([], '2026-10-27').faltan, 0, 'sin borradores no hay tanda');
+  // Con los datos reales anonimizados: ningún borrador cuenta como enviado
+  const real = plain(J('tandaCorreos')(modelo.correos.lista, modelo.hoy));
+  assert.strictEqual(real.correos, modelo.correos.lista.filter(x => x.clave === 'borrador').length);
+}
+
 // Antigüedad de los datos (hora de Bogotá, UTC−5): con más de 15 min el juego lee Drive al abrir (2026-10-26)
 assert.strictEqual(J('minutosDesde')('2026-10-26T11:52', Date.parse('2026-10-26T17:20:00Z')), 28);
 assert.strictEqual(J('minutosDesde')('2026-10-26T12:15', Date.parse('2026-10-26T17:20:00Z')), 5);

@@ -806,6 +806,23 @@ assert.strictEqual(run('pickCurrentWeek')([]), null);
 assert.deepStrictEqual(Array.from(run('followupRow')(['Fecha revisión', 'Empresa', 'Hecho', 'Plazo'], { 'Empresa': 'Pavago', 'Hecho': '=IMPORTXML(1)', 'Otra': 'x', 'Fecha revisión': '2026-10-27' })),
   ['2026-10-27', 'Pavago', "'=IMPORTXML(1)", ''], 'en el orden del encabezado y sin fórmulas');
 assert.strictEqual(run('safeCell')('+57 300'), "'+57 300");
+// «Ya los envié» de los correos en frío (2026-10-27): solo borradores de esa empresa y las direcciones marcadas
+{
+  const v = [['Empresa', 'Destinatario(s)', 'Fecha y hora envío', 'Asunto', 'CV usado', 'Estado'],
+    ['Movii', 'jobs@movii.com.co', '—', 's', 'hv', 'Borrador preparado, no enviado'],
+    ['LinkTic', 'a@linktic.com', '2026-10-20 12:59', 's', 'hv', 'Enviado, sin rebote'],
+    ['Movii', 'seleccion@moviired.co', '—', 's', 'hv', 'Borrador preparado, no enviado'],
+    ['MOVII ', 'alejandra@movii.com.co', '—', 's', 'hv', 'Borrador preparado, no enviado'],
+    ['Movii', 'viejo@movii.com.co', '2026-10-21', 's', 'hv', 'Enviado, sin rebote']];
+  const marca = (e, p) => JSON.parse(JSON.stringify(run('coldRowsToMark')(v, e, p)));
+  assert.deepStrictEqual(marca('Movii', []), [1, 3, 4], 'sin lista: todos los borradores de la empresa');
+  assert.deepStrictEqual(marca('Movii', ['jobs@movii.com.co', ' SELECCION@moviired.co ']), [1, 3], 'solo las direcciones marcadas');
+  assert.deepStrictEqual(marca('LinkTic', []), [], 'lo ya enviado no se toca');
+  assert.deepStrictEqual(marca('', []), []);
+  // El estado nuevo cuenta como enviado (no como borrador) para el juego y para no repetir direcciones
+  const est = JSON.parse(JSON.stringify(run('contactedAddresses')([['X', 'z@x.co', '2026-10-27 10:00', '', '', run('COLD_SENT_STATUS_'), '']])));
+  assert.deepStrictEqual(est, { 'z@x.co': 'usado' });
+}
 assert.strictEqual(run('safeCell')('Rechazada (rojo)'), 'Rechazada (rojo)');
 {
   const reg = [{ 'Empresa': 'PadSplit', 'Cargo': 'Senior Product Designer', 'Link': 'https://jobicy.com/1' },

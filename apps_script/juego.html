@@ -267,6 +267,10 @@ button.fila:focus-visible { outline: 2px solid var(--cian); outline-offset: -2px
 .fila .acc.rejilla { display: grid; grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); }
 .fila .acc.rejilla .btn { justify-content: center; padding: 0 8px; }
 .fila .acc.acciones { grid-template-columns: 2fr 1fr; margin-top: 6px; }
+.fila .acc.acciones.mitad { grid-template-columns: 1fr 1fr; }
+.chips .btn.dir .marca { color: var(--cian); font-family: var(--f-ui); }
+.chips .btn.dir[aria-pressed="false"] { color: var(--texto-2); }
+.chips .btn.dir { text-transform: none; letter-spacing: 0; font-weight: 400; font-family: var(--f-num); max-width: 100%; overflow-wrap: anywhere; text-align: left; }
 .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
 .chips .btn { padding: 0 12px; }
 select.sel { min-height: 48px; padding: 0 12px; background: var(--panel); color: var(--texto); border: 1px solid var(--linea); font: 600 14px var(--f-ui); letter-spacing: .04em; }
@@ -593,6 +597,34 @@ function historiaDePostulacion(m, a) {
   var orden = pasos.map(function (p, i) { return { p: p, i: i }; });
   orden.sort(function (x, y) { var a1 = x.p.dia || '9999', b1 = y.p.dia || '9999'; return a1 < b1 ? -1 : a1 > b1 ? 1 : x.i - y.i; });
   return orden.map(function (o) { return o.p; });
+}
+
+/**
+ * Correos en frío como misión (2026-10-27): borradores de la pestaña Correos en frío agrupados por empresa, con la tanda
+ * del día (3 empresas, decisión del usuario: lotes de 3). Las empresas con destinatarios dudosos (las notas dicen que no es
+ * talento, que la fuente es antigua o que Oscar decide) van al final y esas filas llegan sin marcar a «Ya los envié».
+ */
+var TANDA_CORREOS = 3;
+var AVISO_CORREO = /advertencia|no enviar|no verificable|oscar decide|fuente antigua|no es (?:contacto de )?talento|no especializada|no lo pude confirmar|no lo encontr|puede rebotar/i;
+function tandaCorreos(lista, hoy, tamano) {
+  tamano = tamano || TANDA_CORREOS;
+  var grupos = [], porEmpresa = {}, hoyEmpresas = {};
+  (lista || []).forEach(function (c) {
+    var k = String(c.empresa || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+    if (!k) return;
+    if (c.clave && c.clave !== 'borrador') { if (hoy && diaValido(c.dia) === hoy) hoyEmpresas[k] = true; return; }
+    if (c.clave !== 'borrador') return;
+    var g = porEmpresa[k];
+    if (!g) { g = porEmpresa[k] = { empresa: c.empresa, asunto: c.asunto || '', filas: [], aviso: false }; grupos.push(g); }
+    var aviso = AVISO_CORREO.test(c.notas || '');
+    g.filas.push({ para: c.para || '', aviso: aviso, notas: c.notas || '' });
+    if (aviso) g.aviso = true;
+  });
+  // Primero las empresas con todos sus destinatarios verificados (orden estable)
+  grupos = grupos.filter(function (g) { return !g.aviso; }).concat(grupos.filter(function (g) { return g.aviso; }));
+  var enviadasHoy = Object.keys(hoyEmpresas).length, faltan = Math.max(0, tamano - enviadasHoy);
+  return { grupos: grupos, tanda: grupos.slice(0, faltan), enviadasHoy: enviadasHoy, faltan: Math.min(faltan, grupos.length), tamano: tamano,
+    correos: grupos.reduce(function (n, g) { return n + g.filas.length; }, 0) };
 }
 
 /** La acción que queda pendiente según la historia (la del último hallazgo), o vacío si es esperar o ninguna. */
@@ -1496,6 +1528,27 @@ var ARTE = {
     confirmar('¿Ya lo hiciste?', '«' + h.siguiente + '» (' + h.empresa + ') queda como hecha y Seguimiento pasa a «Esperar respuesta».',
       'Sí, ya lo hice', function () { accionJuego({ accion: 'hecho', empresa: h.empresa, cargo: h.cargo || '', que: h.siguiente, estado: h.ahora || '' }, 'Acción cerrada.'); });
   }
+  /** Búsqueda de los borradores de esa empresa en la cuenta laboral (el asunto lleva «[Empresa] »). */
+  function enlaceBorradores(empresa) {
+    var cuenta = String((modelo && modelo.cuenta) || '').replace(/[^\w.@+-]/g, '');
+    return 'https://mail.google.com/mail/' + (cuenta ? 'u/' + cuenta + '/' : '') + '#search/' + encodeURIComponent('in:drafts "' + empresa + '"');
+  }
+  function yaLosEnvie(g) {
+    var marcadas = g.filas.map(function (f) { return !f.aviso; });
+    var grupo = el('div', { class: 'chips', role: 'group', 'aria-label': 'Direcciones que enviaste' });
+    g.filas.forEach(function (f, i) {
+      var marca = el('span', { class: 'marca', 'aria-hidden': 'true', text: marcadas[i] ? '✔' : '○' });
+      grupo.appendChild(el('button', { class: 'btn dir', type: 'button', 'aria-pressed': String(marcadas[i]), onclick: function (e) {
+        marcadas[i] = !marcadas[i]; e.currentTarget.setAttribute('aria-pressed', String(marcadas[i])); marca.textContent = marcadas[i] ? '✔' : '○';
+      } }, [marca, el('span', { text: (f.aviso ? '⚠ ' : '') + f.para })]));
+    });
+    confirmar('¿Enviaste los correos a ' + g.empresa + '?', 'Marca las direcciones que enviaste desde Gmail. Las que tienen ⚠ vienen sin marcar: sus notas dicen que no son de talento o que la fuente es antigua.',
+      'Sí, ya los envié', function () {
+        var para = g.filas.filter(function (f, i) { return marcadas[i]; }).map(function (f) { return f.para; });
+        if (!para.length) { avisoDatos = 'No marcaste ninguna dirección: no se registró nada.'; tonoDatos = 'mag'; pintarDatos(); return; }
+        accionJuego({ accion: 'correos', empresa: g.empresa, para: para.join('|') }, 'Correos a ' + g.empresa + ' registrados.');
+      }, [grupo]);
+  }
   function cambiarEstado(a, nuevo) {
     var rech = nuevo === 'rechazada';
     confirmar(rech ? '¿Te rechazaron?' : '¿Tienes prueba o entrevista?',
@@ -1504,6 +1557,7 @@ var ARTE = {
       function () { accionJuego({ accion: nuevo, id: idCarpeta(a.carpeta), estado: a.estado || '' }, 'Estado de ' + a.empresa + ' actualizado.'); }, null, rech ? 'mag' : 'cia');
   }
 
+  var verTodosCorreos = false;
   function verMisiones() {
     var m = modelo, v = $('v-misiones'); v.textContent = '';
     var hoy = m.hoy || '';
@@ -1535,7 +1589,40 @@ var ARTE = {
       ])]));
     });
     if (mun.length) k1.push(ul);
-    var k2 = [cab('02', 'Seguimientos', 'h2', 'h-seg')];
+    // Correos en frío como misión (2026-10-27): tanda de 3 empresas al día con los borradores que ya están en Gmail
+    var tc = tandaCorreos((m.correos && m.correos.lista) || [], hoy);
+    var kc = [cab('02', 'Correos en frío · tanda de hoy', 'h2', 'h-frio')];
+    if (!tc.grupos.length) kc.push(el('p', { class: 'vacio', text: 'No hay borradores de correos en frío. Pide una tanda nueva con la skill correo-en-frio.' }));
+    else {
+      kc.push(el('p', { class: 'sub', text: 'Hoy: ' + tc.enviadasHoy + ' de ' + tc.tamano + ' empresas' + (tc.faltan ? '.' : ' · ¡tanda completa!') +
+        ' En Gmail esperan ' + tc.correos + (tc.correos === 1 ? ' borrador' : ' borradores') + ' de ' + tc.grupos.length + (tc.grupos.length === 1 ? ' empresa.' : ' empresas.') }));
+      var bt = barraSeg('cia', Math.min(tc.enviadasHoy, tc.tamano), tc.tamano);
+      kc.push(bt);
+      var mostrar = verTodosCorreos ? tc.grupos : tc.tanda;
+      var ulc = el('ul', { class: 'lista' });
+      mostrar.forEach(function (g) {
+        var nota = (g.filas.filter(function (f) { return f.aviso; })[0] || {}).notas || '';
+        ulc.appendChild(el('li', null, [el('div', { class: 'fila' }, [
+          el('span', { class: g.aviso ? 'amb' : 'cia' }, [icono('correo', true)]),
+          el('div', { class: 'txt' }, [
+            el('div', { class: 't1', text: g.empresa }),
+            el('div', { class: 't2', text: g.filas.length + (g.filas.length === 1 ? ' borrador' : ' borradores') + (g.asunto ? ' · ' + g.asunto : '') }),
+            g.aviso ? el('div', { class: 'ef amb', text: '⚠ ' + (nota.length > 110 ? nota.slice(0, 107) + '…' : nota) }) : null,
+            el('div', { class: 'acc rejilla acciones mitad' }, [
+              el('a', { class: 'btn sec', href: enlaceBorradores(g.empresa), target: '_blank', rel: 'noopener', 'aria-label': 'Abrir en Gmail los borradores para ' + g.empresa },
+                [el('span', { text: 'Gmail' }), el('span', { 'aria-hidden': 'true', text: '↗' })]),
+              ESCRIBE ? el('button', { class: 'btn', type: 'button', onclick: function () { yaLosEnvie(g); }, 'aria-label': 'Ya envié los correos a ' + g.empresa }, [el('span', { text: 'Ya los envié' })]) : null,
+            ]),
+          ]),
+        ])]));
+      });
+      if (mostrar.length) kc.push(ulc);
+      if (tc.grupos.length > tc.tanda.length) {
+        kc.push(el('button', { class: 'btn ancho sec', type: 'button', 'aria-expanded': String(verTodosCorreos), onclick: function () { verTodosCorreos = !verTodosCorreos; verMisiones(); } },
+          [el('span', { text: verTodosCorreos ? 'Ver solo la tanda de hoy' : 'Ver las ' + tc.grupos.length + ' empresas con borradores' }), el('span', { 'aria-hidden': 'true', text: verTodosCorreos ? '▲' : '▼' })]));
+      }
+    }
+    var k2 = [cab('03', 'Seguimientos', 'h2', 'h-seg')];
     if (!segs.length) k2.push(el('p', { class: 'vacio', text: 'Nada pendiente del correo. El seguimiento corre a las 18:13.' }));
     var ul2 = el('ul', { class: 'lista' });
     segs.forEach(function (h) {
@@ -1549,8 +1636,8 @@ var ARTE = {
     var porDia = (m.vacantes && m.vacantes.porDia) || [];
     var maxV = Math.max.apply(null, porDia.map(function (x) { return x.n; }).concat([1]));
     porDia.forEach(function (x) { radar.appendChild(el('i', { style: 'height:' + Math.max(4, 100 * x.n / maxV) + '%', title: fecha(x.dia) + ': ' + x.n })); });
-    var k3 = [cab('03', 'Radar', 'h2', 'h-radar'), el('p', { text: NF.format((m.vacantes && m.vacantes.ultimos14) || 0) + ' vacantes encontradas en 14 días.' }), radar];
-    v.appendChild(el('div', { class: 'pagina cols' }, [filaDatos(), el('div', null, [panel(k1, '', { 'aria-labelledby': 'h-mun' })]),
+    var k3 = [cab('04', 'Radar', 'h2', 'h-radar'), el('p', { text: NF.format((m.vacantes && m.vacantes.ultimos14) || 0) + ' vacantes encontradas en 14 días.' }), radar];
+    v.appendChild(el('div', { class: 'pagina cols' }, [filaDatos(), el('div', null, [panel(k1, '', { 'aria-labelledby': 'h-mun' }), panel(kc, '', { 'aria-labelledby': 'h-frio' })]),
       el('div', null, [panel(k2, '', { 'aria-labelledby': 'h-seg' }), panel(k3, '', { 'aria-labelledby': 'h-radar' })])]));
   }
 
@@ -1790,7 +1877,8 @@ var ARTE = {
   var TABS = [['arena', 'Arena'], ['misiones', 'Misiones'], ['bitacora', 'Bitácora'], ['heroe', 'Héroe']];
   function pintarTabs() {
     var tl = $('tablist'); tl.textContent = '';
-    var pend = modelo ? (modelo.porEnviar || []).length + (modelo.acciones || []).slice(0, 10).length : 0;
+    var pend = modelo ? (modelo.porEnviar || []).length + (modelo.acciones || []).slice(0, 10).length +
+      tandaCorreos((modelo.correos && modelo.correos.lista) || [], modelo.hoy || '').faltan : 0;
     TABS.forEach(function (t) {
       var b = el('button', { id: 't-' + t[0], role: 'tab', type: 'button', 'aria-selected': String(pestana === t[0]), 'aria-controls': 'v-' + t[0], tabindex: pestana === t[0] ? '0' : '-1',
         onclick: function () { irA(t[0]); } }, [el('span', { class: 'rombo', 'aria-hidden': 'true' }), t[1]]);
