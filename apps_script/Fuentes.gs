@@ -31,8 +31,11 @@ function parseJobSpyJob(job) {
   return {
     title: job.titulo || '', company: job.empresa || '', location: job.ubicacion || (job.remoto ? 'Remoto' : ''),
     description: job.descripcion || '', snippet: '', link: job.enlace || '', postedAt: job.fecha || '',
-    source: ({ indeed: 'Indeed', linkedin: 'LinkedIn', google: 'Google Jobs' })[site] || site || 'JobSpy',
-    sourceBonus: known ? known.bonus : 0,
+    source: ({ indeed: 'Indeed', linkedin: 'LinkedIn', google: 'Google Jobs', elempleo: 'elempleo' })[site] || site || 'JobSpy',
+    sourceBonus: known ? known.bonus : site === 'elempleo' ? CONFIG.EXTRA_SOURCES.elempleo.bonus : 0,
+    // Nombre en la pestaña "Fuentes"; elempleo se busca en GitHub Actions desde el 27 oct 2026 (ahí ya se leyó su ficha)
+    origin: ({ indeed: 'Indeed (JobSpy)', linkedin: 'LinkedIn (JobSpy)', elempleo: 'elempleo (GitHub Actions)' })[site] || 'JobSpy (GitHub Actions)',
+    pageChecked: site === 'elempleo',
   };
 }
 
@@ -173,12 +176,19 @@ function searchEmailAlerts_() {
   const list = Gmail.Users.Messages.list('me', { q: cfg.query, maxResults: cfg.maxMessages });
   const messages = (list && list.messages) || [];
   const jobIds = {}, activityIds = {};
+  let unreadable = 0;
   messages.forEach(m => {
-    const full = Gmail.Users.Messages.get('me', m.id, { format: 'full' });
-    const links = alertLinksFromHtml(messageHtml_(full.payload));
+    let links;
+    try {
+      links = alertLinksFromHtml(messageHtml_(Gmail.Users.Messages.get('me', m.id, { format: 'full' }).payload));
+    } catch (e) {
+      unreadable++;  // Un correo que no se puede leer no detiene a los demás
+      return;
+    }
     links.jobIds.forEach(id => { jobIds[id] = true; });
     links.activityIds.forEach(id => { activityIds[id] = true; });
   });
+  if (unreadable) console.warn('Alertas de correo: ' + unreadable + ' de ' + messages.length + ' correos no se pudieron leer');
   const ids = Object.keys(jobIds).slice(0, cfg.maxJobs);
   const li = CONFIG.EXTRA_SOURCES.linkedin;
   const headers = { 'User-Agent': 'Mozilla/5.0', 'Accept-Language': 'es-CO,es;q=0.9,en;q=0.8' };
@@ -191,7 +201,7 @@ function searchEmailAlerts_() {
     if (d.closed || !d.title) return;
     jobs.push({ title: d.title, company: d.company, location: d.location, description: d.description, snippet: '',
                 link: 'https://www.linkedin.com/jobs/view/' + ids[i] + '/', postedAt: d.postedAgo || '',
-                source: 'LinkedIn (alerta por correo)', sourceBonus: li.bonus, id: ids[i] });
+                source: 'LinkedIn (alerta por correo)', sourceBonus: li.bonus, id: ids[i], pageChecked: true });
   });
   const kept = jobs.filter(v => acceptRoleTitle_(v) && isRecent(v.postedAt, CONFIG.MAX_POST_AGE_DAYS));
   const posts = Object.keys(activityIds).slice(0, cfg.maxPosts).map(id => ({
@@ -208,9 +218,23 @@ function searchEmailAlerts_() {
 /** HTML (o texto) de un mensaje de la API de Gmail, recorriendo sus partes. */
 function messageHtml_(payload) {
   if (!payload) return '';
-  const decode = data => Utilities.newBlob(Utilities.base64DecodeWebSafe(data)).getDataAsString();
-  if (payload.body && payload.body.data && /text\/(html|plain)/.test(payload.mimeType || '')) return decode(payload.body.data);
+  if (payload.body && payload.body.data && /text\/(html|plain)/.test(payload.mimeType || '')) return gmailBodyText_(payload.body.data);
   return (payload.parts || []).map(messageHtml_).join('\n');
+}
+
+/**
+ * Texto de body.data de la API de Gmail. El servicio avanzado de Apps Script lo puede entregar como bytes o como base64
+ * (web-safe y a veces sin relleno): base64DecodeWebSafe falló el 27 oct 2026 con "No se pudo descifrar la cadena".
+ */
+function gmailBodyText_(data) {
+  const bytes = Array.isArray(data) ? data : Utilities.base64Decode(normalizeBase64(data));
+  return Utilities.newBlob(bytes).getDataAsString('UTF-8');
+}
+
+/** Base64 estándar con relleno a partir de base64 web-safe o estándar, con o sin relleno y saltos de línea. */
+function normalizeBase64(text) {
+  const s = String(text || '').replace(/\s+/g, '').replace(/-/g, '+').replace(/_/g, '/').replace(/=+$/, '');
+  return s + '='.repeat((4 - s.length % 4) % 4);
 }
 
 /** Ids de vacantes (jobs/view/<id>) y de publicaciones (urn:li:activity:<id>) en el HTML de un correo de LinkedIn. */

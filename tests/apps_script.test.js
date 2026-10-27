@@ -102,6 +102,24 @@ context.UrlFetchApp = { fetchAll: reqs => reqs.map(r => ({ getResponseCode: () =
 const vigentes = context.verifyPostingDates_(Object.keys(paginas).map(link => ({ title: link, link: link, postedAt: '' })));
 assert.deepStrictEqual(vigentes.map(v => v.link), ['https://a.co/nueva', 'https://a.co/sinfecha']);
 assert.ok(vigentes[1].dateUnverified && !vigentes[0].dateUnverified);
+// Página ya leída al buscar (LinkedIn, elempleo, alertas): no se abre de nuevo. Sin tiempo: no se abre ninguna
+// (27 oct 2026: la búsqueda tardó más de 4 min y la corrida se cortó a los 6 sin crear carpetas)
+let abiertas = 0;
+context.UrlFetchApp = { fetchAll: reqs => { abiertas += reqs.length; return reqs.map(() => ({ getResponseCode: () => 200, getContentText: () => '' })); } };
+context.verifyPostingDates_([{ link: 'https://l.co/1', postedAt: haceDias(2), pageChecked: true }]);
+assert.strictEqual(abiertas, 0);
+const sinTiempo = context.verifyPostingDates_([{ link: 'https://x.co/1', postedAt: '' }, { link: 'https://x.co/2', postedAt: haceDias(2) }],
+                                             Date.now() - run("CONFIG.VERIFY_BUDGET_MS") - 1000);
+assert.strictEqual(abiertas, 0);
+assert.ok(sinTiempo.length === 2 && sinTiempo[0].dateUnverified && !sinTiempo[1].dateUnverified);
+assert.ok(run("CONFIG.SEARCH_BUDGET_MS") < run("CONFIG.VERIFY_BUDGET_MS") && run("CONFIG.TIME_BUDGET_MS") <= 5 * 60 * 1000);
+// elempleo (3 min desde Google) ya no se consulta en la corrida: llega en el JSON de GitHub Actions, con su ficha leída
+const fuentesSrc = fs.readFileSync(path.join(__dirname, '..', 'apps_script', 'Search.gs'), 'utf8');
+assert.ok(!fuentesSrc.includes('[searchElempleo_,'), 'elempleo se busca en GitHub Actions');
+const ee = context.parseJobSpyJob({ sitio: 'elempleo', titulo: 'Diseñador UX', empresa: 'X', ubicacion: 'Bogotá, Colombia',
+                                    enlace: 'https://www.elempleo.com/co/ofertas-trabajo/x/1', fecha: '2026-10-25' });
+assert.ok(ee.source === 'elempleo' && ee.origin === 'elempleo (GitHub Actions)' && ee.pageChecked && ee.sourceBonus === 3);
+assert.strictEqual(context.parseJobSpyJob({ sitio: 'indeed', enlace: 'https://co.indeed.com/viewjob?jk=1' }).origin, 'Indeed (JobSpy)');
 // Rotación diaria de búsquedas y publicaciones de LinkedIn
 const qpool = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 const d0 = context.pickDailyItems(qpool, 2, new Date(2026, 9, 19));
@@ -177,25 +195,7 @@ assert.strictEqual(liCards[0].link, 'https://www.linkedin.com/jobs/view/44807205
 const liDetail = context.parseLinkedInJobDetail('<div class="show-more-less-html__markup relative">Buscamos <b>UX</b><br>Figma</div>');
 assert.ok(/Buscamos UX/.test(liDetail.description) && /Figma/.test(liDetail.description) && !liDetail.closed);
 assert.ok(context.parseLinkedInJobDetail('<figure class="closed-job">No longer accepting applications</figure>').closed);
-// elempleo: fecha relativa, tarjetas y JSON-LD de la ficha
-const hoyEe = new Date('2026-10-26T15:00:00Z');
-assert.strictEqual(context.relativeDateEs('Hace 4 d&#237;as'.replace('&#237;', 'í'), hoyEe), '2026-10-22');
-assert.strictEqual(context.relativeDateEs('Hace 2 semanas', hoyEe), '2026-10-12');
-assert.strictEqual(context.relativeDateEs('Hace 1 mes', hoyEe), '2026-09-26');
-assert.strictEqual(context.relativeDateEs('Hace 3 horas', hoyEe), '2026-10-26');
-assert.strictEqual(context.relativeDateEs('Ayer', hoyEe), '2026-10-25');
-assert.strictEqual(context.relativeDateEs('sin fecha', hoyEe), null);
-const eeCards = context.parseElempleoList('<div class="result-list"><div class="col-md-12 result-item mb-3 bg-white"><div data-url="/co/ofertas-trabajo/disenador-ui-ux-1886783875" ' +
-  'data-ga4-offerdata="{&quot;id&quot;:1886783875,&quot;title&quot;:&quot;Dise&#241;ador ui/ux - hibrido&quot;,&quot;company&quot;:&quot;NOVATEC&quot;,&quot;location&quot;:&quot;Bogot&#225;&quot;}">' +
-  '<span>Hace 4 d&#237;as</span></div></div><div class="result-item mb-3">sin datos</div>', 'https://www.elempleo.com', hoyEe);
-assert.strictEqual(eeCards.length, 1);
-assert.strictEqual(eeCards[0].title, 'Diseñador ui/ux - hibrido');
-assert.strictEqual(eeCards[0].company, 'NOVATEC');
-assert.strictEqual(eeCards[0].location, 'Bogotá, Colombia');
-assert.strictEqual(eeCards[0].postedAt, '2026-10-22');
-assert.strictEqual(eeCards[0].link, 'https://www.elempleo.com/co/ofertas-trabajo/disenador-ui-ux-1886783875');
-const eeLd = context.parseJobPostingJsonLd('<script type="application/ld+json">{"@type":"JobPosting","datePosted":"2026-10-22","validThrough":"2026-12-21","description":"<p>Figma &amp; UX</p>"}</script>');
-assert.ok(eeLd.datePosted === '2026-10-22' && eeLd.validThrough === '2026-12-21' && eeLd.description === 'Figma & UX');
+// elempleo (fecha relativa, tarjetas y ficha) se prueba en tests/jobspy_test.py: se busca en GitHub Actions
 // Publicaciones de LinkedIn: la página pública trae el texto completo en su JSON-LD SocialMediaPosting (2026-10-26)
 const liPost = context.parseLinkedInPostPage('<script type="application/ld+json">{"@context":"http://schema.org","@type":"SocialMediaPosting",' +
   '"datePublished":"2026-10-15T08:07:24.932Z","author":{"@type":"Person","name":"Ana Gómez"},"articleBody":"HIRING! Remote UI/UX Designer. Escribe a talento@empresa.co"}</script>');
@@ -229,6 +229,10 @@ const al = context.alertLinksFromHtml('<a href="https://www.linkedin.com/comm/jo
   '<a href="https://www.linkedin.com/jobs/view/4480720588">dup</a><a href="https://www.linkedin.com/feed/update/urn%3Ali%3Aactivity%3A7516409382549766144">p</a>');
 assert.deepStrictEqual(Array.from(al.jobIds), ['4480720588']);
 assert.deepStrictEqual(Array.from(al.activityIds), ['7516409382549766144']);
+// Cuerpo de Gmail en base64 web-safe sin relleno (27 oct 2026: "No se pudo descifrar la cadena")
+assert.strictEqual(context.normalizeBase64('PGE-Pz8_'), 'PGE+Pz8/');
+assert.strictEqual(context.normalizeBase64('aGk'), 'aGk=');
+assert.strictEqual(context.normalizeBase64('aG\nk='), 'aGk=');
 const ljd = context.parseLinkedInJobDetail('<h1 class="top-card-layout__title topcard__title">UX/UI Designer</h1>' +
   '<a class="topcard__org-name-link topcard__flavor--black-link" href="#"> Softgic </a>' +
   '<span class="topcard__flavor topcard__flavor--bullet"> Bogotá, Colombia </span><span class="posted-time-ago__text"> 6 days ago </span>');

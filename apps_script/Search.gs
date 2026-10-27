@@ -3,7 +3,8 @@
  * - Motor Google Jobs: vacantes formales con DESCRIPCIÓN COMPLETA (LinkedIn, Indeed, Computrabajo, sitios de empresas...).
  * - Google Dorking en linkedin.com/posts: reclutadores que contratan por publicación (solo fragmento visible).
  */
-function searchUxJobs_() {
+function searchUxJobs_(startedAt) {
+  startedAt = startedAt || Date.now();
   const apiKey = getProp_(PROPS.SERPAPI_API_KEY);
   if (!apiKey) throw new Error('Falta la propiedad SERPAPI_API_KEY en Propiedades del script.');
 
@@ -34,10 +35,16 @@ function searchUxJobs_() {
                 (remote ? ', ' + (recent.length - usable.length) + ' no accesibles desde Colombia' : ''));
     usable.forEach(v => add(v, 'Google Jobs (SerpAPI)'));
   });
-  // Fuentes gratuitas; el nombre es el que aparece en la pestaña "Fuentes" del registro (conteo por corrida)
-  [[searchLinkedInJobs_, 'LinkedIn (búsqueda pública)'], [searchElempleo_, 'elempleo'], [searchJobSpy_, 'JobSpy (GitHub Actions)'],
-   [searchAtsBoards_, 'Portales de empresas objetivo'], [searchEmailAlerts_, 'Alertas de LinkedIn (correo)'],
-   [searchRemotive_, 'Remotive'], [searchGetOnBoard_, 'Get on Board'], [searchJobicy_, 'Jobicy']].forEach(([source, origin]) => {
+  // Fuentes gratuitas; el nombre es el que aparece en la pestaña "Fuentes" del registro (conteo por corrida). Van de la
+  // más rápida a la más lenta y, pasado SEARCH_BUDGET_MS, no se consultan más. elempleo (3 min desde Google el 27 oct
+  // 2026) ya no se busca aquí: llega en el JSON de GitHub Actions (tools/jobspy_buscar.py).
+  [[searchJobSpy_, 'JobSpy (GitHub Actions)'], [searchEmailAlerts_, 'Alertas de LinkedIn (correo)'],
+   [searchGetOnBoard_, 'Get on Board'], [searchRemotive_, 'Remotive'], [searchJobicy_, 'Jobicy'],
+   [searchLinkedInJobs_, 'LinkedIn (búsqueda pública)'], [searchAtsBoards_, 'Portales de empresas objetivo']].forEach(([source, origin]) => {
+    if (Date.now() - startedAt > CONFIG.SEARCH_BUDGET_MS) {
+      console.warn('Sin tiempo para ' + origin + ' en esta corrida (' + Math.round((Date.now() - startedAt) / 1000) + ' s de búsqueda)');
+      return;
+    }
     try {
       source().forEach(v => add(v, v.isPost || v.fromPost ? origin + ' · publicaciones' : origin, v.isPost || v.fromPost ? v.link : null));
     } catch (e) {
@@ -171,6 +178,7 @@ function searchLinkedInJobs_() {
     const d = parseLinkedInJobDetail(r.getContentText());
     kept[i].description = d.description || kept[i].description;
     kept[i].closed = d.closed;
+    kept[i].pageChecked = true;  // Ya se leyó su página: verifyPostingDates_ no la vuelve a abrir
   });
   const open = kept.filter(v => !v.closed);
   console.log('LinkedIn: ' + jobs.length + ' avisos de los últimos ' + CONFIG.MAX_POST_AGE_DAYS + ' días (' + failed + ' de ' + requests.length +
@@ -225,87 +233,6 @@ function parseLinkedInJobDetail(html) {
     location: field(/topcard__flavor topcard__flavor--bullet[^>]*>([\s\S]*?)<\/span>/),
     postedAgo: field(/posted-time-ago__text[^>]*>([\s\S]*?)<\/span>/),
   };
-}
-
-/**
- * elempleo.com: avisos de diseño en Colombia. La lista da cargo, empresa, ciudad y fecha relativa; la ficha de cada aviso
- * (JSON-LD JobPosting) da la fecha exacta, el vencimiento y la descripción completa.
- */
-function searchElempleo_() {
-  const cfg = CONFIG.EXTRA_SOURCES.elempleo;
-  const headers = { 'User-Agent': 'Mozilla/5.0', 'Accept-Language': 'es-CO,es;q=0.9' };
-  const today = new Date();
-  const byLink = {};
-  let failed = 0;
-  UrlFetchApp.fetchAll(cfg.queries.map(q => ({ url: cfg.searchUrl + encodeURIComponent(q), headers: headers, muteHttpExceptions: true })))
-    .forEach(r => {
-      if (r.getResponseCode() !== 200) { failed++; return; }
-      parseElempleoList(r.getContentText(), cfg.base, today).forEach(v => { byLink[v.link] = byLink[v.link] || v; });
-    });
-  const jobs = Object.keys(byLink).map(k => byLink[k]);
-  const kept = jobs.filter(v => acceptRoleTitle_(v) && isRecent(v.postedAt, CONFIG.MAX_POST_AGE_DAYS, today)).slice(0, cfg.maxDetails);
-  const details = kept.length
-    ? UrlFetchApp.fetchAll(kept.map(v => ({ url: v.link, headers: headers, muteHttpExceptions: true })))
-    : [];
-  details.forEach((r, i) => {
-    if (r.getResponseCode() === 404 || r.getResponseCode() === 410) { kept[i].closed = true; return; }
-    if (r.getResponseCode() !== 200) return;
-    const d = parseJobPostingJsonLd(r.getContentText());
-    if (d.datePosted) kept[i].postedAt = d.datePosted;
-    if (d.description) kept[i].description = d.description;
-    kept[i].closed = isExpired(d.validThrough, today) || !isRecent(kept[i].postedAt, CONFIG.MAX_POST_AGE_DAYS, today);
-  });
-  const open = kept.filter(v => !v.closed);
-  console.log('elempleo: ' + jobs.length + ' avisos (' + failed + ' de ' + cfg.queries.length + ' búsquedas fallaron), ' +
-              kept.length + ' de diseño recientes, ' + (kept.length - open.length) + ' vencidos o viejos según su ficha');
-  return open;
-}
-
-/** Fecha ISO a partir de "Hace 3 días", "Hace 2 semanas", "Hace 1 mes", "Ayer", "Hoy" (null si no se entiende). */
-function relativeDateEs(text, today) {
-  const t = String(text || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-  let days = null;
-  if (/\bhoy\b|hace \d+ (minuto|hora)s?|hace (un|una) (minuto|hora)/.test(t)) days = 0;
-  else if (/\bayer\b/.test(t)) days = 1;
-  else {
-    const m = t.match(/hace (\d+|un|una) (dia|semana|mes)/);
-    if (m) days = (/^\d+$/.test(m[1]) ? Number(m[1]) : 1) * ({ dia: 1, semana: 7, mes: 30 })[m[2]];
-  }
-  if (days === null) return null;
-  const d = new Date(today.getTime() - days * 86400000);
-  return d.toISOString().slice(0, 10);
-}
-
-/** Tarjetas de la lista de elempleo (datos del atributo data-ga4-offerdata y la fecha relativa). */
-function parseElempleoList(html, base, today) {
-  return String(html || '').split('result-item mb-3').slice(1).map(item => {
-    const data = (item.match(/data-ga4-offerdata="([^"]+)"/) || [])[1];
-    const url = (item.match(/data-url="([^"]+)"/) || [])[1];
-    if (!data || !url) return null;
-    let o;
-    try { o = JSON.parse(decodeHtml_(data).replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))); } catch (e) { return null; }
-    const rel = (item.match(/Hace [^<]{1,25}|\bAyer\b|\bHoy\b/) || [])[0];
-    return {
-      title: o.title || '', company: o.company || '', location: (o.location || '') + ', Colombia',
-      description: '', snippet: '', link: base + url, postedAt: relativeDateEs(decodeHtml_(rel).replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n))), today) || '',
-      source: 'elempleo', sourceBonus: CONFIG.EXTRA_SOURCES.elempleo.bonus,
-    };
-  }).filter(Boolean);
-}
-
-/** JSON-LD JobPosting de una página de aviso: fechas y descripción (texto). */
-function parseJobPostingJsonLd(html) {
-  const dates = extractJobPostingDates(html);
-  let description = '';
-  const blocks = String(html || '').match(/<script[^>]*application\/ld\+json[^>]*>[\s\S]*?<\/script>/g) || [];
-  blocks.forEach(b => {
-    try {
-      [].concat(JSON.parse(b.replace(/^<script[^>]*>|<\/script>$/g, ''))).forEach(x => {
-        if (x && /JobPosting/.test(String(x['@type'])) && x.description) description = stripHtml_(x.description);
-      });
-    } catch (e) { /* bloque JSON-LD inválido: se ignora */ }
-  });
-  return { datePosted: dates.posted, validThrough: dates.validThrough, description: description };
 }
 
 /** Rol de diseño UX/UI/producto (no diseño gráfico puro, no otros oficios). */
@@ -507,11 +434,16 @@ function hostOf_(link) {
  * "datePosted"/"validThrough" de su JobPosting (JSON-LD, el formato que Google Jobs exige a los portales).
  * Devuelve solo las vacantes vigentes (descarta las de enlace 404/410); marca dateUnverified en las que no se pudo verificar.
  */
-function verifyPostingDates_(vacancies) {
+function verifyPostingDates_(vacancies, startedAt) {
   // Se abre la página original de todas las vacantes formales (gratis): da la fecha si Google Jobs no la trajo y
   // permite descartar las que ya no reciben postulaciones (guía 2026-10-22: solo vacantes abiertas y verificadas).
-  const pending = vacancies.filter(v => !v.isPost && !v.fromPost);  // Las publicaciones ya se leyeron al buscarlas
-  if (pending.length) {
+  // Las publicaciones y los avisos cuya página ya se leyó al buscarlos (LinkedIn, elempleo, alertas) no se abren de nuevo.
+  const pending = vacancies.filter(v => !v.isPost && !v.fromPost && !v.pageChecked);
+  if (pending.length && startedAt && Date.now() - startedAt > CONFIG.VERIFY_BUDGET_MS) {
+    // Sin tiempo: no se abren las páginas; las que no traen fecha quedan "sin verificar" y la IA las revisa
+    console.warn('Sin tiempo para abrir las páginas de ' + pending.length + ' vacantes: quedan para la verificación de la IA');
+    pending.forEach(v => { if (!v.postedAt) v.dateUnverified = true; });
+  } else if (pending.length) {
     let responses = [];
     try {
       responses = UrlFetchApp.fetchAll(pending.map(v => ({ url: v.link, muteHttpExceptions: true, followRedirects: true })));

@@ -47,8 +47,9 @@ function ejecutarSimulacion() {
 
 function runPipeline_(opts) {
   console.log('--- Iniciando Pipeline Diario de Vacantes ---' + (opts.dryRun ? ' [SIMULACIÓN]' : ''));
+  const startedAt = Date.now();  // Todos los presupuestos de tiempo cuentan desde aquí (límite de 6 min de Apps Script)
 
-  const raw = opts.useSample ? SAMPLE_VACANCIES_ : searchUxJobs_();
+  const raw = opts.useSample ? SAMPLE_VACANCIES_ : searchUxJobs_(startedAt);
   console.log('1. Vacantes encontradas preliminarmente: ' + raw.length);
 
   // Deduplicación determinista ANTES de cualquier procesamiento
@@ -91,7 +92,7 @@ function runPipeline_(opts) {
                 (appliedHits.length ? ' (' + appliedHits.map(v => v.company + ' - ' + v.title).join(', ') + ')' : '') +
                 '; de empresas con carpeta pero otro cargo: ' + raw.filter(v => v.companyNote).length);
   }
-  if (!opts.useSample) fresh = verifyPostingDates_(fresh);
+  if (!opts.useSample) fresh = verifyPostingDates_(fresh, startedAt);
   const stats = { found: countByOrigin(raw), fresh: countByOrigin(fresh), created: {} };
   const logStats = () => {
     if (opts.dryRun || opts.useSample) return;
@@ -114,7 +115,6 @@ function runPipeline_(opts) {
 
   // Primero las vacantes formales (pasan a la IA), luego las publicaciones (proceso manual)
   selected.sort((a, b) => (a.vacancy.isPost ? 1 : 0) - (b.vacancy.isPost ? 1 : 0));
-  const startedAt = Date.now();
   const folderNames = vacancyFolderNames(selected.map(x => x.vacancy));
   const posts = [];
   selected.some((item, i) => {

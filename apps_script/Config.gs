@@ -97,16 +97,9 @@ const CONFIG = {
       roles: ['diseñador ux', 'diseñador ui', 'ux designer', 'ui ux designer', 'product designer', 'diseñador de producto'],
       queriesPerRun: 8, pauseMs: 1100,
     },
-    // elempleo.com (2026-10-26): portal colombiano con avisos server-side; la lista trae fecha relativa ("Hace 4 días") y
-    // cada aviso un JSON-LD JobPosting con datePosted, validThrough y la descripción completa. Indeed responde 401 sin
-    // sesión y Computrabajo casi solo trae diseño gráfico: no se usan.
-    elempleo: {
-      searchUrl: 'https://www.elempleo.com/co/ofertas-empleo/?trabajo=',
-      base: 'https://www.elempleo.com',
-      queries: ['diseñador ux', 'diseñador ui', 'product designer', 'diseñador de producto', 'experiencia de usuario'],
-      maxDetails: 30,
-      bonus: 3,
-    },
+    // elempleo.com (2026-10-26): desde el 27 oct 2026 se busca en GitHub Actions (tools/jobspy_buscar.py: desde Google
+    // tardaba 3 min) y llega en jobspy.json. Indeed responde 401 a Google y Computrabajo casi solo trae diseño gráfico.
+    elempleo: { bonus: 3 },
   },
   // Ubicaciones de vacantes remotas a las que se puede aplicar desde Colombia
   REACHABLE_REMOTE_LOCATION: /worldwide|anywhere|latam|latin|(?<!north )am[eé]ricas?\b|south america|colombia|global|international|(utc|gmt)\s*[-−]\s*0?[3-6]\b/i,
@@ -133,8 +126,13 @@ const CONFIG = {
   CLOSED_POST_PATTERN: /caducad|expirad|expired|cerrad|closed|ya no|we (got|found|have found) (the|our)|position (has been |is )?filled|no longer (hiring|accepting)|ya (contratamos|encontramos|cubrimos)|vacante (ocupada|cubierta)/i,
   LINKEDIN_POST_LOCATION_PATTERN: /remot|remote|latam|latinoam|am[eé]rica latina|colombia|bogot|medell|anywhere|work from home|home office/i,
   MAX_POST_AGE_DAYS: 21,  // Decisión del usuario 2026-10-19 (antes 14)
-  // Apps Script corta a los 6 min: se deja de crear vacantes a los 4 (las que falten se retoman en la próxima corrida)
-  TIME_BUDGET_MS: 4 * 60 * 1000,
+  // Apps Script corta a los 6 min, contados desde el inicio de la corrida. El 27 oct 2026 la búsqueda tardó más de 4
+  // (elempleo solo, 3) y se cortó antes de crear carpetas: desde entonces cada fase mira el reloj de toda la corrida.
+  // A los SEARCH_BUDGET_MS no se consultan más fuentes, la verificación de páginas solo corre si queda tiempo y las
+  // carpetas se dejan de crear a los TIME_BUDGET_MS (las que falten se retoman en la próxima corrida).
+  SEARCH_BUDGET_MS: 150 * 1000,
+  VERIFY_BUDGET_MS: 200 * 1000,
+  TIME_BUDGET_MS: 5 * 60 * 1000,
   // La publicación debe ser de un rol de diseño (evita "remote hiring" de otros oficios, p. ej. video annotation)
   LINKEDIN_POST_ROLE_PATTERN: /ux\s*\/\s*ui|ui\s*\/\s*ux|(ux|ui|product)\s+design|designer\s+(ux|ui)|dise[nñ]ador|design system|figma|ux research/i,
   // Si Google Jobs no trae la fecha, se lee "datePosted" de la página original (gratis, sin SerpAPI). Las que siguen

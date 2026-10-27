@@ -14,6 +14,7 @@ jobs:
           node-version: "20"
       - run: node tests/apps_script.test.js
       - run: node tests/juego.test.js
+      - run: python3 tests/jobspy_test.py
 
   # Publica el código probado en la rama "deploy", de donde Apps Script se actualiza cada día
   deploy:
