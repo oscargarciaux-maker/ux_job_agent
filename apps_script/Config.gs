@@ -204,7 +204,8 @@ const CONFIG = {
   FOLLOWUP_SHEET_NAME: 'Seguimiento',        // Skill seguimiento: una fila por hallazgo en el Gmail laboral
   // Tablero web para el coach (2026-10-25, Dashboard.gs): la interfaz se descarga de la rama deploy, como el código
   DASHBOARD_HTML_URL: 'https://raw.githubusercontent.com/oscargarciaux-maker/ux_job_agent/deploy/apps_script/dashboard.html',
-  DASHBOARD_WEEKLY_GOAL: 50,                 // Meta del usuario: ~50 postulaciones por semana
+  DASHBOARD_WEEKLY_GOAL: 50,                 // Meta del usuario: ~50 postulaciones por semana (en el juego: semana legendaria)
+  DASHBOARD_WEEKLY_SUBGOAL: 30,              // Submeta de cada semana (decisión del usuario 2026-10-27): con 30 se gana la semana
   // Caché de los datos del tablero (el Cargador la lee con este mismo nombre antes de descargar el agente)
   DASHBOARD_CACHE_KEY: 'dashboard_json',
   DASHBOARD_CACHE_SECONDS: 3900,
@@ -218,6 +219,7 @@ const PROPS = {
   SHEET_ID: 'GOOGLE_SHEET_ID',
   TEMPLATE_ID: 'GOOGLE_DOCS_MASTER_TEMPLATE_ID',
   DASHBOARD_KEY: 'DASHBOARD_KEY',   // Clave del enlace del tablero web (la crea configurarTablero)
+  DASHBOARD_WRITE_KEY: 'DASHBOARD_WRITE_KEY',  // Clave de escritura del juego (&e=), solo en el enlace de Oscar (Acciones.gs)
 };
 
 function getProp_(key) {

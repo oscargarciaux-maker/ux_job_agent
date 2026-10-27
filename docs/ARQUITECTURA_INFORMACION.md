@@ -95,7 +95,7 @@ juego, puede partir de aquí:
 
 ```js
 {
-  generado: "2026-10-25T11:05", hoy: "2026-10-25", meta: 50,
+  generado: "2026-10-25T11:05", hoy: "2026-10-25", meta: 50, submeta: 30,   // submeta: la que gana la semana (2026-10-27)
   postulaciones: {
     total, rechazada, proceso, sinRespuesta, aplicada, preparadas, tasaRespuesta,   // tasa en %
     semanas: [{ semana, desde, total, rechazada, proceso, sinRespuesta, aplicada }], // en orden; incluye las carpetas
@@ -108,7 +108,7 @@ juego, puede partir de aquí:
              lista: [{ empresa, para, fecha, asunto, hv, estado, respuesta, notas,
                        clave, dia, entregadas, rebotadas }] },  // clave: enviado|respondio|borrador; cada dirección cuenta en su primera fila
   vacantes: { ultimos14, porDia: [{ dia, n }] },                                     // 14 días
-  porEnviar: [{ fecha, empresa, cargo, verificacion, revision, carpeta, hv }],
+  porEnviar: [{ fecha, empresa, cargo, verificacion, revision, carpeta, hv, vacante }],   // vacante: enlace de Hoja 1 (2026-10-27)
   seguimiento: [{ fecha, empresa, cargo, hecho, fechaMensaje, antes, ahora, siguiente }], // últimos 40, recientes primero
   historial:   [ …mismos campos ],                                                      // completo, en orden cronológico (para el juego)
   objetivo: { total, porEstado: { <estado>: n } }
@@ -147,7 +147,9 @@ Valores al 2026-10-25, como referencia de escala: 89 postulaciones en 4 semanas 
 | Racha de días con envíos | `Aplicadas` (Creada) | día | sí (la calcula el motor del juego) |
 | Meta semanal (50) | `Config.gs` | — | sí (`meta`) |
 
-Todo es de **lectura**: el juego puede premiar lo que pasa en Drive, Gmail y el Sheet, pero no debe enviar nada ni
+Desde el 2026-10-27 el juego también **registra** lo que Oscar hizo (`apps_script/Acciones.gs`: «Ya la envié», «Descartar»,
+«Ya lo hice», «Me rechazaron», «Tengo prueba o entrevista»), solo con la clave de escritura de su enlace. Lo demás es de
+**lectura**: el juego puede premiar lo que pasa en Drive, Gmail y el Sheet, pero no debe enviar nada ni
 cambiar el estado de una postulación (regla de supervisión humana). Si una mecánica necesita que Oscar marque algo
 ("hice la prueba"), hay que agregar escritura explícita y avisarlo.
 

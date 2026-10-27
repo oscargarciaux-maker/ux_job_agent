@@ -101,7 +101,7 @@ function folderChildren_() {
     do {
       const res = Drive.Files.list({
         q: "mimeType = 'application/vnd.google-apps.folder' and trashed = false",
-        fields: 'nextPageToken, files(id, name, folderColorRgb, createdTime, parents)', pageSize: 1000, pageToken: pageToken,
+        fields: 'nextPageToken, files(id, name, folderColorRgb, createdTime, description, parents)', pageSize: 1000, pageToken: pageToken,
       });
       (res.files || []).forEach(f => (f.parents || []).forEach(p => { (byParent[p] = byParent[p] || []).push(f); }));
       pageToken = res.nextPageToken;
@@ -207,7 +207,8 @@ function collectAppliedFolders_(parentId, groupName, rows, inTest, weekName, chi
     const parsed = parseAppliedFolderName(f.name);
     rows.push({ id: f.id, group: groupName, company: parsed.company, title: parsed.title,
                 status: test ? 'Preparada, sin enviar' : colorToStatus(f.folderColorRgb), color: f.folderColorRgb,
-                created: localDay(f.createdTime, tz_()), week: weekName || groupName });
+                // Fecha de envío: la que deja «Ya la envié» del juego (2026-10-27); si no, la creación de la carpeta
+                created: sentDayFromDescription(f.description) || localDay(f.createdTime, tz_()), week: weekName || groupName });
   });
 }
 
@@ -240,7 +241,7 @@ function listChildFolders_(parentId) {
   do {
     const res = Drive.Files.list({
       q: "'" + parentId + "' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false",
-      fields: 'nextPageToken, files(id, name, folderColorRgb, createdTime)', pageSize: 1000, pageToken: pageToken,
+      fields: 'nextPageToken, files(id, name, folderColorRgb, createdTime, description)', pageSize: 1000, pageToken: pageToken,
     });
     (res.files || []).forEach(f => out.push(f));
     pageToken = res.nextPageToken;

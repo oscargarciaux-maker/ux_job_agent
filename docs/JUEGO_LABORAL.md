@@ -299,6 +299,15 @@ Hay dos capas: las métricas reales, que nunca se maquillan, y las stats del jue
 | Resiliencia | 0 en adelante | +1 por cada rechazo | Nunca baja | Héroe |
 | Racha | Días seguidos | Cada día con al menos 1 envío | Un día sin envíos la reinicia (los fines de semana no cuentan) | Barra de estado |
 
+### Submeta de 30 y semana legendaria (decidido el 27 oct)
+
+Con la meta de 50 el jefe sobrevivió las cuatro primeras semanas (13, 23, 24 y 29 HV) aunque el ritmo subía: una meta que nunca se cumple desmotiva. Desde el 27 oct:
+
+- **Submeta de la semana: 30** (`submeta` en el JSON, `DASHBOARD_WEEKLY_SUBGOAL`). El HP del jefe es exactamente 30 menos las HV reales de la semana; con 30 queda KO y la semana se gana.
+- **Meta grande: 50** (`meta`). Al llegar a 50 la semana es **legendaria** (efecto `legendaria`, modal grande, +150 XP); entre 30 y 50 el panel y el jefe dicen cuántas faltan.
+- **Ritmo** (`ritmoSemana`, con pruebas): bajo «HV esta semana», cuántas HV por día hábil faltan para ganar la semana y con cuántas cerrarías al ritmo de los días anteriores. La semana dura 7 días desde que se creó su carpeta y solo cuentan los días hábiles.
+- La regla de honestidad no cambia: cada punto de HP es una HV real que falta.
+
 ### Stats del Reclutador (jefe semanal)
 
 | Stat | Valor | Comportamiento |
@@ -519,6 +528,16 @@ Las stats del juego (HP, XP, nivel, Resiliencia, Poder) no se guardan: se recalc
 | Fecha del cambio de estado (respuesta o rechazo) | Ubicar golpes críticos y ataques en el tiempo | `Seguimiento` (Fecha del mensaje) |
 | Identificador estable por evento | Saber qué eventos ya se vieron | Se puede derivar de empresa, cargo, estado y fecha |
 | Envíos por día | Racha | Calculable desde `Creada` |
+
+### Acciones que escriben (decidido el 27 oct)
+
+El principio 6 («Solo lectura») cambia con permiso del usuario: el juego **registra** lo que Oscar ya hizo, nunca envía nada.
+
+- **Misiones, cada HV lista:** enlaces Vacante ↗ (de `Hoja 1`), HV ↗ y Carpeta en una fila; **Ya la envié** y **Descartar** en otra. «Ya la envié» mueve la carpeta de `Sin revisar` a `CV/<semana actual>` (la de número más alto) y deja en su descripción el día de envío real, que la sincronización usa como fecha de la HV. «Descartar» pide el motivo, manda la carpeta a la papelera (recuperable) y lo anota en `Hoja 1`.
+- **Misiones, cada seguimiento** y **ficha de la vacante:** «Ya lo hice» (fila en `Seguimiento` que pasa la acción a «Esperar respuesta»), «Tengo prueba o entrevista» (carpeta verde) y «Me rechazaron» (carpeta roja), con una fila en `Seguimiento` cuya fuente es «Oscar (desde el juego)».
+- **Siempre se confirma** en un modal; nada se mueve con un toque accidental. Al terminar, el juego recibe el JSON actualizado y reproduce el golpe (o el rechazo) en la arena.
+- **Permisos:** además de la clave del enlace (`k`), cada acción exige la clave de escritura (`&e=`, propiedad `DASHBOARD_WRITE_KEY`, la crea `configurarTablero`). El enlace del coach no la lleva y `&modo=coach` nunca muestra los botones. Apps Script solo toca carpetas dentro de `Sin revisar` o `CV/` y escribe celdas sin fórmulas (`safeCell`).
+- Código: `apps_script/Acciones.gs` (`dashboardAction_`, con pruebas de `sentDescription`, `pickCurrentWeek`, `followupRow`, `safeCell`), `vacancyLinkFor` en `Dashboard.gs`.
 
 ### Frescura de los datos (decidido el 26 oct)
 

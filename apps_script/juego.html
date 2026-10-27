@@ -261,6 +261,12 @@ button.fila:focus-visible { outline: 2px solid var(--cian); outline-offset: -2px
 .fila .t2 { font-size: 14px; color: var(--texto-2); overflow-wrap: anywhere; }
 .fila .ef { font-family: var(--f-num); font-size: 14px; margin-top: 2px; }
 .fila > .ico { margin-top: 4px; }
+.fila .acc { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.fila .acc .btn { min-height: 44px; padding: 0 12px; gap: 6px; letter-spacing: .04em; }
+/* Munición: enlaces en una fila y acciones en otra, a lo ancho (2026-10-27) */
+.fila .acc.rejilla { display: grid; grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); }
+.fila .acc.rejilla .btn { justify-content: center; padding: 0 8px; }
+.fila .acc.acciones { grid-template-columns: 2fr 1fr; margin-top: 6px; }
 .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
 .chips .btn { padding: 0 12px; }
 select.sel { min-height: 48px; padding: 0 12px; background: var(--panel); color: var(--texto); border: 1px solid var(--linea); font: 600 14px var(--f-ui); letter-spacing: .04em; }
@@ -406,8 +412,10 @@ html.reducido .num { transform: translateX(-50%); }
 // historial completo, así Oscar y el coach ven lo mismo en cualquier dispositivo (docs/JUEGO_LABORAL.md, secciones 5 y 6).
 
 var REGLAS = {
-  META: 50, HP_INICIAL: 100, HP_MAX: 100, HP_MIN: 1, PODER_MAX: 30,
-  XP: { hv: 10, ko: 100, proceso: 50, rechazo: 5, correo: 5, aliado: 30 },
+  // META: la meta grande (50, «semana legendaria»); SUBMETA: la meta de cada semana, la que derrota al jefe (30, decisión del
+  // usuario 2026-10-27: con 50 el jefe sobrevivía todas las semanas aunque el ritmo subía de 13 a 29)
+  META: 50, SUBMETA: 30, HP_INICIAL: 100, HP_MAX: 100, HP_MIN: 1, PODER_MAX: 30,
+  XP: { hv: 10, ko: 100, legendaria: 150, proceso: 50, rechazo: 5, correo: 5, aliado: 30 },
   HP: { pocion: 15, proceso: 20, semanaNueva: 20, rechazoBase: 8, rebote: 3, aliado: 10 },
   POCIONES: [10, 20, 40], AVALANCHA: 30, COMBOS: [3, 6, 9], MAX_MODALES: 5,
 };
@@ -433,8 +441,8 @@ var LOGROS = [
 
 // Tamaño de presentación de cada efecto (sección 7)
 var TAMANO = { hv: 'dialogo', correo: 'dialogo', rebote: 'dialogo', semanaNueva: 'pequeno', pocion: 'pequeno', combo: 'pequeno',
-  rechazo: 'mediano', proceso: 'grande', aliado: 'grande', avalancha: 'grande', ko: 'grande', nivel: 'grande', logro: 'grande' };
-var BUENAS = { proceso: 1, aliado: 1, avalancha: 1, ko: 1, nivel: 1, logro: 1, pocion: 1, combo: 1, hv: 1, correo: 1 };
+  rechazo: 'mediano', proceso: 'grande', aliado: 'grande', avalancha: 'grande', ko: 'grande', legendaria: 'grande', nivel: 'grande', logro: 'grande' };
+var BUENAS = { proceso: 1, aliado: 1, avalancha: 1, ko: 1, legendaria: 1, nivel: 1, logro: 1, pocion: 1, combo: 1, hv: 1, correo: 1 };
 
 /**
  * El juego empezó en la Tercera semana y su jefe es el primero de la lista, el único con arte: se queda la Tercera y la
@@ -474,6 +482,24 @@ function minutosDesde(generado, ahoraMs) {
   return Math.floor((ahoraMs - Date.parse(m[1] + 'T' + m[2] + ':00-05:00')) / 60000);
 }
 
+/**
+ * Ritmo de la semana (2026-10-27): la semana es la carpeta de CV/ y dura 7 días desde `desde`; solo cuentan los días
+ * hábiles. Devuelve cuántas HV por día hacen falta para llegar a `meta` (contando hoy) y, si ya pasó al menos un día hábil,
+ * con cuántas cerrarías la semana al ritmo de los días anteriores.
+ */
+function ritmoSemana(hv, meta, desde, hoy) {
+  desde = diaValido(desde); hoy = diaValido(hoy);
+  if (!desde || !hoy || hoy < desde) return null;
+  var dias = [], d = desde;
+  for (var i = 0; i < 7; i++) { if (!esFinDeSemana(d)) dias.push(d); d = diaSiguiente(d); }
+  if (hoy > d) return null;  // la semana ya terminó: no hay ritmo que calcular
+  var antes = dias.filter(function (x) { return x < hoy; }).length;
+  var quedan = dias.filter(function (x) { return x >= hoy; }).length;
+  var faltan = Math.max(0, meta - hv);
+  return { faltan: faltan, quedan: quedan, porDia: quedan ? Math.ceil(faltan / quedan) : faltan,
+    proyeccion: antes ? Math.round(hv + hv / antes * quedan) : null };
+}
+
 /** Daño de un rechazo con rendimientos decrecientes por Resiliencia (con 10, quita 4 en vez de 8). */
 function golpeRechazo(resiliencia) { return Math.max(2, Math.round(REGLAS.HP.rechazoBase * 10 / (10 + resiliencia))); }
 
@@ -491,6 +517,7 @@ function multiplicadorRacha(racha) { return Math.min(1.5, 1 + 0.1 * Math.floor(r
 
 function diaValido(d) { var m = /^\d{4}-\d{2}-\d{2}/.exec(String(d || '')); return m ? m[0] : ''; }
 function esFinDeSemana(dia) { var w = new Date(dia + 'T12:00:00Z').getUTCDay(); return w === 0 || w === 6; }
+function diaSiguiente(dia) { var d = new Date(dia + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + 1); return d.toISOString().slice(0, 10); }
 function diaAnterior(dia) { var d = new Date(dia + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() - 1); return d.toISOString().slice(0, 10); }
 
 /**
@@ -654,10 +681,12 @@ function construirEventos(m) {
 
 /**
  * Recorre los eventos en orden y devuelve el estado final y cada efecto (con el estado después de aplicarlo).
- * Regla de honestidad: el HP del Reclutador de cada semana es la meta menos las HV reales de esa semana.
+ * Regla de honestidad: el HP del jefe de cada semana es la meta de la semana (la submeta, 30) menos las HV reales de esa
+ * semana; al llegar a 30 queda KO (semana ganada) y desde ahí cuenta lo que falta para la meta grande (50, semana legendaria).
  */
 function simular(eventos, m) {
-  var meta = (m && m.meta) || REGLAS.META;
+  var metaGrande = (m && m.meta) || REGLAS.META;
+  var meta = Math.min((m && m.submeta) || REGLAS.SUBMETA, metaGrande);
   var hoy = diaValido(m && m.hoy) || '';
   var nSemanas = Math.max(((m && m.postulaciones && m.postulaciones.semanas) || []).length, 1);
   var est = { hp: REGLAS.HP_INICIAL, xp: 0, resiliencia: 0, procesos: 0, rechazos: 0, hvTotal: 0, correosEntregados: 0, aliados: 0 };
@@ -718,6 +747,7 @@ function simular(eventos, m) {
       }
       if (W.hv === REGLAS.AVALANCHA && !W.avalancha) { W.avalancha = true; efecto(e, 'avalancha', { hp: 0, xp: 0 }, { hvSemana: W.hv }); }
       if (W.hv === meta && !W.ko) { W.ko = true; efecto(e, 'ko', { hp: 0, xp: xp(REGLAS.XP.ko) }, { hvSemana: W.hv, jefe: jefeDe(e.semana) }); }
+      if (W.hv === metaGrande && metaGrande > meta) efecto(e, 'legendaria', { hp: 0, xp: xp(REGLAS.XP.legendaria) }, { hvSemana: W.hv, jefe: jefeDe(e.semana) });
       if (e.dia && REGLAS.COMBOS.indexOf(r) !== -1 && !comboAnunciado[e.dia]) {
         comboAnunciado[e.dia] = true;
         efecto(e, 'combo', { hp: 0, xp: 0 }, { racha: r, multiplicador: multiplicadorRacha(r), marca: r });
@@ -755,13 +785,15 @@ function simular(eventos, m) {
       hp: est.hp, xp: est.xp, nivel: nv.nivel, xpNivel: nv.resto, xpNecesita: nv.necesita, resiliencia: est.resiliencia,
       poder: semanas[actual].poder, avalancha: semanas[actual].avalancha, semanaActual: actual,
       reclutadorHp: Math.max(0, meta - semanas[actual].hv), meta: meta, ko: semanas[actual].ko,
+      metaLegendaria: metaGrande, faltanLegendaria: Math.max(0, metaGrande - semanas[actual].hv),
       jefe: jefeDe(actual), numero: numeros[actual], racha: hoy ? racha(diasEnvio, hoy) : 0,
       aturdido: !!ultimoProceso && !!hoy && (ultimoProceso === hoy || ultimoProceso === diaAnterior(hoy)),
       burla: hoy ? diasSinEnvio(diasEnvio, hoy) >= 2 : false,
       semanasGanadas: semanas.filter(function (w) { return w.ko; }).length,
       logros: logros,
       semanas: semanas.map(function (w, i) {
-        return { nombre: nombres[i] || 'Semana ' + numeros[i], numero: numeros[i], jefe: jefeDe(i), hv: w.hv, reclutadorHp: Math.max(0, meta - w.hv), ko: w.ko, avalancha: w.avalancha };
+        return { nombre: nombres[i] || 'Semana ' + numeros[i], numero: numeros[i], jefe: jefeDe(i), hv: w.hv, reclutadorHp: Math.max(0, meta - w.hv), ko: w.ko,
+          legendaria: w.hv >= metaGrande, avalancha: w.avalancha };
       }),
     },
     efectos: efectos,
@@ -969,6 +1001,8 @@ var ARTE = {
     var i = kv.indexOf('='); if (i > 0) params[decodeURIComponent(kv.slice(0, i))] = decodeURIComponent(kv.slice(i + 1));
   });
   var MODO_COACH = params.modo === 'coach';
+  // Acciones que escriben (2026-10-27): solo con la clave de escritura del enlace de Oscar (&e=) y nunca en modo coach
+  var ESCRIBE = !!params.e && !MODO_COACH;
   var CLAVE = 'juego:' + (params.api || 'sin-api');
   var modelo = null, resultado = null, mostrado = null, pestana = 'arena', replayActivo = false;
   var URL_DATOS = '', sincronizando = false, avisoDatos = '', tonoDatos = '';
@@ -1309,16 +1343,21 @@ var ARTE = {
     abrirModal({ tamano: 'mediano', tono: 'cia', cabecera: 'Archivo', titulo: titulo, nodos: [filas.length ? ul : el('p', { class: 'vacio', text: vacio || 'No hay nada aquí todavía.' })] });
   }
   function verPanel() {
-    var m = modelo, P = m.postulaciones, sem = P.semanas[P.semanas.length - 1] || { total: 0, semana: '' }, meta = m.meta || 50;
+    var m = modelo, P = m.postulaciones, sem = P.semanas[P.semanas.length - 1] || { total: 0, semana: '' }, E = resultado.estado, meta = E.meta;
     var p = $('panel'); p.textContent = '';
     p.appendChild(filaDatos());
-    var faltan = Math.max(0, meta - sem.total);
+    // Submeta de 30 (gana la semana) y meta grande de 50 (semana legendaria), con el ritmo que hace falta (2026-10-27)
+    var faltan = Math.max(0, meta - sem.total), r = ritmoSemana(sem.total, meta, sem.desde, m.hoy);
+    var texto = faltan
+      ? 'Faltan ' + faltan + ' para ganar la semana (el HP del jefe)' + (r && r.quedan ? ': unas ' + r.porDia + ' HV por día, quedan ' + r.quedan + (r.quedan === 1 ? ' día hábil.' : ' días hábiles.') : '.')
+      : E.faltanLegendaria ? '¡Semana ganada! Para la semana legendaria (' + E.metaLegendaria + ') faltan ' + E.faltanLegendaria + '.' : '★ ¡Semana legendaria! ' + sem.total + ' HV.';
     p.appendChild(panel([
       cab('01', 'HV esta semana'),
       el('div', { class: 'big' }, [el('span', { class: 'n' }, [String(sem.total), el('small', { text: ' / ' + meta })]), el('span', { class: 'meta', 'aria-hidden': 'true', text: String(sem.semana || '').toUpperCase() })]),
       barraSeg('cia', sem.total, meta, true),
-      el('p', { class: 'sub', text: faltan ? 'Faltan ' + faltan + ' para la meta: es el HP del jefe. Cada bloque son 5 HV.' : '¡Meta cumplida! El jefe está KO.' }),
-    ], 'todo', { 'aria-label': 'HV esta semana: ' + sem.total + ' de ' + meta }));
+      el('p', { class: 'sub', text: texto }),
+      faltan && r && r.proyeccion != null ? el('p', { class: 'sub', text: 'A este ritmo cierras con ' + r.proyeccion + '. Meta grande: ' + E.metaLegendaria + '.' }) : null,
+    ], 'todo', { 'aria-label': 'HV esta semana: ' + sem.total + ' de ' + meta + '. ' + texto }));
     var lista = P.lista || [];
     var de = function (clave) { return lista.filter(function (a) { return a.clave === clave; }).map(function (a) { return { t1: a.empresa, t2: (a.cargo || 'Sin cargo') + ' · ' + a.semana + (a.estadoFecha ? ' · ' + fecha(a.estadoFecha) : ''), url: a.carpeta }; }); };
     var respondieron = P.proceso + P.rechazada;
@@ -1403,6 +1442,68 @@ var ARTE = {
   function reloj() { $('reloj').textContent = 'NEO-BOGOTÁ · ' + horaBogota(); }
   reloj(); setInterval(reloj, 20000);
 
+  // ===================== ACCIONES (2026-10-27): registrar lo que Oscar ya hizo, sin salir a Drive =====================
+  function idCarpeta(url) { var m = /folders\/([\w-]{10,})/.exec(String(url || '')); return m ? m[1] : ''; }
+  var MENSAJE_ERROR = { escritura: 'Tu enlace no tiene permiso para cambiar cosas (le falta la clave de escritura).' };
+  /** Manda la acción a Apps Script; con la respuesta (el JSON ya actualizado) repinta y reproduce lo nuevo. */
+  function accionJuego(datos, listo) {
+    if (!ESCRIBE || sincronizando || replayActivo || !URL_DATOS) return;
+    sincronizando = true; avisoDatos = 'Registrando en Drive…'; tonoDatos = 'cia'; pintarDatos();
+    anunciar('Registrando en Drive.');
+    var q = Object.keys(datos).map(function (k) { return '&' + k + '=' + encodeURIComponent(datos[k] == null ? '' : datos[k]); }).join('');
+    fetch(URL_DATOS + '&fresco=1' + q + '&e=' + encodeURIComponent(params.e), { credentials: 'omit' }).then(function (r) { return r.json(); })
+      .then(function (d) {
+        sincronizando = false;
+        if (d && d.error === 'clave') return bloqueado();
+        if (d && d.error) throw new Error(MENSAJE_ERROR[d.error] || ('No se pudo: ' + (d.detalle || d.error)));
+        if (!d || !d.postulaciones) throw new Error('No se pudo registrar. Revisa la conexión.');
+        guardar(CLAVE + ':modelo', d);
+        avisoDatos = ''; tonoDatos = '';
+        anunciar(listo);
+        pintarTodo(d, null, true);
+      })
+      .catch(function (err) {
+        sincronizando = false; avisoDatos = err.message || 'No se pudo registrar.'; tonoDatos = 'mag'; pintarDatos(); anunciar(avisoDatos);
+      });
+  }
+  /** Paso de confirmación: nada se mueve con un toque accidental. `extra`: nodos opcionales (p. ej. motivos). */
+  function confirmar(titulo, texto, boton, alConfirmar, extra, tono) {
+    var abrir = function () {
+      abrirModal({ tamano: 'mediano', tono: tono || 'cia', cabecera: 'Confirmar', titulo: titulo,
+        nodos: [el('p', { text: texto })].concat(extra || []),
+        botones: [el('button', { class: 'btn ancho continuar', type: 'button', onclick: function () { alCerrar = null; cerrarModal(); setTimeout(alConfirmar, 0); } },
+          [el('span', { text: boton }), el('span', { 'aria-hidden': 'true', text: '▶' })]), botonContinuar('Cancelar')] });
+    };
+    if (modal.open) { alCerrar = null; cerrarModal(); setTimeout(abrir, 0); } else abrir();
+  }
+  function semanaActualNombre() { var w = modelo.postulaciones.semanas; return w.length ? w[w.length - 1].semana : 'la semana actual'; }
+  function yaLaEnvie(p) {
+    confirmar('¿Ya la enviaste?', 'La carpeta de ' + p.empresa + ' pasa a CV/' + semanaActualNombre() + ' con la fecha de hoy y el jefe recibe el golpe. Nada se envía desde aquí.',
+      'Sí, ya la envié', function () { accionJuego({ accion: 'enviada', id: idCarpeta(p.carpeta) }, 'HV de ' + p.empresa + ' registrada.'); });
+  }
+  function descartar(p) {
+    var motivos = ['Ya no está abierta', 'No encaja con mi perfil', 'Pide inglés avanzado', 'Pide más experiencia', 'Otro motivo'], elegido = motivos[0];
+    var grupo = el('div', { class: 'chips', role: 'group', 'aria-label': 'Motivo' });
+    motivos.forEach(function (mo) {
+      grupo.appendChild(el('button', { class: 'btn', type: 'button', 'aria-pressed': String(mo === elegido), text: mo, onclick: function (e) {
+        elegido = mo; Array.prototype.forEach.call(grupo.children, function (b) { b.setAttribute('aria-pressed', String(b === e.currentTarget)); });
+      } }));
+    });
+    confirmar('¿Descartar ' + p.empresa + '?', 'La carpeta va a la papelera de Drive (se puede recuperar) y Hoja 1 guarda el motivo.', 'Descartar',
+      function () { accionJuego({ accion: 'descartar', id: idCarpeta(p.carpeta), motivo: elegido }, p.empresa + ' descartada.'); }, [grupo], 'mag');
+  }
+  function yaLoHice(h) {
+    confirmar('¿Ya lo hiciste?', '«' + h.siguiente + '» (' + h.empresa + ') queda como hecha y Seguimiento pasa a «Esperar respuesta».',
+      'Sí, ya lo hice', function () { accionJuego({ accion: 'hecho', empresa: h.empresa, cargo: h.cargo || '', que: h.siguiente, estado: h.ahora || '' }, 'Acción cerrada.'); });
+  }
+  function cambiarEstado(a, nuevo) {
+    var rech = nuevo === 'rechazada';
+    confirmar(rech ? '¿Te rechazaron?' : '¿Tienes prueba o entrevista?',
+      (rech ? 'La carpeta de ' + a.empresa + ' se pinta de rojo' : 'La carpeta de ' + a.empresa + ' se pinta de verde') + ' y Seguimiento guarda que lo registraste hoy.',
+      rech ? 'Sí, me rechazaron' : 'Sí, tengo prueba o entrevista',
+      function () { accionJuego({ accion: nuevo, id: idCarpeta(a.carpeta), estado: a.estado || '' }, 'Estado de ' + a.empresa + ' actualizado.'); }, null, rech ? 'mag' : 'cia');
+  }
+
   function verMisiones() {
     var m = modelo, v = $('v-misiones'); v.textContent = '';
     var hoy = m.hoy || '';
@@ -1421,8 +1522,16 @@ var ARTE = {
           el('div', { class: 't1', text: p.empresa }),
           el('div', { class: 't2', text: (p.cargo || 'Sin cargo') + ' · lista hace ' + dias + (dias === 1 ? ' día' : ' días') }),
           el('div', { class: 'ef' }, [el('span', { class: lista ? 'verde' : 'amb', text: lista ? '✔ Lista' : '! Revisar' }), dias > 3 ? el('span', { class: 'amb', text: '  · ¡Se enfría!' }) : null]),
+          el('div', { class: 'acc rejilla' }, [
+            safeUrl(p.vacante) ? el('a', { class: 'btn sec', href: safeUrl(p.vacante), target: '_blank', rel: 'noopener', 'aria-label': 'Abrir la vacante de ' + p.empresa }, [el('span', { text: 'Vacante' }), el('span', { 'aria-hidden': 'true', text: '↗' })]) : null,
+            safeUrl(p.hv) ? el('a', { class: 'btn sec', href: safeUrl(p.hv), target: '_blank', rel: 'noopener', 'aria-label': 'Abrir la HV para ' + p.empresa }, [el('span', { text: 'HV' }), el('span', { 'aria-hidden': 'true', text: '↗' })]) : null,
+            safeUrl(p.carpeta) ? el('a', { class: 'btn sec', href: safeUrl(p.carpeta), target: '_blank', rel: 'noopener', 'aria-label': 'Abrir la carpeta de ' + p.empresa }, [icono('carpeta'), el('span', { text: 'Carpeta' })]) : null,
+          ]),
+          ESCRIBE && idCarpeta(p.carpeta) ? el('div', { class: 'acc rejilla acciones' }, [
+            el('button', { class: 'btn', type: 'button', onclick: function () { yaLaEnvie(p); }, 'aria-label': 'Ya envié la HV a ' + p.empresa }, [el('span', { text: 'Ya la envié' })]),
+            el('button', { class: 'btn sec', type: 'button', onclick: function () { descartar(p); }, 'aria-label': 'Descartar ' + p.empresa }, [el('span', { text: 'Descartar' })]),
+          ]) : null,
         ]),
-        safeUrl(p.carpeta) ? el('a', { class: 'btn sec', href: safeUrl(p.carpeta), target: '_blank', rel: 'noopener', 'aria-label': 'Abrir la carpeta de ' + p.empresa }, [el('span', { text: 'Abrir' }), icono('carpeta')]) : null,
       ])]));
     });
     if (mun.length) k1.push(ul);
@@ -1432,7 +1541,8 @@ var ARTE = {
     segs.forEach(function (h) {
       ul2.appendChild(el('li', null, [el('div', { class: 'fila' }, [el('span', { class: 'amb' }, [icono('reloj', true)]),
         el('div', { class: 'txt' }, [el('div', { class: 't1', text: h.siguiente }), el('div', { class: 't2', text: h.empresa + (h.cargo ? ' · ' + h.cargo : '') + ' · ' + fecha(h.fechaMensaje || h.fecha) }),
-          h.plazo ? el('div', { class: 'ef amb', text: 'Plazo: ' + h.plazo }) : null])])]));
+          h.plazo ? el('div', { class: 'ef amb', text: 'Plazo: ' + h.plazo }) : null,
+          ESCRIBE ? el('div', { class: 'acc' }, [el('button', { class: 'btn', type: 'button', onclick: function () { yaLoHice(h); }, 'aria-label': 'Ya hice: ' + h.siguiente + ' (' + h.empresa + ')' }, [el('span', { text: 'Ya lo hice' })])]) : null])])]));
     });
     if (segs.length) k2.push(ul2);
     var radar = el('div', { class: 'radar', 'aria-hidden': 'true' });
@@ -1472,7 +1582,8 @@ var ARTE = {
   function nombreSemana(w) { return w.numero ? 'Semana ' + dos(w.numero) : 'Antiguas'; }
   function resultadoJefe(w) {
     var meta = resultado.estado.meta;
-    if (w.ko) return { texto: '★ Jefe vencido: ' + w.hv + ' HV', clase: 'amb' };
+    var leg = resultado.estado.semanas[w.indice] && resultado.estado.semanas[w.indice].legendaria;
+    if (w.ko) return { texto: (leg ? '★★ Semana legendaria: ' : '★ Jefe vencido: ') + w.hv + ' HV', clase: 'amb' };
     if (w.actual) return { texto: 'En curso: faltan ' + Math.max(0, meta - w.hv) + ' HV', clase: 'cia' };
     return { texto: 'Sobrevivió con ' + Math.max(0, meta - w.hv) + ' HP', clase: '' };
   }
@@ -1605,6 +1716,9 @@ var ARTE = {
         acc ? el('p', { class: 'amb' }, ['▶ Pendiente: ' + acc]) : null, ol],
       efectos: efs,
       botones: [revivir ? el('button', { class: 'btn ancho', type: 'button', onclick: function () { repetir(revivir); } }, [el('span', { text: 'Ver de nuevo en la arena' }), el('span', { 'aria-hidden': 'true', text: '▶' })]) : null,
+        ESCRIBE && acc ? el('button', { class: 'btn ancho', type: 'button', onclick: function () { yaLoHice({ empresa: a.empresa, cargo: a.cargo, siguiente: acc, ahora: a.estado }); } }, [el('span', { text: 'Ya hice: ' + acc }), el('span', { 'aria-hidden': 'true', text: '✔' })]) : null,
+        ESCRIBE && idCarpeta(a.carpeta) && a.clave !== 'proceso' && a.clave !== 'rechazada' ? el('button', { class: 'btn ancho sec', type: 'button', onclick: function () { cambiarEstado(a, 'proceso'); } }, [el('span', { text: 'Tengo prueba o entrevista' }), icono('espada')]) : null,
+        ESCRIBE && idCarpeta(a.carpeta) && a.clave !== 'rechazada' ? el('button', { class: 'btn ancho sec', type: 'button', onclick: function () { cambiarEstado(a, 'rechazada'); } }, [el('span', { text: 'Me rechazaron' }), icono('escudo')]) : null,
         botonCarpeta(safeUrl(a.carpeta)), botonContinuar('Cerrar')],
       fuente: 'Fuente · carpeta en CV/ y pestaña Seguimiento', fecha: 'ENVIADA ' + fecha(a.creada).toUpperCase() });
   }
@@ -1653,7 +1767,7 @@ var ARTE = {
         el('span', { text: s.nombre.replace(/ semana( nueva)?/i, '') }), barraSeg('amb', s.hv, e.meta), el('span', { class: 'mono', text: String(s.hv) })]));
     });
     var k2 = [cab('03', 'HV por semana · meta ' + e.meta, 'h2', 'h-sem'), graf,
-      el('p', { class: 'sub', text: 'Toca una semana para ver sus vacantes. Jefes: ' + e.semanas.map(function (s, i) { return s.jefe.nombre + (s.ko ? ' (vencido)' : i === e.semanas.length - 1 ? ' (en curso)' : ' (sobrevivió)'); }).join(', ') + '.' })];
+      el('p', { class: 'sub', text: 'Barra llena = ' + e.meta + ' HV (semana ganada). Toca una semana para ver sus vacantes. Jefes: ' + e.semanas.map(function (s, i) { return s.jefe.nombre + (s.ko ? ' (vencido)' : i === e.semanas.length - 1 ? ' (en curso)' : ' (sobrevivió)'); }).join(', ') + '.' })];
     var C = m.correos;
     var k3 = [cab('04', 'Correos en frío', 'h2', 'h-cor'), el('div', { class: 'pares' }, [
       el('div', null, [el('span', { text: 'Enviados' }), el('span', { class: 'mono', text: String(C.enviados) })]),
@@ -1735,6 +1849,7 @@ var ARTE = {
       case 'avalancha': return [[function () { ver(); pose('oscar', 'avalancha'); numero('oscar', 'XP ×2', 'cia'); }, 1000]];
       case 'ko': return [[function () { pose('oscar', 'ataque'); }, 300], [function () { ver(); pose('jefe', 'ko'); golpe('jefe'); }, 300],
         [function () { pose('oscar', 'victoria'); numero('jefe', 'KO', 'amb'); }, 900]];
+      case 'legendaria': return [[function () { ver(); pose('oscar', 'victoria'); claseTemporal('arena', 'sacude', 320); numero('oscar', '★ ' + it.hvSemana, 'amb'); }, 1100]];
       case 'nivel': return [[function () { ver(); pose('oscar', 'victoria'); numero('oscar', 'LV ' + it.nivel, 'amb'); }, 900]];
       default: return [[function () { ver(); pose('oscar', 'victoria'); }, 700]];
     }
@@ -1746,8 +1861,8 @@ var ARTE = {
       return pr.then(function () { if (saltar) return; p[0](); return espera(p[1]); });
     }, Promise.resolve()).then(function () { enCoreo = false; if (mostrado !== sig) verArena(sig, prev); else posesBase(); });
   }
-  var TITULOS = { proceso: '¡Golpe crítico!', rechazo: '¡Te atacan!', aliado: '¡Un aliado se une!', avalancha: '¡Avalancha!', ko: '¡Semana ganada!', nivel: '¡Subes de nivel!', logro: '¡Logro desbloqueado!' };
-  var RETRATO_DE = { proceso: 'alegria', rechazo: 'firme', aliado: 'sorpresa', avalancha: 'alegria', ko: 'victoria', nivel: 'victoria', logro: 'alegria' };
+  var TITULOS = { proceso: '¡Golpe crítico!', rechazo: '¡Te atacan!', aliado: '¡Un aliado se une!', avalancha: '¡Avalancha!', ko: '¡Semana ganada!', legendaria: '¡Semana legendaria!', nivel: '¡Subes de nivel!', logro: '¡Logro desbloqueado!' };
+  var RETRATO_DE = { proceso: 'alegria', rechazo: 'firme', aliado: 'sorpresa', avalancha: 'alegria', ko: 'victoria', legendaria: 'victoria', nivel: 'victoria', logro: 'alegria' };
   var DE_EMPRESA = { proceso: 1, rechazo: 1, aliado: 1 };  // nivel, logro, avalancha y KO los dispara una HV, pero no son de esa empresa
   function modalEvento(it) {
     var jefe = it.jefe || resultado.estado.semanas[it.semana].jefe;
@@ -1757,11 +1872,12 @@ var ARTE = {
       rechazo: it.empresa + ' dijo gracias por participar.',
       aliado: it.empresa + ' respondió tu correo en frío.',
       avalancha: '30 HV esta semana. XP doble y escudo hasta que termine la semana.',
-      ko: (it.hvSemana || 50) + ' HV enviadas. ' + jefe.nombre + ' cae.',
+      ko: (it.hvSemana || resultado.estado.meta) + ' HV enviadas. ' + jefe.nombre + ' cae: semana ganada.',
+      legendaria: (it.hvSemana || resultado.estado.metaLegendaria) + ' HV en una semana. Ni el jefe lo creía posible.',
       nivel: 'Ahora eres nivel ' + it.nivel + '.',
       logro: ((LOGROS.find(function (l) { return l.id === it.logro; }) || {}).nombre || '') + '.',
     }[it.tipo] || '';
-    var linea = { proceso: voz(jefe).aturdido, rechazo: voz(jefe).rechazo, ko: voz(jefe).ko }[it.tipo];
+    var linea = { proceso: voz(jefe).aturdido, rechazo: voz(jefe).rechazo, ko: voz(jefe).ko, legendaria: voz(jefe).ko }[it.tipo];
     var efs = [];
     if (it.delta.hp) efs.push(el('span', { class: it.delta.hp < 0 ? 'mag' : 'verde', text: signo(it.delta.hp) + ' HP' }));
     if (it.delta.xp) efs.push(el('span', { class: 'amb', text: signo(it.delta.xp) + ' XP' }));
@@ -1844,8 +1960,8 @@ var ARTE = {
   /** Lo que dice el jefe en reposo, con el dato real al lado (principio 1). */
   function reposo(e) {
     var v = voz(e.jefe), mun = (modelo.porEnviar || []).length;
-    if (e.ko) return { voz: v.ko, dato: '¡Semana ganada! Queda KO hasta la próxima semana.' };
-    var dato = 'Faltan ' + e.reclutadorHp + ' HV para la meta' + (mun ? ' · ' + mun + (mun === 1 ? ' HV lista' : ' HV listas') + ' en Misiones' : '') + '.';
+    if (e.ko) return { voz: v.ko, dato: e.faltanLegendaria ? '¡Semana ganada! Para la legendaria (' + e.metaLegendaria + ') faltan ' + e.faltanLegendaria + ' HV.' : '★ ¡Semana legendaria! El jefe queda KO hasta la próxima semana.' };
+    var dato = 'Faltan ' + e.reclutadorHp + ' HV para ganar la semana' + (mun ? ' · ' + mun + (mun === 1 ? ' HV lista' : ' HV listas') + ' en Misiones' : '') + '.';
     if (e.burla) return { voz: v.burla, dato: 'Van 2 o más días hábiles sin envíos. ' + dato };
     if (e.aturdido) return { voz: v.aturdido, dato: 'Sigue aturdido por tu última prueba o entrevista. ' + dato };
     return { voz: v.reposo, dato: dato };
@@ -1853,7 +1969,7 @@ var ARTE = {
   function decirReposo() { var r = reposo(resultado.estado); decir(r.voz, r.dato, []); }
   function intro() {
     var pasos = [
-      ['Bienvenido a la sala', 'Cada semana de tu carpeta CV es una entrevista contra un jefe. Su HP son las HV que faltan para la meta de ' + (modelo.meta || 50) + '.'],
+      ['Bienvenido a la sala', 'Cada semana de tu carpeta CV es una entrevista contra un jefe. Su HP son las HV que faltan para la meta de la semana (' + resultado.estado.meta + '); con ' + resultado.estado.metaLegendaria + ' la semana es legendaria.'],
       ['Las reglas', 'Tus HV le quitan vida al jefe; las respuestas te curan; los rechazos te hacen más fuerte.'],
       ['Todo es real', 'Cada golpe es un evento con fecha y empresa. Al abrir, verás lo que pasó desde tu última visita.'],
     ];

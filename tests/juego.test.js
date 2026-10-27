@@ -59,9 +59,13 @@ const { estado, efectos } = J('simular')(eventos, modelo);
 // Regla de honestidad: HP del Reclutador = meta − HV reales de la semana, en todas las semanas
 modelo.postulaciones.semanas.forEach((w, i) => {
   assert.strictEqual(estado.semanas[i].hv, w.total, 'HV de ' + w.semana);
-  assert.strictEqual(estado.semanas[i].reclutadorHp, Math.max(0, modelo.meta - w.total), 'HP del Reclutador de ' + w.semana);
+  assert.strictEqual(estado.semanas[i].reclutadorHp, Math.max(0, 30 - w.total), 'HP del jefe de ' + w.semana + ' = submeta (30) − HV');
 });
-assert.strictEqual(estado.reclutadorHp, 50 - 29, 'semana actual: faltan 21');
+assert.strictEqual(estado.reclutadorHp, 30 - 29, 'Tercera semana: a 1 HV de ganar con la submeta de 30');
+assert.deepStrictEqual([estado.meta, estado.metaLegendaria, estado.faltanLegendaria], [30, 50, 21]);
+// Sin `submeta` en el JSON (una foto vieja del navegador) se usa 30; una submeta mayor que la meta no puede pasarla
+assert.strictEqual(J('simular')(eventos, Object.assign({}, modelo, { submeta: 30 })).estado.reclutadorHp, 1);
+assert.strictEqual(J('simular')(eventos, Object.assign({}, modelo, { submeta: 80 })).estado.meta, 50);
 assert.strictEqual(estado.poder, 29);
 assert.strictEqual(estado.avalancha, false);
 assert.strictEqual(estado.semanaActual, 3);
@@ -106,7 +110,7 @@ assert.deepStrictEqual(['0. Antiguas', '1. Primera semana nueva', '2. Segunda se
   const r = J('simular')(J('construirEventos')(m), m);
   assert.strictEqual(r.estado.numero, 4);
   assert.strictEqual(r.estado.semanaActual, 4);
-  assert.strictEqual(r.estado.reclutadorHp, 50, 'sin envíos todavía: el jefe con todo su HP');
+  assert.strictEqual(r.estado.reclutadorHp, 30, 'sin envíos todavía: el jefe con todo su HP (la submeta)');
   assert.strictEqual(r.estado.poder, 0);
   assert.strictEqual(r.estado.jefe.nombre, 'Gerente Gracias por Participar');
   assert.strictEqual(r.estado.semanas.length, 5);
@@ -116,7 +120,7 @@ assert.deepStrictEqual(['0. Antiguas', '1. Primera semana nueva', '2. Segunda se
   // Una HV en la Cuarta: el jefe pierde 1 HP
   m.postulaciones.lista.push({ empresa: 'Nueva', cargo: '', clave: 'aplicada', semana: '4. Cuarta semana', creada: '2026-10-26', estadoFecha: '' });
   m.postulaciones.semanas[4].total = 1;
-  assert.strictEqual(J('simular')(J('construirEventos')(m), m).estado.reclutadorHp, 49);
+  assert.strictEqual(J('simular')(J('construirEventos')(m), m).estado.reclutadorHp, 29);
 }
 
 // ---------- Bitácora por semana (2026-10-26): historia de cada postulación y lo de cada semana ----------
@@ -175,16 +179,36 @@ assert.strictEqual(J('DATOS_VIEJOS_MIN'), 15);
   const hvTrasAvalancha = r.efectos.filter(f => f.tipo === 'hv').pop();
   assert.ok(hvTrasAvalancha.delta.xp >= 20, 'XP doble con Avalancha');
 }
-// KO a las 50 y el HP del Reclutador no baja de 0
+// KO a las 30 (semana ganada), semana legendaria a las 50, y el HP del jefe no baja de 0
 {
-  const m = { meta: 50, hoy: '2026-10-25', postulaciones: { semanas: [{ semana: 'S1', desde: '2026-10-19', total: 52 }], lista: [] }, correos: { lista: [] } };
+  const m = { meta: 50, submeta: 30, hoy: '2026-10-25', postulaciones: { semanas: [{ semana: 'S1', desde: '2026-10-19', total: 52 }], lista: [] }, correos: { lista: [] } };
   for (let i = 0; i < 52; i++) m.postulaciones.lista.push({ empresa: 'E' + i, cargo: 'C', clave: 'aplicada', semana: 'S1', creada: '2026-10-20' });
   const r = J('simular')(J('construirEventos')(m), m);
-  assert.strictEqual(r.efectos.filter(f => f.tipo === 'ko').length, 1);
+  assert.deepStrictEqual(plain(r.efectos.filter(f => f.tipo === 'ko' || f.tipo === 'legendaria').map(f => f.tipo + ':' + f.hvSemana)), ['ko:30', 'legendaria:50']);
   assert.strictEqual(r.estado.reclutadorHp, 0);
   assert.strictEqual(r.estado.ko, true);
+  assert.strictEqual(r.estado.faltanLegendaria, 0);
+  assert.strictEqual(r.estado.semanas[0].legendaria, true);
   assert.strictEqual(r.estado.semanasGanadas, 1);
   assert.ok(r.estado.logros.semana50);
+  const r31 = J('simular')(J('construirEventos')(Object.assign({}, m, { postulaciones: { semanas: m.postulaciones.semanas, lista: m.postulaciones.lista.slice(0, 31) } })), m);
+  assert.deepStrictEqual([r31.estado.ko, r31.estado.reclutadorHp, r31.estado.faltanLegendaria, r31.estado.semanas[0].legendaria], [true, 0, 19, false]);
+}
+// Ritmo de la semana (2026-10-27): HV por día hábil para llegar a 30 y proyección con el ritmo de los días anteriores
+{
+  const ritmo = (...a) => plain(J('ritmoSemana')(...a));
+  // Cuarta semana: empezó el lunes 26; hoy martes 27 con 1 HV → faltan 29 en 4 días hábiles (mar a vie)
+  assert.deepStrictEqual(ritmo(1, 30, '2026-10-26', '2026-10-27'), { faltan: 29, quedan: 4, porDia: 8, proyeccion: 5 });
+  // El primer día no hay ritmo anterior: sin proyección
+  assert.deepStrictEqual(ritmo(0, 30, '2026-10-26', '2026-10-26'), { faltan: 30, quedan: 5, porDia: 6, proyeccion: null });
+  // Semana que empieza en domingo (la Tercera): el domingo no cuenta
+  assert.strictEqual(ritmo(0, 30, '2026-10-18', '2026-10-18').quedan, 5);
+  // Fin de semana: quedan 0 días hábiles → lo que falta, de una
+  assert.deepStrictEqual(ritmo(29, 30, '2026-10-18', '2026-10-24'), { faltan: 1, quedan: 0, porDia: 1, proyeccion: 29 });
+  // Meta cumplida y fechas raras
+  assert.strictEqual(ritmo(31, 30, '2026-10-26', '2026-10-28').porDia, 0);
+  assert.strictEqual(J('ritmoSemana')(1, 30, '', '2026-10-27'), null);
+  assert.strictEqual(J('ritmoSemana')(1, 30, '2026-10-26', '2026-11-20'), null, 'la semana ya terminó');
 }
 // El HP de Oscar nunca baja de 1 (muchos rechazos y rebotes)
 {
