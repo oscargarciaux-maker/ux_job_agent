@@ -16,13 +16,16 @@ function getExistingUrls_(sheet) {
   sheet.getRange(2, 2, lastRow - 1, 3).getValues().forEach(row => {
     if (row[2]) seen[row[2]] = true;
     seen[vacancyKey({ company: row[0], title: row[1] })] = true;
+    // El mismo aviso en otra ciudad (27 oct 2026: Blacksmith Agency lo publicó en 7 ciudades)
+    if (!/confiden/i.test(row[0])) seen['base:' + vacancyBaseKey({ company: row[0], title: row[1] })] = true;
   });
   return seen;
 }
 
 function appendVacancyRow_(sheet, vacancy, score, status) {
   const today = Utilities.formatDate(new Date(), tz_(), 'yyyy-MM-dd');
-  sheet.appendRow([today, vacancy.company || 'N/D', vacancy.title, vacancy.link, score, status]);
+  // Fuente (columna G, 27 oct 2026): la usa la pestaña "Calidad por fuente"
+  sheet.appendRow([today, vacancy.company || 'N/D', vacancy.title, vacancy.link, score, status, vacancy.origin || '']);
 }
 
 // ---------- Google Drive (/Vacantes con IA/Sin revisar/YYYY-MM-DD/[Empresa] o [Empresa]_[detalle del cargo]) ----------
@@ -117,6 +120,9 @@ function createVacancyDetailDoc_(folder, vacancy, item, language) {
                                 'correo, mensaje directo o el enlace que trae; si el enlace lleva a una vacante formal, verifícala allí'] : [])
    .concat(vacancy.roleToVerify ? ['Rol: VERIFICAR FUNCIONES (el título no es de diseño; entra solo si la función principal es diseño)'] : [])
    .concat(vacancy.companyNote ? ['Aviso empresa: ' + vacancy.companyNote] : [])
+   .concat(vacancy.officialBoard ? ['Portal oficial: aviso en el portal de empleo de la empresa (sigue publicado); hasta ' +
+                                    CONFIG.OFFICIAL_BOARD_MAX_AGE_DAYS + ' días cuenta como vigente, con más de ' +
+                                    CONFIG.MAX_POST_AGE_DAYS + ' es de menor prioridad'] : [])
    .forEach(line => body.appendParagraph(line));
   body.appendParagraph('Descripción completa').setHeading(DocumentApp.ParagraphHeading.HEADING2);
   body.appendParagraph(vacancy.description || vacancy.snippet || '');

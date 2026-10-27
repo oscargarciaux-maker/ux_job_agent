@@ -37,10 +37,11 @@ function searchUxJobs_(startedAt) {
   });
   // Fuentes gratuitas; el nombre es el que aparece en la pestaña "Fuentes" del registro (conteo por corrida). Van de la
   // más rápida a la más lenta y, pasado SEARCH_BUDGET_MS, no se consultan más. elempleo (3 min desde Google el 27 oct
-  // 2026) ya no se busca aquí: llega en el JSON de GitHub Actions (tools/jobspy_buscar.py).
+  // 2026) y el buscador público de LinkedIn (60 búsquedas, 24 con 429) ya no se buscan aquí: llegan en el JSON de GitHub
+  // Actions (tools/jobspy_buscar.py).
   [[searchJobSpy_, 'JobSpy (GitHub Actions)'], [searchEmailAlerts_, 'Alertas de LinkedIn (correo)'],
    [searchGetOnBoard_, 'Get on Board'], [searchRemotive_, 'Remotive'], [searchJobicy_, 'Jobicy'],
-   [searchLinkedInJobs_, 'LinkedIn (búsqueda pública)'], [searchAtsBoards_, 'Portales de empresas objetivo']].forEach(([source, origin]) => {
+   [searchAtsBoards_, 'Portales de empresas objetivo']].forEach(([source, origin]) => {
     if (Date.now() - startedAt > CONFIG.SEARCH_BUDGET_MS) {
       console.warn('Sin tiempo para ' + origin + ' en esta corrida (' + Math.round((Date.now() - startedAt) / 1000) + ' s de búsqueda)');
       return;
@@ -143,49 +144,6 @@ function parseGetOnBoardJob(item) {
   };
 }
 
-/**
- * LinkedIn (buscador público, sin sesión): vacantes de la última semana en Colombia y remotas para LATAM. Pide la
- * descripción completa de cada una y descarta las que ya no reciben postulaciones. Si LinkedIn bloquea la IP de Google
- * (429/999) solo se registra: las demás fuentes siguen.
- */
-function searchLinkedInJobs_() {
-  const cfg = CONFIG.EXTRA_SOURCES.linkedin;
-  const headers = { 'User-Agent': 'Mozilla/5.0', 'Accept-Language': 'es-CO,es;q=0.9,en;q=0.8' };
-  const requests = [];
-  cfg.queries.forEach(q => cfg.searches.forEach(s => {
-    for (let page = 0; page < cfg.pages; page++) {
-      // Ventana = antigüedad máxima (21 días): lo ya registrado lo descarta la deduplicación sin costo
-      const params = Object.assign({ keywords: q, f_TPR: 'r' + CONFIG.MAX_POST_AGE_DAYS * 86400, start: String(page * 10) }, s);
-      const query = Object.keys(params).map(k => k + '=' + encodeURIComponent(params[k])).join('&');
-      requests.push({ url: cfg.searchUrl + '?' + query, headers: headers, muteHttpExceptions: true });
-    }
-  }));
-  const byId = {};
-  let failed = 0;
-  fetchAllPaced_(requests, cfg.batch, cfg.pauseMs).forEach(r => {
-    if (r.getResponseCode() !== 200) { failed++; return; }
-    parseLinkedInJobCards(r.getContentText()).forEach(v => { byId[v.id] = byId[v.id] || v; });
-  });
-  const jobs = Object.keys(byId).map(k => byId[k]);
-  const kept = jobs.filter(v => acceptRoleTitle_(v) && isRecent(v.postedAt, CONFIG.MAX_POST_AGE_DAYS) &&
-                                (/colombia/i.test(v.location) || CONFIG.REACHABLE_REMOTE_LOCATION.test(v.location)))
-    .slice(0, cfg.maxDetails);
-  const details = kept.length
-    ? fetchAllPaced_(kept.map(v => ({ url: cfg.detailUrl + v.id, headers: headers, muteHttpExceptions: true })), cfg.batch, cfg.pauseMs)
-    : [];
-  details.forEach((r, i) => {
-    if (r.getResponseCode() !== 200) return;
-    const d = parseLinkedInJobDetail(r.getContentText());
-    kept[i].description = d.description || kept[i].description;
-    kept[i].closed = d.closed;
-    kept[i].pageChecked = true;  // Ya se leyó su página: verifyPostingDates_ no la vuelve a abrir
-  });
-  const open = kept.filter(v => !v.closed);
-  console.log('LinkedIn: ' + jobs.length + ' avisos de los últimos ' + CONFIG.MAX_POST_AGE_DAYS + ' días (' + failed + ' de ' + requests.length +
-              ' búsquedas fallaron), ' + kept.length + ' de diseño en Colombia/LATAM, ' + (kept.length - open.length) + ' ya cerrados');
-  return open;
-}
-
 /** UrlFetchApp.fetchAll por tandas con pausa: a LinkedIn, muchas peticiones simultáneas le dan 429. */
 function fetchAllPaced_(requests, size, pauseMs) {
   let out = [];
@@ -199,24 +157,6 @@ function fetchAllPaced_(requests, size, pauseMs) {
 function decodeHtml_(text) {
   return String(text || '').replace(/&amp;/g, '&').replace(/&#39;|&rsquo;/g, "'").replace(/&quot;/g, '"')
     .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/\s+/g, ' ').trim();
-}
-
-/** Tarjetas del buscador público de LinkedIn: id, cargo, empresa, ubicación, fecha y enlace limpio. */
-function parseLinkedInJobCards(html) {
-  return String(html || '').split(/<li[\s>]/).map(card => {
-    const id = (card.match(/urn:li:jobPosting:(\d+)/) || [])[1];
-    if (!id) return null;
-    const pick = re => decodeHtml_(((card.match(re) || [])[1] || '').replace(/<[^>]+>/g, ' '));
-    return {
-      id: id,
-      title: pick(/base-search-card__title[^>]*>([\s\S]*?)<\/h3>/),
-      company: pick(/base-search-card__subtitle[^>]*>([\s\S]*?)<\/h4>/),
-      location: pick(/job-search-card__location[^>]*>([\s\S]*?)<\/span>/),
-      postedAt: (card.match(/datetime="(\d{4}-\d{2}-\d{2})"/) || [])[1] || '',
-      link: 'https://www.linkedin.com/jobs/view/' + id,
-      description: '', snippet: '', source: 'LinkedIn', sourceBonus: CONFIG.EXTRA_SOURCES.linkedin.bonus,
-    };
-  }).filter(Boolean);
 }
 
 /** Página pública de un aviso de LinkedIn: descripción completa y si ya no recibe postulaciones. */
@@ -481,7 +421,8 @@ function verifyPostingDates_(vacancies, startedAt) {
   }
   const today = new Date();
   return vacancies.filter(v => {
-    const ok = !v.deadLink && !v.closed && isRecent(v.postedAt, CONFIG.MAX_POST_AGE_DAYS, today) && !isExpired(v.validThrough, today);
+    const ok = !v.deadLink && !v.closed && isRecent(v.postedAt, v.maxAgeDays || CONFIG.MAX_POST_AGE_DAYS, today) &&
+               !isExpired(v.validThrough, today);
     if (!ok) console.log('Descartada (' + (v.deadLink ? 'enlace ya no existe' : v.closed ? 'ya no recibe postulaciones' :
                         'antigüedad, publicada ' + v.postedAt) + '): ' + v.title + ' @ ' + v.company);
     return ok;

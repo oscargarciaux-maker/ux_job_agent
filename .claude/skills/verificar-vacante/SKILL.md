@@ -127,7 +127,7 @@ la de sus roles, entra; si el título suena a diseño pero la función principal
 |---|---|---|---|
 | Rol (por funciones) | UX/UI, diseño de producto, design systems, UX research, diseño digital/web, visual o de servicios; CX o gestión de producto si la función principal es diseño | — | Copywriter/redactor, SEO, desarrollador/programador, diseño gráfico puro; núcleo del cargo = programar |
 | Nivel y años (los años mandan sobre el título) | Junior, o pide menos de 3 años aunque el título diga Senior | Pide 3 años o más (señalar siempre la diferencia con la experiencia real; la HV nunca infla años); senior sin años explícitos (buscar los años en otras versiones del aviso y decirlo) | Staff, principal, head, director, VP, manager, gerente |
-| Antigüedad | Hasta 21 días | De 22 a 28 días, solo si sigue abierta | Más de 28 días |
+| Antigüedad | Hasta 21 días | De 22 a 28 días, solo si sigue abierta; o hasta 60 días si sigue publicada en el portal de empleo de la propia empresa (Greenhouse, Lever, Ashby, Workable; `Detalle_Vacante` dice "Portal oficial:"), porque esos portales solo muestran vacantes abiertas (decisión del usuario, 27 oct 2026: Clara, 54 días y abierta) | Más de 28 días (más de 60 en portal oficial) |
 | Ubicación | Colombia; remoto LATAM/mundial UTC-3 a -6 | Presencial en otra ciudad de Colombia (Medellín, Cali…): el candidato se relocaliza dentro de Colombia, así que "vivir en <ciudad>" nunca descarta (2026-10-26, Bancolombia) | Ver chequeo 2 |
 | Inglés (nivel real: B2, intermedio alto) | Sin requisito, o intermedio/B1–B2. **Si pide B1 o B2 de forma explícita, entra aunque lo llame avanzado o diga "B2 o C1"** (decisión del usuario, 24 oct 2026). Aviso en inglés sin nivel explícito: entra, pero **avisar** | — | Fluido, nativo o bilingüe (siempre, aunque mencione B2); avanzado, excelente ("excellent English", "nivel avanzado de inglés") o C1/C2 sin un B1/B2 explícito |
 | Contrato | Indefinido, término fijo, prestación de servicios, obra labor; "contractor"/"contract" de tiempo completo con una empresa del exterior (= prestación de servicios) | — | Freelance o por proyecto; pasantía sin pago; vacante reservada **exclusivamente** para personas con discapacidad (las inclusivas no exclusivas entran normal) |
@@ -209,7 +209,7 @@ basta). Cierra con la pregunta: "De las dudosas, ¿cuáles sí y cuáles no?".
 
 Un veredicto por vacante:
 - ✅ **Lista**: pasa los cinco chequeos y encaja.
-- 🟡 **Menor prioridad**: pasa los cinco chequeos, pero es mid de 3 a 5 años, pide 5 o más años, tiene de 22 a 28 días
+- 🟡 **Menor prioridad**: pasa los cinco chequeos, pero es mid de 3 a 5 años, pide 5 o más años, tiene de 22 a 28 días (o de 22 a 60 en el portal oficial de la empresa)
   o es presencial en Medellín/Cali. Decir qué la baja.
 - ❌ **Descartar** (o **Cerrada**): falla un chequeo, no encaja o tiene señales de alerta. Decir el motivo.
 - 🔶 **Dudosa**: zona gris que decide el usuario. No se pudo comprobar un chequeo clave aunque se intentó (la página

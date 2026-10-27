@@ -57,6 +57,9 @@ function runPipeline_(opts) {
   let fresh = raw;
   if (!opts.dryRun) {
     sheet = getRegistrySheet_();
+    if (sheet.getRange(1, CONFIG.SHEET_HEADERS.length).getValue() !== 'Fuente') {
+      sheet.getRange(1, CONFIG.SHEET_HEADERS.length).setValue('Fuente');  // Registros creados antes del 27 oct 2026
+    }
     const existing = getExistingUrls_(sheet);
     let applied = [];
     let cold = [];
@@ -70,7 +73,8 @@ function runPipeline_(opts) {
     } catch (e) {
       console.warn('No se pudo leer la hoja ' + CONFIG.COLD_EMAIL_SHEET_NAME + ': ' + e.message);
     }
-    const known = raw.filter(v => existing[v.link] || existing[vacancyKey(v)] || isHiddenCompanyRepeat(v, existing));
+    const known = raw.filter(v => existing[v.link] || existing[vacancyKey(v)] || isHiddenCompanyRepeat(v, existing) ||
+                                  (!v.isPost && !/confiden/i.test(v.company || '') && existing['base:' + vacancyBaseKey(v)]));
     // Empresa con carpeta en CV/ (decisión del usuario 2026-10-24): se abre la carpeta y solo es repetida si es el
     // mismo cargo (o la misma vacante); con otro cargo entra, con una nota para que el usuario lo tenga en cuenta.
     const appliedHits = [];
@@ -166,6 +170,14 @@ function runPipeline_(opts) {
     } catch (e) {
       console.error('Publicaciones -> ERROR: ' + e.message);
     }
+  }
+
+  // El mismo aviso con otra ciudad o la misma descripción con otro cargo: queda en el registro como repetido para que no
+  // vuelva a ocupar cupos en las corridas siguientes (27 oct 2026)
+  const duplicates = scored.filter(x => x.vacancy.duplicate);
+  if (duplicates.length && !opts.dryRun && Date.now() - startedAt < CONFIG.TIME_BUDGET_MS + 20000) {
+    duplicates.forEach(x => appendVacancyRow_(sheet, x.vacancy, x.score, 'Repetida (mismo aviso)'));
+    console.log('Registradas como repetidas (mismo aviso): ' + duplicates.length);
   }
 
   logStats();

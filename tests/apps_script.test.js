@@ -199,18 +199,30 @@ const gob = context.parseGetOnBoardJob({ id: 'ux-designer-acme', attributes: { t
 assert.strictEqual(gob.company, 'Acme');
 assert.ok(/Remote LATAM Colombia/.test(gob.location) && /^\d{4}-\d{2}-\d{2}$/.test(gob.postedAt));
 // LinkedIn (buscador público): tarjetas y detalle del aviso
-const liCards = context.parseLinkedInJobCards('<ul><li>\n<div class="base-card" data-entity-urn="urn:li:jobPosting:4480720588">' +
-  '<a class="base-card__full-link" href="https://co.linkedin.com/jobs/view/x-4480720588?position=1&amp;pageNum=0"></a>' +
-  '<h3 class="base-search-card__title">\n  1961 -  Diseñador UX/UI &amp; Interfaces\n</h3>' +
-  '<h4 class="base-search-card__subtitle">\n<a class="hidden-nested-link" href="https://www.linkedin.com/company/softgic">\n Softgic\n</a></h4>' +
-  '<span class="job-search-card__location">\n Bogotá, Capital District, Colombia\n</span>' +
-  '<time class="job-search-card__listdate" datetime="2026-10-20">hace 6 días</time></div></li><li><div>sin aviso</div></li></ul>');
-assert.strictEqual(liCards.length, 1);
-assert.strictEqual(liCards[0].title, '1961 - Diseñador UX/UI & Interfaces');
-assert.strictEqual(liCards[0].company, 'Softgic');
-assert.strictEqual(liCards[0].location, 'Bogotá, Capital District, Colombia');
-assert.strictEqual(liCards[0].postedAt, '2026-10-20');
-assert.strictEqual(liCards[0].link, 'https://www.linkedin.com/jobs/view/4480720588');
+// Calidad por fuente: qué pasó con lo que trajo cada una, según el Estado de Hoja 1
+const calidad = context.sourceQualityRows([
+  ['2026-10-27', 'A', 'UX', 'l1', 90, 'Pendiente', 'LinkedIn (GitHub Actions)'],
+  ['2026-10-27', 'B', 'UX', 'l2', 90, 'Descartada: inglés fluido', 'LinkedIn (GitHub Actions)'],
+  ['2026-10-27', 'C', 'UX', 'l3', 90, 'Dudosa: no dice si acepta Colombia', 'elempleo (GitHub Actions)'],
+  ['2026-10-27', 'D', 'UX', 'l4', 90, 'Esperando CV (IA)', 'elempleo (GitHub Actions)'],
+  ['2026-10-27', 'E', 'UX', 'l5', 90, 'Repetida (mismo aviso)', 'LinkedIn (GitHub Actions)'],
+  ['2026-10-27', 'F', 'Post', 'l6', 90, 'Manual (publicación)', 'Publicaciones LinkedIn (SerpAPI)'],
+  ['2026-10-20', 'G', 'UX', 'l7', 90, 'Pendiente', ''],
+  ['2026-10-01', 'H', 'UX', 'l8', 90, 'Pendiente', 'Get on Board'],
+], '2026-10-14');
+assert.deepStrictEqual(JSON.parse(JSON.stringify(calidad)), [
+  ['LinkedIn (GitHub Actions)', 3, 1, 0, 0, 1, 1, '33%'],
+  ['Sin fuente (antes del 27 oct)', 1, 1, 0, 0, 0, 0, '100%'],
+  ['elempleo (GitHub Actions)', 2, 0, 1, 1, 0, 0, '0%'],
+]);
+// Registro: el mismo aviso en otra ciudad ya registrado se reconoce por su clave base
+assert.strictEqual(context.vacancyBaseKey({ company: 'Blacksmith Agency', title: 'Design Systems Lead (Remote, Ibague)' }),
+                   context.vacancyBaseKey({ company: 'Blacksmith Agency', title: 'Design Systems Lead (Remote, Cartagena)' }));
+const dupsMarcados = ['Design Systems Lead (Remote, Ibague)', 'Design Systems Lead (Remote, Cartagena)']
+  .map((t, i) => ({ vacancy: { title: t, company: 'Blacksmith Agency', description: '' }, priority: 90 - i }));
+context.distinctPostings(dupsMarcados, 5);
+assert.ok(!dupsMarcados[0].vacancy.duplicate && dupsMarcados[1].vacancy.duplicate, 'la copia queda marcada para registrarla');
+// Las tarjetas del buscador de LinkedIn se leen en GitHub Actions desde el 27 oct 2026: tests/jobspy_test.py
 const liDetail = context.parseLinkedInJobDetail('<div class="show-more-less-html__markup relative">Buscamos <b>UX</b><br>Figma</div>');
 assert.ok(/Buscamos UX/.test(liDetail.description) && /Figma/.test(liDetail.description) && !liDetail.closed);
 assert.ok(context.parseLinkedInJobDetail('<figure class="closed-job">No longer accepting applications</figure>').closed);
