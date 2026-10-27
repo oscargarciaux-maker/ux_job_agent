@@ -2011,7 +2011,10 @@ var ARTE = {
 
   // ===================== DATOS =====================
   function bloqueado() {
-    decir('', 'Este juego es privado. Ábrelo con el enlace completo que te compartieron.', []);
+    // Enlace copiado del registro sin cambiar <ID> (2026-10-27): decir qué falta en vez de solo «privado»
+    var falta = /ID/.test(params.api || '') && !/^[\w-]+$/.test(params.api || '');
+    decir('', falta ? 'A este enlace le falta el id: cambia <ID> por lo que va después de api= en el enlace de siempre, o vuelve a correr configurarTablero.'
+      : 'Este juego es privado. Ábrelo con el enlace completo que te compartieron.', []);
     $('panel').textContent = '';
     avisoDatos = ''; sincronizando = false;
   }

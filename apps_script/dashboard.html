@@ -522,7 +522,9 @@ function dashboardMain(D) {
   function locked() {
     var app = document.getElementById('app');
     var h = document.createElement('h2'); h.textContent = 'Este tablero es privado';
-    var t = document.createElement('p'); t.textContent = 'Ábrelo con el enlace completo que te compartieron.';
+    var falta = /ID/.test(p.api || '') && !/^[\w-]+$/.test(p.api || '');  // enlace con <ID> sin cambiar (2026-10-27)
+    var t = document.createElement('p'); t.textContent = falta ? 'A este enlace le falta el id: cambia <ID> por lo que va después de api= en el enlace de siempre.'
+      : 'Ábrelo con el enlace completo que te compartieron.';
     var box = document.createElement('div'); box.className = 'card error'; box.appendChild(h); box.appendChild(t);
     app.appendChild(box);
     document.getElementById('updated').textContent = '';

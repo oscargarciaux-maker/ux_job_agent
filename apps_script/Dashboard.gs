@@ -8,6 +8,7 @@
 
 /** Punto de entrada de la app web. */
 function doGet(e) {
+  rememberDeploymentId_();
   const key = getProp_(PROPS.DASHBOARD_KEY);
   const given = String((e && e.parameter && e.parameter.k) || '');
   if (e && e.parameter && e.parameter.accion) return dashboardAction_(e.parameter, key);  // Acciones.gs (2026-10-27)
@@ -74,14 +75,35 @@ function configurarTablero() {
     setProp_(PROPS.DASHBOARD_WRITE_KEY, writeKey);
   }
   // Los enlaces son los de GitHub Pages (2026-10-27: el usuario pegó la clave en el enlace de script.google.com y, con
-  // varias cuentas de Google abiertas, Google respondió «No se puede abrir el archivo»). <ID> es el api= de su enlace
-  // actual: el id de la implementación (Implementar > Gestionar implementaciones), que desde el editor no se puede leer.
-  console.log('TU enlace del juego (con la clave de escritura: no lo compartas): ' + pagesLink('juego', '<ID>', key, writeKey));
-  console.log('Enlace del juego para el coach (solo lectura): ' + pagesLink('juego', '<ID>', key, '') + '&modo=coach');
-  console.log('Enlace del tablero para el coach: ' + pagesLink('dashboard', '<ID>', key, ''));
-  console.log('Cambia <ID> por lo que va después de api= en tu enlace de siempre (o por el id de la implementación de ' +
-    'Implementar > Gestionar implementaciones). No abras script.google.com/…/exec directamente: con varias cuentas de ' +
-    'Google abiertas responde «No se puede abrir el archivo».');
+  // varias cuentas de Google abiertas, Google respondió «No se puede abrir el archivo»). El id de la implementación no se
+  // puede leer desde el editor: lo guarda doGet la primera vez que el juego o el tablero piden datos (DASHBOARD_API_ID).
+  const api = getProp_(PROPS.DASHBOARD_API_ID);
+  if (!api) {
+    console.log('Todavía no sé el id de la implementación. Abre una vez tu enlace actual del juego y toca «Actualizar»; ' +
+      'después vuelve a correr configurarTablero y aquí saldrán los enlaces completos. (Mientras tanto: es lo que va ' +
+      'después de api= en tu enlace de siempre.)');
+    return;
+  }
+  console.log('TU enlace del juego (con la clave de escritura: no lo compartas): ' + pagesLink('juego', api, key, writeKey));
+  console.log('Enlace del juego para el coach (solo lectura): ' + pagesLink('juego', api, key, '') + '&modo=coach');
+  console.log('Enlace del tablero para el coach: ' + pagesLink('dashboard', api, key, ''));
+  console.log('No abras script.google.com/…/exec directamente: con varias cuentas de Google abiertas responde «No se puede abrir el archivo».');
+}
+
+/** Guarda el id de la implementación (el api= de los enlaces) cuando llega una petición a la app web (/exec). */
+function rememberDeploymentId_() {
+  try {
+    const id = deploymentIdFromUrl(ScriptApp.getService().getUrl());
+    if (id && id !== getProp_(PROPS.DASHBOARD_API_ID)) setProp_(PROPS.DASHBOARD_API_ID, id);
+  } catch (e) {
+    console.warn('Id de la implementación -> ' + e.message);
+  }
+}
+
+/** Id de la implementación en la URL de la app web: solo la de /exec (la de /dev, del editor, no sirve para compartir). */
+function deploymentIdFromUrl(url) {
+  const m = /\/macros\/(?:u\/\d+\/)?s\/([\w-]+)\/exec$/.exec(String(url || ''));
+  return m ? m[1] : '';
 }
 
 /** Enlace de GitHub Pages del juego o del tablero (la clave de escritura solo si se pasa). */
