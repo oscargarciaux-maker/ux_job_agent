@@ -121,6 +121,15 @@ const lentas = context.verifyPostingDates_(Array.from({ length: 20 }, (_, i) => 
 run('__desfase = 0');
 assert.strictEqual(tandas, 1, 'después de una tanda lenta no se abren más');
 assert.ok(lentas.length === 20 && lentas.every(v => v.dateUnverified));
+// Solo se abren las páginas sin fecha y nunca las de linkedin.com (27 oct 2026: la primera tanda, con LinkedIn, se colgó 4 min)
+let abiertas2 = [];
+context.UrlFetchApp = { fetchAll: reqs => { abiertas2 = abiertas2.concat(reqs.map(r => r.url)); return reqs.map(() => ({ getResponseCode: () => 200, getContentText: () => '' })); } };
+const mix = context.verifyPostingDates_([{ link: 'https://www.linkedin.com/jobs/view/1', postedAt: '' },
+                                        { link: 'https://co.linkedin.com/jobs/view/2', postedAt: haceDias(3) },
+                                        { link: 'https://jobs.workable.com/view/3', postedAt: haceDias(3) },
+                                        { link: 'https://remote.co/job/4', postedAt: '' }], run('Date.now()'));
+assert.deepStrictEqual(abiertas2, ['https://remote.co/job/4']);
+assert.ok(mix.length === 4 && mix[0].dateUnverified && !mix[1].dateUnverified && !mix[2].dateUnverified);
 assert.ok(context.parseJobSpyJob({ sitio: 'indeed', enlace: 'https://co.indeed.com/viewjob?jk=1' }).pageChecked, 'Indeed responde 401 a Google: no se reabre');
 assert.ok(run("CONFIG.SEARCH_BUDGET_MS") < run("CONFIG.VERIFY_BUDGET_MS") && run("CONFIG.TIME_BUDGET_MS") <= 5 * 60 * 1000);
 // elempleo (3 min desde Google) ya no se consulta en la corrida: llega en el JSON de GitHub Actions, con su ficha leída
