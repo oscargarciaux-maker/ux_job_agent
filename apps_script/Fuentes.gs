@@ -34,7 +34,7 @@ function parseJobSpyJob(job) {
     source: ({ indeed: 'Indeed', linkedin: 'LinkedIn', google: 'Google Jobs', elempleo: 'elempleo' })[site] || site || 'JobSpy',
     sourceBonus: known ? known.bonus : site === 'elempleo' ? CONFIG.EXTRA_SOURCES.elempleo.bonus : 0,
     // Nombre en la pestaña "Fuentes"; elempleo se busca en GitHub Actions desde el 27 oct 2026 (ahí ya se leyó su ficha)
-    origin: ({ indeed: 'Indeed (JobSpy)', linkedin: 'LinkedIn (JobSpy)', elempleo: 'elempleo (GitHub Actions)' })[site] || 'JobSpy (GitHub Actions)',
+    origin: ({ indeed: 'Indeed (JobSpy)', linkedin: 'LinkedIn (GitHub Actions)', elempleo: 'elempleo (GitHub Actions)' })[site] || 'JobSpy (GitHub Actions)',
     // No se reabren desde Google: Indeed le responde 401, y de LinkedIn y elempleo GitHub ya trajo fecha y descripción.
     // Si sigue abierta lo comprueba la verificación de la IA.
     pageChecked: true,
@@ -86,9 +86,10 @@ function searchAtsBoards_() {
     if (responses[i].getResponseCode() !== 200) return;
     try { all = all.concat(parseAtsJobs(b.ats, responses[i].getContentText(), b.company)); } catch (e) { /* formato raro */ }
   });
-  const kept = all.filter(v => acceptRoleTitle_(v) && isRecent(v.postedAt, CONFIG.MAX_POST_AGE_DAYS, now) &&
+  const kept = all.filter(v => acceptRoleTitle_(v) && isRecent(v.postedAt, CONFIG.OFFICIAL_BOARD_MAX_AGE_DAYS, now) &&
                                (/colombia|bogot|latam|latin america|am[eé]rica latina|south america/i.test(v.location) ||
                                 isReachableRemoteJob(v)));
+  kept.forEach(v => { v.maxAgeDays = CONFIG.OFFICIAL_BOARD_MAX_AGE_DAYS; v.officialBoard = true; v.pageChecked = true; });
   console.log('ATS de empresas objetivo: ' + boards.length + ' empresas con sistema conocido de ' + companies.length +
               ' (' + pending.length + ' revisadas hoy), ' + all.length + ' vacantes publicadas, ' + kept.length + ' de diseño para Colombia/LATAM');
   return kept;
@@ -318,4 +319,49 @@ function logSourceStats_(found, fresh, created) {
                   run: 'Búsqueda ' + Utilities.formatDate(now, tz_(), 'HH') + ' h' };
   const rows = sourceStatsRows(stamp, found, fresh, created);
   if (rows.length) sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows);
+}
+
+// ---------- Calidad por fuente ----------
+
+/**
+ * Por fuente, qué pasó con las vacantes registradas desde `since` (filas de Hoja 1: Fecha, Empresa, Cargo, Link, Match
+ * Score, Estado, Fuente). La pestaña "Fuentes" dice cuántas trae cada una; esta dice cuántas terminan con HV, cuántas
+ * quedan dudosas y cuántas se descartan (decisión del usuario 2026-10-27: medir calidad, no solo cantidad). Las
+ * publicaciones manuales no cuentan. Ordenadas por vacantes con HV.
+ */
+function sourceQualityRows(rows, since) {
+  const by = {};
+  rows.filter(r => String(r[0]) >= since && !/^Manual/i.test(String(r[5]))).forEach(r => {
+    const name = String(r[6] || '').trim() || 'Sin fuente (antes del 27 oct)';
+    const s = by[name] = by[name] || { total: 0, hv: 0, wait: 0, doubt: 0, out: 0, dup: 0 };
+    const status = String(r[5] || '');
+    s.total++;
+    if (/^Pendiente|HV|enviad/i.test(status)) s.hv++;
+    else if (/^Dudosa/i.test(status)) s.doubt++;
+    else if (/^Descartada/i.test(status)) s.out++;
+    else if (/^Repetida/i.test(status)) s.dup++;
+    else s.wait++;
+  });
+  return Object.keys(by).map(name => {
+    const s = by[name];
+    return [name, s.total, s.hv, s.wait, s.doubt, s.out, s.dup, s.total ? Math.round(100 * s.hv / s.total) + '%' : '—'];
+  }).sort((a, b) => b[2] - a[2] || b[1] - a[1]);
+}
+
+/** Reescribe la pestaña "Calidad por fuente" (la llama sincronizarAplicadas cada hora). */
+function writeSourceQuality_() {
+  const ss = SpreadsheetApp.openById(getProp_(PROPS.SHEET_ID));
+  const registry = ss.getSheets()[0];
+  if (registry.getLastRow() < 2) return;
+  const rows = registry.getRange(2, 1, registry.getLastRow() - 1, CONFIG.SHEET_HEADERS.length).getDisplayValues();
+  const since = Utilities.formatDate(new Date(Date.now() - (CONFIG.SOURCE_QUALITY_DAYS - 1) * 86400000), tz_(), 'yyyy-MM-dd');
+  const values = [CONFIG.SOURCE_QUALITY_HEADERS].concat(sourceQualityRows(rows, since));
+  const sheet = ss.getSheetByName(CONFIG.SOURCE_QUALITY_SHEET_NAME) ||
+                ss.insertSheet(CONFIG.SOURCE_QUALITY_SHEET_NAME, ss.getNumSheets());
+  sheet.clear();
+  sheet.getRange(1, 1, values.length, values[0].length).setValues(values);
+  sheet.getRange(values.length + 2, 1).setValue('Vacantes registradas desde ' + since + ' (' + CONFIG.SOURCE_QUALITY_DAYS +
+    ' días). Con HV = la IA la verificó y se armó su hoja de vida. Actualizado ' +
+    Utilities.formatDate(new Date(), tz_(), 'yyyy-MM-dd HH:mm') + '.');
+  sheet.setFrozenRows(1);
 }

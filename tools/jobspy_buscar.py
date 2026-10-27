@@ -1,7 +1,11 @@
-"""Busca vacantes de diseño UX/UI en Indeed Colombia y LinkedIn con JobSpy (python-jobspy), y en elempleo.com.
+"""Busca vacantes de diseño UX/UI en Indeed Colombia (JobSpy), LinkedIn (buscador público) y elempleo.com.
+
+LinkedIn vino de Apps Script (27 oct 2026): desde Google, 24 de sus 60 búsquedas fallaban por bloqueo (429), 6 de 20
+vacantes llegaban sin descripción y una tanda de páginas de LinkedIn colgó tres corridas. Aquí no hay límite de 6
+minutos: se va despacio, se espera ante un 429 y de cada aviso se leen la descripción y si sigue recibiendo postulaciones.
 
 elempleo vino de Apps Script (27 oct 2026): desde los servidores de Google tardaba 3 minutos y la corrida se cortaba a los
-6 sin crear carpetas. Aquí no hay ese límite. Mismo método que searchElempleo_ (Search.gs): la lista trae los datos en
+6 sin crear carpetas. Aquí no hay ese límite. Mismo método que usaba Apps Script: la lista trae los datos en
 data-ga4-offerdata y la fecha relativa ("Hace 4 días"); cada aviso, un JSON-LD JobPosting con fecha, vencimiento y descripción.
 
 Google Jobs no va: desde GitHub Actions devolvió "no job data returned" en las 12 búsquedas de las dos primeras
@@ -12,7 +16,8 @@ publica en la rama "datos" como jobspy.json y Apps Script lo lee en cada búsque
 
 Uso: python tools/jobspy_buscar.py <ruta del json>
 El archivo acumula los avisos de los últimos DIAS_GUARDADOS días: una corrida que falla no borra lo de las anteriores.
-Solo vista pública de cada portal, sin sesión de nadie; pausas entre búsquedas y nada de reintentos ante un bloqueo.
+Solo vista pública de cada portal, sin sesión de nadie; pausas entre peticiones y, ante un bloqueo, una sola espera
+larga antes de reintentar (LinkedIn) o se deja de insistir en esa corrida (Indeed).
 """
 import html
 import json
@@ -44,12 +49,8 @@ def buscar(sitio, termino):
 
     # Con location="Colombia" Indeed buscaba a 50 millas del centro del país y traía 2 avisos (27 oct 2026);
     # country_indeed ya limita la búsqueda a co.indeed.com.
-    if sitio == "indeed":
-        extra = {"country_indeed": "colombia"}
-    else:
-        extra = {"location": "Colombia", "fetch_description": True}
     df = scrape_jobs(site_name=[sitio], search_term=termino, hours_old=HORAS, results_wanted=POR_BUSQUEDA,
-                     description_format="markdown", verbose=0, **extra)
+                     description_format="markdown", verbose=0, country_indeed="colombia")
     print(f"{sitio} '{termino}': {len(df)} avisos en total")
     filas = []
     for r in df.to_dict("records"):
@@ -172,6 +173,102 @@ def buscar_elempleo(hoy):
     return vigentes
 
 
+LINKEDIN_BUSQUEDA = "https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search"
+LINKEDIN_AVISO = "https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/"
+LINKEDIN_TERMINOS = ["diseñador ux", "diseñador ui ux", "diseñador ux ui", "ux designer", "ui designer", "ux ui designer",
+                     "product designer", "diseñador de producto", "ux researcher", "design system",
+                     "diseñador ux junior", "junior product designer"]
+# Colombia (todas las modalidades) y remotas en Colombia; "Latin America" traía sobre todo avisos de Brasil y Argentina
+LINKEDIN_BUSQUEDAS = [{"location": "Colombia"}, {"location": "Colombia", "f_WT": "2"}]
+LINKEDIN_PAGINAS = 3
+LINKEDIN_MAX_AVISOS = 60
+CERRADO = re.compile(r"No longer accepting applications|Ya no se aceptan solicitudes|closed-job", re.I)
+
+
+def texto_html(fragmento):
+    return re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", fragmento or ""))).strip()
+
+
+def tarjetas_linkedin(pagina):
+    """Avisos de una página del buscador público de LinkedIn (igual que parseLinkedInJobCards de Apps Script)."""
+    filas = []
+    for tarjeta in re.split(r"<li[\s>]", pagina):
+        aviso = re.search(r"urn:li:jobPosting:(\d+)", tarjeta)
+        if not aviso:
+            continue
+        campo = lambda patron: texto_html((re.search(patron, tarjeta) or [None, ""])[1])
+        fecha = re.search(r'datetime="(\d{4}-\d{2}-\d{2})"', tarjeta)
+        filas.append({
+            "sitio": "linkedin", "titulo": campo(r"base-search-card__title[^>]*>([\s\S]*?)</h3>"),
+            "empresa": campo(r"base-search-card__subtitle[^>]*>([\s\S]*?)</h4>"),
+            "ubicacion": campo(r"job-search-card__location[^>]*>([\s\S]*?)</span>"), "remoto": False,
+            "enlace": "https://www.linkedin.com/jobs/view/" + aviso.group(1), "enlace_directo": "",
+            "fecha": fecha.group(1) if fecha else "", "descripcion": "", "id": aviso.group(1),
+        })
+    return filas
+
+
+def ficha_linkedin(pagina):
+    """Descripción completa de un aviso y si ya no recibe postulaciones."""
+    marca = re.search(r"show-more-less-html__markup[^>]*>([\s\S]*?)</div>", pagina)
+    return sin_html(marca.group(1)) if marca else "", bool(CERRADO.search(pagina))
+
+
+def pedir(requests, url, params=None):
+    """GET con espera ante un 429 (una sola vez, 60-90 s). Devuelve el texto o None."""
+    for intento in range(2):
+        try:
+            r = requests.get(url, params=params, headers=NAVEGADOR, timeout=30)
+        except requests.RequestException:
+            return None
+        if r.status_code == 200:
+            return r.text
+        if r.status_code != 429 or intento:
+            return None
+        time.sleep(random.uniform(60, 90))
+    return None
+
+
+def buscar_linkedin(hoy):
+    import requests
+    avisos, fallidas, seguidas = {}, 0, 0
+    for termino in LINKEDIN_TERMINOS:
+        for filtro in LINKEDIN_BUSQUEDAS:
+            for pagina in range(LINKEDIN_PAGINAS):
+                if seguidas >= 4:  # LinkedIn sigue bloqueando: no insistir en esta corrida
+                    break
+                params = dict(filtro, keywords=termino, f_TPR=f"r{21 * 86400}", start=str(pagina * 10))
+                texto = pedir(requests, LINKEDIN_BUSQUEDA, params)
+                time.sleep(random.uniform(3, 6))
+                if texto is None:
+                    fallidas += 1
+                    seguidas += 1
+                    continue
+                seguidas = 0
+                filas = tarjetas_linkedin(texto)
+                for f in filas:
+                    f["consulta"] = termino
+                    avisos.setdefault(f["enlace"], f)
+                if len(filas) < 10:
+                    break  # No hay más páginas para esta búsqueda
+    limite = (hoy - timedelta(days=21)).isoformat()
+    candidatos = [a for a in avisos.values()
+                  if DISENO.search(a["titulo"]) and not NO_DISENO.search(a["titulo"]) and (a["fecha"] or "9") >= limite
+                  and re.search(r"colombia|bogot|medell|cali|barranquilla|remot", a["ubicacion"], re.I)]
+    vigentes = []
+    for a in candidatos[:LINKEDIN_MAX_AVISOS]:
+        texto = pedir(requests, LINKEDIN_AVISO + a.pop("id"))
+        time.sleep(random.uniform(2, 4))
+        if texto is not None:
+            a["descripcion"], cerrado = ficha_linkedin(texto)
+            if cerrado:
+                continue
+        vigentes.append(a)  # Sin ficha queda sin descripción: la IA la verifica
+    print(f"LinkedIn: {len(avisos)} avisos ({fallidas} búsquedas fallaron), {len(candidatos)} de diseño en Colombia, "
+          f"{len(vigentes)} abiertos, {sum(1 for v in vigentes if v['descripcion'])} con descripción")
+    return vigentes
+
+
 def main(ruta):
     ahora = datetime.now(timezone.utc)
     try:
@@ -182,21 +279,8 @@ def main(ruta):
     por_enlace = {v["enlace"]: v for v in previo if v.get("enlace") and (v.get("visto") or "") >= limite}
 
     resumen = {}
-    # LinkedIn con pocos términos y pausas largas: el 27 oct 2026 respondió 429 desde la cuarta búsqueda
-    plan = [("indeed", t) for t in TERMINOS] + [("linkedin", t) for t in ("diseñador ux", "ux designer", "product designer", "ui designer")]
-    bloqueados = set()
-    for sitio, termino in plan:
-        if sitio in bloqueados:
-            continue
-        if sitio == "linkedin":
-            time.sleep(random.uniform(30, 45))
-        try:
-            filas = buscar(sitio, termino)
-        except Exception as e:  # noqa: BLE001 — un portal que falla no detiene a los demás
-            print(f"{sitio} '{termino}' falló: {e}")
-            if re.search(r"429|blocked|captcha", str(e), re.I):
-                bloqueados.add(sitio)  # No insistir en esta corrida
-            continue
+
+    def guardar(sitio, filas):
         nuevos = 0
         for f in filas:
             if f["enlace"] and f["enlace"] not in por_enlace:
@@ -204,21 +288,25 @@ def main(ruta):
                 por_enlace[f["enlace"]] = f
                 nuevos += 1
         resumen[sitio] = resumen.get(sitio, 0) + nuevos
-        print(f"{sitio} '{termino}': {len(filas)} de diseño, {nuevos} nuevos")
+        return nuevos
+
+    # Indeed con JobSpy; si responde con bloqueo, no se insiste en esta corrida
+    for termino in TERMINOS:
+        try:
+            filas = buscar("indeed", termino)
+        except Exception as e:  # noqa: BLE001 — un portal que falla no detiene a los demás
+            print(f"indeed '{termino}' falló: {e}")
+            if re.search(r"429|blocked|captcha", str(e), re.I):
+                break
+            continue
+        print(f"indeed '{termino}': {len(filas)} de diseño, {guardar('indeed', filas)} nuevos")
         time.sleep(random.uniform(5, 12))
 
-    try:
-        filas = buscar_elempleo(ahora.date())
-    except Exception as e:  # noqa: BLE001 — si elempleo falla, se guarda lo de los demás portales
-        print(f"elempleo falló: {e}")
-        filas = []
-    nuevos = 0
-    for f in filas:
-        if f["enlace"] not in por_enlace:
-            f["visto"] = ahora.date().isoformat()
-            por_enlace[f["enlace"]] = f
-            nuevos += 1
-    resumen["elempleo"] = nuevos
+    for sitio, buscador in (("linkedin", buscar_linkedin), ("elempleo", buscar_elempleo)):
+        try:
+            guardar(sitio, buscador(ahora.date()))
+        except Exception as e:  # noqa: BLE001 — si un portal falla, se guarda lo de los demás
+            print(f"{sitio} falló: {e}")
 
     vacantes = sorted(por_enlace.values(), key=lambda v: v.get("fecha") or "", reverse=True)
     json.dump({"generado": ahora.isoformat(timespec="minutes"), "nuevos_por_sitio": resumen, "vacantes": vacantes},

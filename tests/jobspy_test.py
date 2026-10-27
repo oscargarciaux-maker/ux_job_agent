@@ -35,4 +35,20 @@ publicado, vence, descripcion = j.ficha_elempleo(
     '"description":"<p>Figma &amp; UX</p>"}</script>')
 assert (publicado, vence, descripcion) == ("2026-10-22", "2026-12-21", "Figma & UX")
 assert j.fecha_jsonld('{"datePosted": "2026-9-7"}', "datePosted") == "2026-09-07"  # elempleo publica mes y día de un dígito
-print("OK: pruebas de elempleo (tools/jobspy_buscar.py) pasaron")
+# LinkedIn (buscador público; mismos casos que tenía parseLinkedInJobCards en Apps Script)
+tarjetas = j.tarjetas_linkedin(
+    '<ul><li>\n<div class="base-card" data-entity-urn="urn:li:jobPosting:4480720588">'
+    '<a class="base-card__full-link" href="https://co.linkedin.com/jobs/view/x-4480720588?position=1&amp;pageNum=0"></a>'
+    '<h3 class="base-search-card__title">\n  1961 -  Diseñador UX/UI &amp; Interfaces\n</h3>'
+    '<h4 class="base-search-card__subtitle">\n<a class="hidden-nested-link" href="https://www.linkedin.com/company/softgic">\n Softgic\n</a></h4>'
+    '<span class="job-search-card__location">\n Bogotá, Capital District, Colombia\n</span>'
+    '<time class="job-search-card__listdate" datetime="2026-10-20">hace 6 días</time></div></li><li><div>sin aviso</div></li></ul>')
+assert len(tarjetas) == 1
+t = tarjetas[0]
+assert t["titulo"] == "1961 - Diseñador UX/UI & Interfaces" and t["empresa"] == "Softgic"
+assert t["ubicacion"] == "Bogotá, Capital District, Colombia" and t["fecha"] == "2026-10-20"
+assert t["enlace"] == "https://www.linkedin.com/jobs/view/4480720588" and t["id"] == "4480720588" and t["sitio"] == "linkedin"
+descripcion, cerrado = j.ficha_linkedin('<div class="show-more-less-html__markup relative">Buscamos <b>UX</b><br>Figma</div>')
+assert "Buscamos" in descripcion and "Figma" in descripcion and not cerrado
+assert j.ficha_linkedin('<figure class="closed-job">No longer accepting applications</figure>')[1]
+print("OK: pruebas de elempleo y LinkedIn (tools/jobspy_buscar.py) pasaron")

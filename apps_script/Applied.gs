@@ -15,6 +15,11 @@ function sincronizarAplicadas() {
     console.error('Correos en frío -> ERROR: ' + e.message);
   }
   sincronizarRegistro_();
+  try {
+    writeSourceQuality_();
+  } catch (e) {
+    console.warn('No se pudo escribir la pestaña ' + CONFIG.SOURCE_QUALITY_SHEET_NAME + ': ' + e.message);
+  }
 }
 
 /**

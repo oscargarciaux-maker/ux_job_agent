@@ -161,15 +161,21 @@ function distinctPostings(scored, maxPerCompany) {
     if (v.isPost) return true;
     const company = norm(v.company);
     const hidden = !company || /confiden/.test(company);
-    const titleKey = company + '|' + norm(String(v.title || '').replace(/\([^)]*\)/g, ' ').replace(/\b(remote|remoto|work)\b/gi, ' '));
     const desc = norm(v.description);
-    const keys = (hidden ? [] : [titleKey]).concat(desc.length >= 200 ? [company + '#' + desc.slice(0, 400)] : []);
-    if (keys.some(k => seen[k])) return false;
+    const keys = (hidden ? [] : [vacancyBaseKey(v)]).concat(desc.length >= 200 ? [company + '#' + desc.slice(0, 400)] : []);
+    // Mismo aviso: se marca para registrarlo como repetido y que no vuelva en las corridas siguientes
+    if (keys.some(k => seen[k])) { v.duplicate = true; return false; }
     if (!hidden && (perCompany[company] || 0) >= maxPerCompany) return false;
     keys.forEach(k => { seen[k] = true; });
     if (!hidden) perCompany[company] = (perCompany[company] || 0) + 1;
     return true;
   });
+}
+
+/** Empresa y cargo sin la ciudad entre paréntesis ni "remote": el mismo aviso publicado por ciudad da la misma clave. */
+function vacancyBaseKey(vacancy) {
+  const norm = t => String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+  return norm(vacancy.company) + '|' + norm(String(vacancy.title || '').replace(/\([^)]*\)/g, ' ').replace(/\b(remote|remoto|work)\b/gi, ' '));
 }
 
 function vacancyKey(vacancy) {
