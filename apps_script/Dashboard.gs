@@ -87,6 +87,8 @@ function configurarTablero() {
   console.log('TU enlace del juego (con la clave de escritura: no lo compartas): ' + pagesLink('juego', api, key, writeKey));
   console.log('Enlace del juego para el coach (solo lectura): ' + pagesLink('juego', api, key, '') + '&modo=coach');
   console.log('Enlace del tablero para el coach: ' + pagesLink('dashboard', api, key, ''));
+  // Oficina de agentes (2026-10-27, docs/MULTIAGENTE.md): con la clave de escritura el buzón deja pedidos para el jefe
+  console.log('TU oficina de agentes (Base Antártica, con el buzón; no la compartas): ' + pagesLink('oficina', api, key, writeKey));
   console.log('No abras script.google.com/…/exec directamente: con varias cuentas de Google abiertas responde «No se puede abrir el archivo».');
 }
 

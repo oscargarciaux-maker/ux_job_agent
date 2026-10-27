@@ -1,0 +1,912 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#0b5f9e">
+<meta name="description" content="La oficina del equipo de agentes de la búsqueda de empleo: quién está trabajando y qué necesitan de ti.">
+<title>Base Antártica</title>
+<link rel="manifest" href="oficina.webmanifest">
+<link rel="icon" href="img/oficina/icono.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="img/oficina/icono-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Base Antártica">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* Base Antártica (docs/MULTIAGENTE.md §6). Celular primero (390 px), escritorio desde 960 px.
+   Contraste del texto: --tinta 14,9:1 y --tinta-2 7,0:1 sobre --panel (claro); 15,1:1 y 8,9:1 (oscuro). Los colores de
+   los pingüinos y del paisaje son decorativos: el estado siempre va en texto con su ícono. */
+:root {
+  --cielo-1: #a9dcff; --cielo-2: #e6f6ff; --nieve: #f7fcff; --hielo: #d6ecfa; --hielo-2: #bcdcf2; --hielo-borde: #8fbfdf;
+  --fondo: #e9f5fd; --panel: #ffffff; --panel-2: #f1f8fd; --borde: #c9e1f1;
+  --tinta: #0d2944; --tinta-2: #3b5876; --acento: #0b5f9e; --acento-tinta: #ffffff; --foco: #0b5f9e;
+  --trabajando: #0b6e55; --trabajando-bg: #d9f5ea; --atencion: #8a4b00; --atencion-bg: #ffecc8; --listo: #1d6a33;
+  --listo-bg: #e1f4e4; --espera: #4b5d72; --espera-bg: #e8eef4; --error: #a3261c;
+  --aurora-1: rgba(79, 214, 170, .38); --aurora-2: rgba(140, 120, 255, .26);
+  --sombra: 0 2px 10px rgba(13, 41, 68, .10);
+  --r-8: 8px; --r-12: 12px; --r-16: 16px; --r-full: 999px;
+  --e-4: 4px; --e-8: 8px; --e-12: 12px; --e-16: 16px; --e-24: 24px; --e-32: 32px;
+  --f-titulo: 'Fredoka', 'Nunito', system-ui, sans-serif; --f-texto: 'Nunito', system-ui, sans-serif;
+  --nav: 64px; --pingu: 64px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --cielo-1: #071233; --cielo-2: #13285a; --nieve: #1c315e; --hielo: #1e3a6b; --hielo-2: #24467e; --hielo-borde: #3d679f;
+    --fondo: #081127; --panel: #0f1d3f; --panel-2: #152752; --borde: #2a4677;
+    --tinta: #eaf4ff; --tinta-2: #b4cbe5; --acento: #7cc8ff; --acento-tinta: #06203b; --foco: #9ad6ff;
+    --trabajando: #6ee6bf; --trabajando-bg: #0f3b33; --atencion: #ffc76b; --atencion-bg: #45320f; --listo: #8fe0a0;
+    --listo-bg: #143a22; --espera: #b9c9dc; --espera-bg: #213457; --error: #ff9a8f;
+    --aurora-1: rgba(79, 230, 170, .45); --aurora-2: rgba(160, 120, 255, .40); --sombra: 0 2px 12px rgba(0, 0, 0, .35);
+  }
+}
+:root[data-theme="dark"] {
+  --cielo-1: #071233; --cielo-2: #13285a; --nieve: #1c315e; --hielo: #1e3a6b; --hielo-2: #24467e; --hielo-borde: #3d679f;
+  --fondo: #081127; --panel: #0f1d3f; --panel-2: #152752; --borde: #2a4677;
+  --tinta: #eaf4ff; --tinta-2: #b4cbe5; --acento: #7cc8ff; --acento-tinta: #06203b; --foco: #9ad6ff;
+  --trabajando: #6ee6bf; --trabajando-bg: #0f3b33; --atencion: #ffc76b; --atencion-bg: #45320f; --listo: #8fe0a0;
+  --listo-bg: #143a22; --espera: #b9c9dc; --espera-bg: #213457; --error: #ff9a8f;
+  --aurora-1: rgba(79, 230, 170, .45); --aurora-2: rgba(160, 120, 255, .40); --sombra: 0 2px 12px rgba(0, 0, 0, .35);
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; scroll-padding-top: 72px; }
+html, body { margin: 0; background: var(--fondo); color: var(--tinta); }
+body { font-family: var(--f-texto); font-size: 16px; line-height: 1.45; min-height: 100dvh; padding-bottom: calc(var(--nav) + env(safe-area-inset-bottom)); }
+h1, h2, h3 { font-family: var(--f-titulo); font-weight: 600; margin: 0; line-height: 1.15; }
+button, input, select, textarea { font: inherit; color: inherit; }
+a { color: var(--acento); }
+:focus-visible { outline: 3px solid var(--foco); outline-offset: 2px; border-radius: 6px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Barra superior */
+.barra { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: var(--e-12);
+  padding: calc(var(--e-8) + env(safe-area-inset-top)) var(--e-16) var(--e-8); background: var(--panel);
+  border-bottom: 1px solid var(--borde); box-shadow: var(--sombra); }
+.marca { display: flex; align-items: center; gap: var(--e-8); min-width: 0; flex: 1; }
+.marca svg { width: 36px; height: 36px; flex: none; }
+.marca h1 { font-size: 20px; white-space: nowrap; }
+.marca p { margin: 0; font-size: 13px; color: var(--tinta-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.btn { min-height: 44px; padding: 0 var(--e-16); border-radius: var(--r-full); border: 1px solid var(--borde); background: var(--panel);
+  color: var(--tinta); font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: var(--e-8); text-decoration: none; }
+.btn:hover { background: var(--panel-2); }
+.btn--primario { background: var(--acento); color: var(--acento-tinta); border-color: var(--acento); }
+.btn--primario:hover { filter: brightness(1.06); background: var(--acento); }
+.btn[disabled] { opacity: .55; cursor: not-allowed; }
+.btn--icono { width: 44px; padding: 0; flex: none; }
+.btn svg { width: 20px; height: 20px; }
+
+/* Contenido */
+main { max-width: 1280px; margin: 0 auto; padding: var(--e-12) var(--e-16) var(--e-32); display: grid; gap: var(--e-16); }
+.seccion { scroll-margin-top: 72px; }
+.tarjeta { background: var(--panel); border: 1px solid var(--borde); border-radius: var(--r-16); padding: var(--e-16); box-shadow: var(--sombra); }
+.tarjeta h2 { font-size: 20px; margin-bottom: var(--e-8); display: flex; align-items: center; gap: var(--e-8); }
+.ayuda { margin: 0; color: var(--tinta-2); font-size: 15px; }
+.aviso { display: flex; flex-wrap: wrap; align-items: center; gap: var(--e-8); font-size: 14px; color: var(--tinta-2); min-height: 24px; }
+.aviso--error { color: var(--error); font-weight: 700; }
+.demo { background: var(--atencion-bg); color: var(--atencion); border-radius: var(--r-12); padding: var(--e-8) var(--e-12); font-weight: 700; font-size: 14px; }
+.fase { display: flex; align-items: center; gap: var(--e-8); font-weight: 700; }
+.fase .punto { width: 10px; height: 10px; border-radius: 50%; background: var(--trabajando); flex: none; }
+
+/* Te necesitan */
+.lista { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--e-8); }
+.fila { display: flex; align-items: center; gap: var(--e-12); width: 100%; min-height: 56px; padding: var(--e-8) var(--e-12); border-radius: var(--r-12);
+  background: var(--panel-2); border: 1px solid var(--borde); text-align: left; cursor: pointer; color: var(--tinta); }
+.fila:hover { border-color: var(--acento); }
+.fila .mini { width: 40px; height: 44px; flex: none; }
+.fila .txt { flex: 1; min-width: 0; }
+.fila .txt b { display: block; font-size: 15px; }
+.fila .txt span { display: block; font-size: 14px; color: var(--tinta-2); }
+.fila .flecha { flex: none; color: var(--tinta-2); font-size: 22px; line-height: 1; }
+.vacio { margin: 0; padding: var(--e-12); border-radius: var(--r-12); background: var(--panel-2); color: var(--tinta-2); font-size: 15px; }
+
+/* La plaza: cielo con aurora, montañas, iglús y el piso de hielo donde están las estaciones */
+.plaza { position: relative; overflow: hidden; border-radius: var(--r-16); border: 1px solid var(--borde); box-shadow: var(--sombra);
+  background: linear-gradient(180deg, var(--cielo-1) 0, var(--cielo-2) 150px, var(--nieve) 151px, var(--hielo) 100%); padding: 0 var(--e-12) var(--e-16); isolation: isolate; }
+.plaza::before { content: ''; position: absolute; inset: -40px -20% auto; height: 170px; z-index: -1; pointer-events: none;
+  background: radial-gradient(60% 50% at 30% 40%, var(--aurora-1), transparent 70%), radial-gradient(50% 45% at 72% 30%, var(--aurora-2), transparent 70%);
+  filter: blur(6px); animation: aurora 14s ease-in-out infinite alternate; }
+.plaza::after { content: ''; position: absolute; inset: 150px 0 0; z-index: -1; pointer-events: none;
+  background-image: linear-gradient(90deg, transparent 0 calc(100% - 1px), rgba(143, 191, 223, .35) 0), linear-gradient(0deg, transparent 0 calc(100% - 1px), rgba(143, 191, 223, .35) 0);
+  background-size: 64px 40px; mask-image: linear-gradient(180deg, transparent, #000 40%); -webkit-mask-image: linear-gradient(180deg, transparent, #000 40%); }
+@keyframes aurora { from { transform: translateX(-4%) scaleY(1); opacity: .8; } to { transform: translateX(4%) scaleY(1.15); opacity: 1; } }
+.paisaje { display: block; width: calc(100% + 24px); margin: 0 -12px; height: 150px; }
+.nieve-cae { position: absolute; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+.nieve-cae i { position: absolute; top: -10px; width: 6px; height: 6px; border-radius: 50%; background: #fff; opacity: .85; animation: cae linear infinite; }
+@keyframes cae { to { transform: translate3d(var(--dx, 20px), 760px, 0); } }
+
+.jefe { position: relative; z-index: 1; margin-top: -78px; display: grid; grid-template-columns: auto 1fr; align-items: end; gap: var(--e-12); }
+.jefe .estacion { width: 132px; }
+.jefe-info { padding-bottom: var(--e-12); }
+.jefe-info h2 { font-size: 20px; }
+.jefe-info p { margin: var(--e-4) 0 var(--e-8); font-size: 15px; color: var(--tinta-2); }
+.estaciones { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--e-12) var(--e-8); margin-top: var(--e-16); }
+.cuarto { position: relative; z-index: 1; margin-top: var(--e-16); padding: var(--e-12) var(--e-8) var(--e-8); border-radius: var(--r-12);
+  background: rgba(255, 255, 255, .35); border: 1px dashed var(--hielo-borde); }
+:root[data-theme="dark"] .cuarto { background: rgba(255, 255, 255, .05); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .cuarto { background: rgba(255, 255, 255, .05); } }
+.cuarto h3 { font-size: 15px; color: var(--tinta-2); margin: 0 0 var(--e-8) var(--e-4); }
+.cuarto .estaciones { margin-top: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+/* Una estación: el pingüino en su escritorio de hielo, su nombre, su estado y su globo */
+.estacion { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; width: 100%; min-height: 44px;
+  padding: var(--e-8) var(--e-4) var(--e-4); border: 0; border-radius: var(--r-12); background: transparent; cursor: pointer; text-align: center; color: var(--tinta); }
+.estacion:hover { background: rgba(255, 255, 255, .45); }
+:root[data-theme="dark"] .estacion:hover { background: rgba(255, 255, 255, .06); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .estacion:hover { background: rgba(255, 255, 255, .06); } }
+.figura { position: relative; width: var(--pingu); height: calc(var(--pingu) * 1.17); margin-top: 30px; }
+.jefe .figura { --pingu: 96px; margin-top: 0; }
+.figura svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.nombre { font-family: var(--f-titulo); font-weight: 600; font-size: 15px; line-height: 1.2; }
+.rol { font-size: 12px; color: var(--tinta-2); line-height: 1.25; }
+.chip { display: inline-flex; align-items: center; gap: 4px; margin-top: 2px; padding: 2px 8px; border-radius: var(--r-full); font-size: 12px; font-weight: 800; white-space: nowrap; }
+.chip--trabajando { background: var(--trabajando-bg); color: var(--trabajando); }
+.chip--atencion { background: var(--atencion-bg); color: var(--atencion); }
+.chip--listo { background: var(--listo-bg); color: var(--listo); }
+.chip--esperando, .chip--libre { background: var(--espera-bg); color: var(--espera); }
+.globo { position: absolute; top: -2px; left: 50%; transform: translateX(-50%); z-index: 2; width: max-content; max-width: min(150px, 100%);
+  padding: 4px 8px; border-radius: var(--r-12); background: var(--panel); border: 1px solid var(--borde); box-shadow: var(--sombra);
+  font-size: 12px; font-weight: 700; line-height: 1.25; color: var(--tinta); }
+.globo > span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.globo::after { content: ''; position: absolute; bottom: -6px; left: 50%; width: 10px; height: 10px; transform: translateX(-50%) rotate(45deg);
+  background: var(--panel); border-right: 1px solid var(--borde); border-bottom: 1px solid var(--borde); }
+
+/* Animaciones de los pingüinos (todas apagadas con movimiento reducido) */
+.p-todo { transform-box: fill-box; transform-origin: 50% 100%; animation: respira 3.2s ease-in-out infinite; animation-delay: var(--retraso, 0s); }
+.p-ojos { transform-box: fill-box; transform-origin: 50% 50%; animation: parpadea 5.5s infinite; animation-delay: var(--retraso, 0s); }
+.trabajando .p-aleta-d { transform-box: fill-box; transform-origin: 30% 10%; animation: teclea .35s ease-in-out infinite alternate; }
+.trabajando .p-todo { animation-duration: 1.4s; }
+.atencion .p-aleta-d { transform-box: fill-box; transform-origin: 30% 10%; animation: saluda .9s ease-in-out infinite alternate; }
+.esperando .p-todo { animation-duration: 5s; }
+.p-insignia { transform-box: fill-box; transform-origin: 50% 100%; }
+.atencion .p-insignia { animation: rebota 1s ease-in-out infinite; }
+.trabajando .p-puntos circle { animation: puntos 1.2s infinite; }
+.trabajando .p-puntos circle:nth-child(2) { animation-delay: .2s; }
+.trabajando .p-puntos circle:nth-child(3) { animation-delay: .4s; }
+.trabajando .m-engrane { transform-box: fill-box; transform-origin: 50% 50%; animation: gira 2.4s linear infinite; }
+.trabajando .m-humo { animation: humo 2s ease-out infinite; }
+@keyframes respira { 0%, 100% { transform: translateY(0) scaleY(1); } 50% { transform: translateY(-1.5px) scaleY(1.015); } }
+@keyframes parpadea { 0%, 94%, 100% { transform: scaleY(1); } 96% { transform: scaleY(.1); } }
+@keyframes teclea { from { transform: rotate(-8deg); } to { transform: rotate(14deg); } }
+@keyframes saluda { from { transform: rotate(0); } to { transform: rotate(-38deg); } }
+@keyframes rebota { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+@keyframes puntos { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
+@keyframes gira { to { transform: rotate(360deg); } }
+@keyframes humo { from { opacity: .8; transform: translateY(0); } to { opacity: 0; transform: translateY(-14px); } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .nieve-cae { display: none; }
+}
+
+/* Buzón */
+.campo { display: grid; gap: var(--e-4); margin-top: var(--e-12); }
+.campo label { font-weight: 700; font-size: 15px; }
+textarea, select { width: 100%; border: 1px solid var(--hielo-borde); border-radius: var(--r-12); background: var(--panel-2); color: var(--tinta); padding: var(--e-12); }
+textarea { min-height: 112px; resize: vertical; }
+select { min-height: 44px; }
+.acciones { display: flex; flex-wrap: wrap; gap: var(--e-8); margin-top: var(--e-12); }
+.ejemplos { display: flex; flex-wrap: wrap; gap: var(--e-8); margin-top: var(--e-8); }
+.ejemplo { min-height: 44px; padding: 0 var(--e-12); border-radius: var(--r-full); border: 1px dashed var(--hielo-borde); background: transparent; color: var(--tinta-2); font-size: 14px; cursor: pointer; }
+.ejemplo:hover { color: var(--tinta); border-style: solid; }
+.resultado { margin-top: var(--e-12); font-size: 15px; font-weight: 700; }
+
+/* Pedidos y radio */
+.pedido, .mensaje { padding: var(--e-12); border-radius: var(--r-12); background: var(--panel-2); border: 1px solid var(--borde); }
+.pedido-cab, .mensaje-cab { display: flex; align-items: center; gap: var(--e-8); flex-wrap: wrap; }
+.pedido-cab b { font-size: 15px; flex: 1; min-width: 60%; }
+.pedido p, .mensaje p { margin: var(--e-4) 0 0; font-size: 14px; color: var(--tinta-2); overflow-wrap: anywhere; }
+.pregunta { margin-top: var(--e-8); padding: var(--e-8); border-radius: var(--r-8); background: var(--atencion-bg); color: var(--atencion); font-weight: 700; font-size: 14px; }
+.caritas { display: flex; gap: 2px; }
+.caritas svg { width: 26px; height: 30px; }
+.mensaje-cab .mini { width: 30px; height: 34px; flex: none; }
+.mensaje-cab b { font-size: 14px; }
+.mensaje-cab .hora { margin-left: auto; font-size: 13px; color: var(--tinta-2); white-space: nowrap; }
+.tipo { font-size: 12px; font-weight: 800; padding: 1px 8px; border-radius: var(--r-full); background: var(--espera-bg); color: var(--espera); }
+.tipo--pregunta { background: var(--atencion-bg); color: var(--atencion); }
+.tipo--resultado { background: var(--listo-bg); color: var(--listo); }
+.tipo--avance, .tipo--encargo { background: var(--trabajando-bg); color: var(--trabajando); }
+.mensaje .asunto { margin-top: var(--e-4); font-weight: 700; font-size: 15px; color: var(--tinta); }
+.mensaje a { display: inline-flex; align-items: center; min-height: 44px; font-weight: 700; }
+
+/* Ficha de un agente */
+dialog { width: min(560px, 100vw); max-height: min(88dvh, 760px); margin: auto auto 0; padding: 0; border: 0; border-radius: var(--r-16) var(--r-16) 0 0;
+  background: var(--panel); color: var(--tinta); box-shadow: 0 -8px 30px rgba(0, 0, 0, .25); }
+dialog::backdrop { background: rgba(5, 20, 40, .45); }
+.ficha { padding: var(--e-16) var(--e-16) calc(var(--e-24) + env(safe-area-inset-bottom)); overflow: auto; max-height: inherit; }
+.ficha-cab { display: grid; grid-template-columns: 96px 1fr auto; gap: var(--e-12); align-items: center; }
+.ficha-cab .figura { --pingu: 88px; margin: 0; }
+.ficha-cab h2 { font-size: 22px; }
+.ficha-cab p { margin: 2px 0 0; color: var(--tinta-2); font-size: 15px; }
+.ficha .resumen { font-size: 16px; font-weight: 700; margin: var(--e-12) 0 var(--e-4); }
+.cifras { display: flex; flex-wrap: wrap; gap: var(--e-8); margin: var(--e-12) 0; padding: 0; list-style: none; }
+.cifras li { padding: var(--e-8) var(--e-12); border-radius: var(--r-12); background: var(--panel-2); border: 1px solid var(--borde); font-size: 14px; color: var(--tinta-2); }
+.cifras b { display: block; font-family: var(--f-titulo); font-size: 22px; color: var(--tinta); line-height: 1.1; }
+.contrato { display: grid; gap: var(--e-8); margin: var(--e-12) 0; }
+.contrato div { font-size: 15px; }
+.contrato dt { font-weight: 800; font-size: 13px; color: var(--tinta-2); text-transform: uppercase; letter-spacing: .04em; }
+.contrato dd { margin: 0; }
+
+/* Navegación inferior (celular) */
+.abajo { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: grid; grid-template-columns: repeat(4, 1fr);
+  height: calc(var(--nav) + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom); background: var(--panel); border-top: 1px solid var(--borde); }
+.abajo a { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-decoration: none; color: var(--tinta-2); font-size: 12px; font-weight: 800; min-height: 44px; position: relative; }
+.abajo a svg { width: 24px; height: 24px; }
+.abajo a[aria-current="true"] { color: var(--acento); }
+.abajo .cuenta { position: absolute; top: 6px; left: calc(50% + 6px); min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--atencion); color: var(--panel); font-size: 11px; line-height: 18px; text-align: center; }
+
+.pie { text-align: center; font-size: 13px; color: var(--tinta-2); }
+.pie button { background: none; border: 0; color: var(--acento); font-weight: 700; text-decoration: underline; min-height: 44px; cursor: pointer; }
+
+/* Carga: siluetas de pingüinos mientras llegan los datos */
+.cargando .figura svg { opacity: .35; filter: grayscale(1); }
+.cargando .chip { color: transparent; background: var(--espera-bg); min-width: 72px; }
+
+@media (min-width: 400px) { :root { --pingu: 72px; } .rol { font-size: 13px; } }
+@media (min-width: 640px) { .estaciones { grid-template-columns: repeat(4, minmax(0, 1fr)); } .cuarto .estaciones { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (min-width: 960px) {
+  body { padding-bottom: 0; }
+  .abajo { display: none; }
+  :root { --pingu: 84px; }
+  main { grid-template-columns: minmax(0, 1fr) 380px; grid-template-areas: "base lado"; align-items: start; padding-top: var(--e-16); }
+  #base { grid-area: base; }
+  .lado { grid-area: lado; display: grid; gap: var(--e-16); }
+  .paisaje { height: 190px; }
+  .plaza { background: linear-gradient(180deg, var(--cielo-1) 0, var(--cielo-2) 190px, var(--nieve) 191px, var(--hielo) 100%); padding: 0 var(--e-24) var(--e-24); }
+  .plaza::after { inset: 190px 0 0; }
+  .jefe { margin-top: -96px; }
+  .jefe .figura { --pingu: 120px; }
+  .jefe .estacion { width: 164px; }
+  dialog { margin: auto; border-radius: var(--r-16); }
+}
+@media (min-width: 960px) { .lado .tarjeta { box-shadow: none; } }
+</style>
+</head>
+<body>
+<header class="barra">
+  <div class="marca">
+    <svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="19" fill="#0b5f9e"/><path d="M7 28a13 13 0 0 1 26 0z" fill="#f7fcff"/><path d="M16 28v-5a4 4 0 0 1 8 0v5z" fill="#0b5f9e"/><path d="M10 24h20M13 19h14" stroke="#9fd0f0" stroke-width="1.5"/></svg>
+    <div>
+      <h1>Base Antártica</h1>
+      <p id="fase" class="fase" aria-live="polite">Oficina de agentes</p>
+    </div>
+  </div>
+  <button class="btn btn--icono" id="tema" type="button" aria-label="Cambiar entre modo claro y oscuro" title="Modo claro u oscuro">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/></svg>
+  </button>
+  <button class="btn btn--icono" id="actualizar" type="button" aria-label="Actualizar los datos" title="Actualizar">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 5V2L7 6l5 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z"/></svg>
+  </button>
+</header>
+
+<main id="principal">
+  <section id="base" class="seccion" aria-labelledby="t-base">
+    <h2 id="t-base" class="sr">La base</h2>
+    <div class="aviso" id="estado-datos" aria-live="polite">Cargando la base…</div>
+    <p class="demo" id="aviso-demo" hidden>Demostración con datos inventados. Con tu enlace se ven tus agentes de verdad.</p>
+    <div class="tarjeta" id="necesitan" style="margin: 12px 0 16px">
+      <h2><span aria-hidden="true">🐧</span> Te necesitan</h2>
+      <ul class="lista" id="lista-necesitan"></ul>
+    </div>
+    <div class="plaza cargando" id="plaza">
+      <div class="nieve-cae" id="nieve" aria-hidden="true"></div>
+      <svg class="paisaje" viewBox="0 0 800 190" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+        <path d="M0 150 L90 70 L150 118 L230 40 L320 120 L380 88 L460 150 Z" fill="#cfe9fb" opacity=".85"/>
+        <path d="M60 150 L230 40 L250 54 L222 66 L242 78 L210 90 L120 150Z" fill="#ffffff" opacity=".75"/>
+        <path d="M380 150 L520 58 L600 112 L660 76 L800 150 Z" fill="#b9dcf4" opacity=".9"/>
+        <path d="M480 150 L520 58 L540 72 L515 84 L532 96 L500 112Z" fill="#ffffff" opacity=".7"/>
+        <g opacity=".95">
+          <path d="M600 150 a34 30 0 0 1 68 0z" fill="#f7fcff" stroke="#8fbfdf"/><path d="M626 150 v-12 a8 8 0 0 1 16 0 v12z" fill="#2c5f8a"/>
+          <path d="M610 138 h48 M606 128 h56 M615 118 h38" stroke="#bcdcf2"/>
+          <path d="M120 150 a24 21 0 0 1 48 0z" fill="#f7fcff" stroke="#8fbfdf"/><path d="M138 150 v-8 a6 6 0 0 1 12 0 v8z" fill="#2c5f8a"/>
+        </g>
+        <g><path d="M716 150 v-58" stroke="#5b6b7f" stroke-width="3"/><path d="M716 92 l26 8 -26 8z" fill="#ff7a59"/></g>
+      </svg>
+      <div class="jefe" id="jefe"></div>
+      <div class="estaciones" id="estaciones" role="list" aria-label="Agentes"></div>
+      <div class="cuarto">
+        <h3>Cuarto de máquinas (automático)</h3>
+        <div class="estaciones" id="maquinas" role="list" aria-label="Procesos automáticos"></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="lado">
+    <section id="buzon" class="seccion tarjeta" aria-labelledby="t-buzon">
+      <h2 id="t-buzon"><span aria-hidden="true">📮</span> Buzón del jefe</h2>
+      <p class="ayuda">Pídele algo al Emperador: él lo reparte entre el equipo y te avisa en Pedidos.</p>
+      <form id="form-pedido" novalidate>
+        <div class="campo">
+          <label for="para">¿Para quién?</label>
+          <select id="para"></select>
+        </div>
+        <div class="campo">
+          <label for="texto">Tu pedido</label>
+          <textarea id="texto" maxlength="1000" placeholder="Ej.: Hazme la HV para este enlace y prepara el correo si trae contacto: https://…"></textarea>
+        </div>
+        <div class="ejemplos" id="ejemplos" aria-label="Ideas de pedidos"></div>
+        <div class="acciones">
+          <button class="btn btn--primario" id="enviar" type="submit">Dejar en el buzón</button>
+          <button class="btn" id="copiar" type="button">Copiar para Claude</button>
+        </div>
+        <p class="resultado" id="resultado-pedido" role="status" aria-live="polite"></p>
+        <p class="ayuda" id="ayuda-buzon"></p>
+      </form>
+    </section>
+
+    <section id="pedidos" class="seccion tarjeta" aria-labelledby="t-pedidos">
+      <h2 id="t-pedidos"><span aria-hidden="true">🧊</span> Pedidos</h2>
+      <ul class="lista" id="lista-pedidos"></ul>
+    </section>
+
+    <section id="radio" class="seccion tarjeta" aria-labelledby="t-radio">
+      <h2 id="t-radio"><span aria-hidden="true">📻</span> Radio de la base</h2>
+      <ul class="lista" id="lista-radio" aria-live="polite"></ul>
+    </section>
+
+    <p class="pie">Los agentes nunca envían correos ni postulaciones: tú decides. · <button type="button" id="ver-demo">Ver demostración</button></p>
+  </div>
+</main>
+
+<nav class="abajo" aria-label="Secciones">
+  <a href="#base" data-sec="base" aria-current="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 19a9 9 0 0 1 18 0zm7 0v-4a2 2 0 0 1 4 0v4z"/></svg>Base<span class="cuenta" id="cuenta-base" hidden></span></a>
+  <a href="#buzon" data-sec="buzon"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 7h16v12H4zm0 0 8 6 8-6" stroke="currentColor" stroke-width="0"/><path d="M4 8l8 6 8-6" fill="none" stroke="var(--panel)" stroke-width="2"/></svg>Buzón</a>
+  <a href="#pedidos" data-sec="pedidos"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6 3h12v18l-6-3-6 3z"/></svg>Pedidos<span class="cuenta" id="cuenta-pedidos" hidden></span></a>
+  <a href="#radio" data-sec="radio"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 9h16v11H4zm3-5 10 4" stroke="currentColor" stroke-width="2"/><circle cx="9" cy="14.5" r="2.5" fill="var(--panel)"/></svg>Radio</a>
+</nav>
+
+<dialog id="ficha" aria-labelledby="ficha-nombre">
+  <div class="ficha">
+    <div class="ficha-cab">
+      <div class="figura" id="ficha-figura"></div>
+      <div><h2 id="ficha-nombre"></h2><p id="ficha-rol"></p><span id="ficha-chip" class="chip"></span></div>
+      <button class="btn btn--icono" type="button" id="cerrar-ficha" aria-label="Cerrar">✕</button>
+    </div>
+    <p class="resumen" id="ficha-resumen"></p>
+    <p class="ayuda" id="ficha-cuando"></p>
+    <ul class="cifras" id="ficha-cifras"></ul>
+    <dl class="contrato" id="ficha-contrato"></dl>
+    <h3 style="font-size:17px;margin:16px 0 8px">Sus últimos mensajes</h3>
+    <ul class="lista" id="ficha-mensajes"></ul>
+    <div class="acciones" id="ficha-acciones"></div>
+  </div>
+</dialog>
+
+<script id="motor-oficina">
+/* Lógica pura de la oficina (sin DOM), probada en tests/oficina.test.js. */
+var EQUIPO = {
+  jefe: { nombre: 'Emperador', rol: 'Jefe de la base', color: '#2b3150', acc: 'corona',
+    hace: 'Recibe tus pedidos, los reparte entre el equipo, revisa lo que entregan y te responde.',
+    recibe: 'Tus pedidos, por el chat de Claude o por el buzón', entrega: 'El resultado de cada pedido y un resumen corto' },
+  vigia: { nombre: 'Vigía', rol: 'Busca vacantes', color: '#1597a6', acc: 'binoculares',
+    hace: 'Trae a pedido una vacante puntual: un enlace que encontraste o una búsqueda concreta.',
+    recibe: 'Un enlace o un criterio de búsqueda', entrega: 'La carpeta de la vacante en «Sin revisar», con su ficha' },
+  inspector: { nombre: 'Inspector', rol: 'Verifica vacantes', color: '#3a8f3f', acc: 'lupa',
+    hace: 'Comprueba que la vacante sirva: abierta, acepta Colombia, gratis, no aplicada, de diseño y con un inglés posible.',
+    recibe: 'La ficha de la vacante', entrega: 'Su veredicto: lista, menor prioridad, dudosa o descartada' },
+  escriba: { nombre: 'Escriba', rol: 'Escribe tus HV', color: '#d0453b', acc: 'lapiz',
+    hace: 'Escribe la hoja de vida para cada vacante con tus datos reales, sin inventar nada y en máximo 2 páginas.',
+    recibe: 'Una vacante verificada o una empresa', entrega: 'La HV lista para revisar' },
+  editor: { nombre: 'Editor', rol: 'Revisa tus HV', color: '#e07a21', acc: 'gafas',
+    hace: 'Revisa cada HV antes de que la envíes: datos, ortografía, personalización y las 2 páginas.',
+    recibe: 'Una HV ya armada', entrega: 'Lista para enviar, o lo que debes decidir tú' },
+  cartero: { nombre: 'Cartero', rol: 'Prepara correos', color: '#2d6bcf', acc: 'gorra',
+    hace: 'Prepara correos en frío de máximo 35 palabras y los deja como borradores. Nunca envía.',
+    recibe: 'Una empresa o un lote de 3', entrega: 'Borradores en tu Gmail, uno por destinatario' },
+  exploradora: { nombre: 'Exploradora', rol: 'Investiga empresas', color: '#c94f93', acc: 'casco',
+    hace: 'Investiga empresas reales que contratan diseño y les busca correos publicados.',
+    recibe: 'Un criterio: ciudad, sector o tamaño', entrega: 'Empresas nuevas en tu lista de objetivo' },
+  radio: { nombre: 'Radio', rol: 'Sigue tus respuestas', color: '#d9a514', acc: 'audifonos',
+    hace: 'Lee tu Gmail laboral y anota quién te respondió, quién te rechazó y qué te toca hacer.',
+    recibe: 'Las fechas a revisar', entrega: 'Colores de carpetas y acciones pendientes' },
+  constructor: { nombre: 'Constructor', rol: 'Crea skills y código', color: '#8a5a2b', acc: 'casco-obra',
+    hace: 'Crea agentes, skills o cambios de código cuando tú lo apruebas. Siempre por un PR que fusionas tú.',
+    recibe: 'Una idea que aprobaste', entrega: 'Un PR con pruebas en verde' },
+  maquina: { nombre: 'Máquina de hielo', rol: 'Apps Script', color: '#5d8fc0', maquina: true,
+    hace: 'Busca vacantes a las 5:00 y 5:45, arma las HV cada 10 minutos y ordena el registro cada hora.',
+    recibe: 'Su horario', entrega: 'Carpetas, HV y borradores' },
+  trineo: { nombre: 'Trineo', rol: 'GitHub Actions', color: '#c2633f', maquina: true,
+    hace: 'Sale de madrugada y de noche a traer avisos de Indeed, LinkedIn y elempleo.',
+    recibe: 'Su horario', entrega: 'Los avisos para la Máquina de hielo' },
+};
+var ORDEN = ['vigia', 'inspector', 'escriba', 'editor', 'cartero', 'exploradora', 'radio', 'constructor'];
+var MAQUINAS = ['trineo', 'maquina'];
+// Ritmo del día (hora de Bogotá): quién tiene turno a cada hora (docs/MULTIAGENTE.md, CLAUDE.md «Mañana condensada»)
+var RITMO = [
+  { id: 'trineo', desde: '04:17', hasta: '04:50', que: 'Trae los avisos de la madrugada' },
+  { id: 'maquina', desde: '04:45', hasta: '05:20', que: 'Busca vacantes y crea carpetas' },
+  { id: 'maquina', desde: '05:30', hasta: '06:00', que: 'Repasa la búsqueda' },
+  { id: 'inspector', desde: '06:03', hasta: '06:45', que: 'Verifica la primera tanda' },
+  { id: 'escriba', desde: '06:10', hasta: '06:58', que: 'Escribe la primera tanda de HV' },
+  { id: 'inspector', desde: '07:03', hasta: '07:40', que: 'Verifica la segunda tanda' },
+  { id: 'escriba', desde: '07:10', hasta: '07:50', que: 'Escribe la segunda tanda de HV' },
+  { id: 'editor', desde: '07:53', hasta: '08:45', que: 'Revisa las HV de hoy' },
+  { id: 'editor', desde: '08:53', hasta: '09:20', que: 'Revisa las que faltaban' },
+  { id: 'radio', desde: '18:13', hasta: '18:45', que: 'Escucha tu Gmail laboral' },
+  { id: 'trineo', desde: '21:17', hasta: '21:50', que: 'Trae los avisos de la noche' },
+];
+var ESTADOS = {
+  trabajando: { texto: 'Trabajando', icono: '●' }, atencion: { texto: 'Te necesita', icono: '!' },
+  listo: { texto: 'Listo', icono: '✓' }, esperando: { texto: 'En espera', icono: '◷' }, libre: { texto: 'Disponible', icono: '·' },
+};
+var TIPOS = { pedido: 'Pedido', encargo: 'Encargo', avance: 'Avance', resultado: 'Resultado', pregunta: 'Pregunta', aviso: 'Aviso' };
+var MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+
+/** "yyyy-MM-dd HH:mm" de una fecha en hora de Bogotá (UTC-5, sin horario de verano). */
+function sello(ms) {
+  var b = new Date(ms - 5 * 3600000).toISOString();
+  return b.slice(0, 10) + ' ' + b.slice(11, 16);
+}
+function hhmm(s) { return String(s || '').slice(11, 16); }
+function minutos(hm) { var p = String(hm).split(':'); return Number(p[0]) * 60 + Number(p[1]); }
+function minutosEntre(a, b) {
+  var p = function (s) { var m = /^(\d{4})-(\d{2})-(\d{2})(?: (\d{2}):(\d{2}))?$/.exec(s || ''); return m ? Date.UTC(+m[1], m[2] - 1, +m[3], +(m[4] || 0), +(m[5] || 0)) : null; };
+  var x = p(a), y = p(b);
+  return x == null || y == null ? null : Math.round((y - x) / 60000);
+}
+/** Fecha corta en español: "28 oct". */
+function fechaCorta(dia) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(dia || ''); return m ? Number(m[3]) + ' ' + MESES[Number(m[2]) - 1] : ''; }
+/** "hace 5 min", "hace 2 h", "ayer 18:13", "25 oct" (o vacío). */
+function hace(marca, ahora) {
+  if (!marca) return '';
+  var dias = minutosEntre(marca.slice(0, 10), ahora.slice(0, 10)) / 1440;
+  if (marca.length < 16) return dias === 0 ? 'hoy' : dias === 1 ? 'ayer' : fechaCorta(marca);
+  var min = minutosEntre(marca, ahora);
+  if (min != null && min >= 0 && min < 60) return min < 2 ? 'ahora' : 'hace ' + min + ' min';
+  if (min != null && min >= 0 && dias === 0) return 'hace ' + Math.floor(min / 60) + ' h';
+  if (dias === 1) return 'ayer ' + hhmm(marca);
+  return fechaCorta(marca) + ' ' + hhmm(marca);
+}
+/** El turno del agente que está en curso ahora ("HH:mm"), o null. */
+function turnoActual(id, ahoraHm) {
+  var t = minutos(ahoraHm);
+  for (var i = 0; i < RITMO.length; i++) {
+    var r = RITMO[i];
+    if (r.id === id && t >= minutos(r.desde) && t < minutos(r.hasta)) return r;
+  }
+  return null;
+}
+/** Próximo turno del agente: { cuando: 'Hoy 18:13' | 'Mañana 6:03', que } o null si trabaja a pedido. */
+function proximoTurno(id, ahoraHm) {
+  var t = minutos(ahoraHm), propios = RITMO.filter(function (r) { return r.id === id; });
+  if (!propios.length) return null;
+  var hoy = propios.filter(function (r) { return minutos(r.desde) > t; })[0];
+  var r = hoy || propios[0];
+  return { cuando: (hoy ? 'Hoy ' : 'Mañana ') + r.desde.replace(/^0/, ''), que: r.que };
+}
+/** Lo que pasa ahora en la base según el ritmo del día, o lo próximo. */
+function faseDelDia(ahoraHm) {
+  var t = minutos(ahoraHm);
+  var ahora = RITMO.filter(function (r) { return t >= minutos(r.desde) && t < minutos(r.hasta); });
+  if (ahora.length) return { ahora: true, texto: EQUIPO[ahora[ahora.length - 1].id].nombre + ': ' + ahora[ahora.length - 1].que.toLowerCase() };
+  var sig = RITMO.filter(function (r) { return minutos(r.desde) > t; })[0] || RITMO[0];
+  return { ahora: false, texto: 'Próximo: ' + EQUIPO[sig.id].nombre + ' a las ' + sig.desde.replace(/^0/, '') };
+}
+/**
+ * Estado que se ve de un agente: el del servidor, salvo que el ritmo diga que le toca ahora y todavía no haya reportado
+ * nada en este turno (entonces «trabajando, por horario»). `a`: { id, estado, resumen, ultima }.
+ */
+function estadoVisible(a, ahora) {
+  var base = { estado: ESTADOS[a.estado] ? a.estado : 'libre', resumen: a.resumen || '', porHorario: false };
+  if (base.estado === 'trabajando' || base.estado === 'atencion') return base;
+  var turno = turnoActual(a.id, hhmm(ahora));
+  if (!turno) return base;
+  var inicio = ahora.slice(0, 10) + ' ' + turno.desde;
+  if (a.ultima && a.ultima.length >= 16 && a.ultima >= inicio) return base;
+  return { estado: 'trabajando', resumen: turno.que, porHorario: true };
+}
+/** Lo que espera a Oscar: agentes que lo necesitan y pedidos con una pregunta. */
+function teNecesitan(modelo) {
+  var eq = (modelo && modelo.equipo) || [], out = [];
+  eq.forEach(function (a) { if (a.estado === 'atencion' && EQUIPO[a.id]) out.push({ id: a.id, texto: a.resumen }); });
+  ((modelo && modelo.pedidos) || []).forEach(function (p) {
+    if (p.pregunta && p.estado !== 'hecho' && p.estado !== 'cancelado') out.push({ id: 'jefe', texto: 'Pregunta sobre «' + p.asunto + '»: ' + p.pregunta, pedido: p.id });
+  });
+  return out;
+}
+/** Texto del pedido para pegar en Claude (con el destinatario si Oscar eligió uno). */
+function textoParaClaude(para, texto) {
+  var t = String(texto || '').trim();
+  if (!t) return '';
+  return '/jefe ' + (para && para !== 'jefe' && EQUIPO[para] ? 'Encárgaselo a ' + EQUIPO[para].nombre.toLowerCase() + ' (' + para + '): ' : '') + t;
+}
+/** Parámetros del enlace (#api=…&k=…&e=…) o vacío. */
+function leerParametros(hash) {
+  var out = {};
+  String(hash || '').replace(/^#/, '').split('&').forEach(function (par) {
+    var i = par.indexOf('=');
+    if (i > 0) { try { out[par.slice(0, i)] = decodeURIComponent(par.slice(i + 1)); } catch (e) { /* parámetro roto */ } }
+    else if (par) out[par] = true;
+  });
+  return out;
+}
+/** Modelo de demostración (datos inventados), a la hora `ahora`. */
+function modeloDemo(ahora) {
+  // Las horas son relativas a `ahora`: h(34) = hace 34 minutos
+  var base = minutosEntre('2000-01-01 00:00', ahora), dia = ahora.slice(0, 10);
+  var h = function (min) { return sello(Date.UTC(2000, 0, 1) + (base - min) * 60000 + 5 * 3600000); };
+  return { generado: ahora.replace(' ', 'T'), agentes: { ahora: ahora,
+    equipo: [
+      { id: 'jefe', estado: 'trabajando', resumen: '2 pedidos abiertos', ultima: h(4), cifras: [['abiertos', 2]] },
+      { id: 'vigia', estado: 'listo', resumen: 'Trajo la vacante de Pingüinera Pay', ultima: h(22), cifras: [] },
+      { id: 'inspector', estado: 'atencion', resumen: '1 dudosa espera tu decisión', ultima: h(13), cifras: [['pasaron', 7], ['dudosas', 1], ['descartadas', 4]] },
+      { id: 'escriba', estado: 'trabajando', resumen: 'HV para Glaciar Fintech', ultima: h(1), cifras: [['HV hoy', 5], ['en cola', 2], ['rechazadas', 0]] },
+      { id: 'editor', estado: 'listo', resumen: '6 listas para enviar', ultima: h(39), cifras: [['listas', 6], ['revisar', 0], ['sin revisión', 5]] },
+      { id: 'cartero', estado: 'atencion', resumen: '3 borradores listos para que los envíes', ultima: h(29), cifras: [['borradores', 3], ['respondieron', 1]] },
+      { id: 'exploradora', estado: 'libre', resumen: '34 empresas en la lista', ultima: dia, cifras: [['empresas', 34]] },
+      { id: 'radio', estado: 'esperando', resumen: 'Escucha el Gmail a las 18:13', ultima: '', cifras: [['acciones', 0]] },
+      { id: 'constructor', estado: 'libre', resumen: 'A pedido del jefe', ultima: '', cifras: [] },
+      { id: 'maquina', estado: 'listo', resumen: 'Buscó en 7 fuentes y creó 14 carpetas', ultima: h(98), cifras: [['nuevas', 21], ['carpetas', 14]] },
+      { id: 'trineo', estado: 'listo', resumen: 'Trajo 48 avisos de Indeed, LinkedIn y elempleo', ultima: h(133), cifras: [['avisos', 48], ['nuevos', 19]] },
+    ],
+    mensajes: [
+      { hora: h(1), de: 'escriba', para: 'jefe', tipo: 'avance', estado: 'en curso', asunto: 'HV para Glaciar Fintech', detalle: 'Mapa de evidencia listo; voy por los logros.', enlace: '', id: 'P-DEMO-0610-AB' },
+      { hora: h(4), de: 'jefe', para: 'escriba', tipo: 'encargo', estado: 'pendiente', asunto: 'HV para Glaciar Fintech', detalle: 'La vacante quedó LISTA: escríbele la HV.', enlace: '', id: 'P-DEMO-0610-AB' },
+      { hora: h(13), de: 'inspector', para: 'jefe', tipo: 'pregunta', estado: 'hecho', asunto: 'Iceberg Labs: ¿acepta Colombia?', detalle: 'El aviso dice «LATAM» pero el formulario pide residencia en México.', enlace: '', id: 'DIARIO-DEMO' },
+      { hora: h(22), de: 'vigia', para: 'jefe', tipo: 'resultado', estado: 'hecho', asunto: 'Vacante traída: Pingüinera Pay', detalle: 'Carpeta creada en Sin revisar con su ficha.', enlace: '', id: 'P-DEMO-0610-AB' },
+      { hora: h(34), de: 'oscar', para: 'jefe', tipo: 'pedido', estado: 'pendiente', asunto: 'HV y correo para este enlace', detalle: 'Hazme la HV para este enlace y prepara el correo si trae contacto.', enlace: '', id: 'P-DEMO-0610-AB' },
+      { hora: h(98), de: 'maquina', para: 'todos', tipo: 'aviso', estado: 'hecho', asunto: '14 carpetas nuevas en Sin revisar', detalle: '', enlace: '', id: 'DIARIO-DEMO' },
+    ],
+    pedidos: [
+      { id: 'P-DEMO-0610-AB', asunto: 'HV y correo para este enlace', de: 'oscar', desde: h(34), hora: h(1), estado: 'en curso', agentes: ['vigia', 'inspector', 'escriba'], ultimo: 'Mapa de evidencia listo; voy por los logros.' },
+      { id: 'P-DEMO-0555-CD', asunto: 'Busca fintech en Medellín', de: 'oscar', desde: h(49), hora: h(42), estado: 'pendiente', agentes: ['exploradora'], ultimo: 'Busca fintech en Medellín que contraten diseño' },
+    ],
+  } };
+}
+</script>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var NS = 'http://www.w3.org/2000/svg';
+  var params = leerParametros(location.hash);
+  var demo = !!params.demo;
+  var CLAVE = 'oficina';
+  function guardar(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* bloqueado */ } }
+  function leer(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } }
+  // La app instalada abre sin el #: se recuerdan los parámetros del último enlace completo
+  if (!demo && params.api && params.k) guardar(CLAVE + ':enlace', { api: params.api, k: params.k, e: params.e || '' });
+  else if (!demo) { var g = leer(CLAVE + ':enlace'); if (g && g.api && g.k) params = g; }
+  var URL_DATOS = /^[\w-]+$/.test(params.api || '') && params.k
+    ? 'https://script.google.com/macros/s/' + params.api + '/exec?formato=json&k=' + encodeURIComponent(params.k) : '';
+  var modelo = null, datosHora = '';
+
+  // ---------- Pingüinos (SVG fijo, sin datos del Sheet) ----------
+  function el(tag, attrs, kids) {
+    var n = document.createElement(tag);
+    Object.keys(attrs || {}).forEach(function (k) { if (k === 'text') n.textContent = attrs[k]; else n.setAttribute(k, attrs[k]); });
+    (kids || []).forEach(function (c) { if (c) n.appendChild(c); });
+    return n;
+  }
+  var ACCESORIOS = {
+    corona: '<path d="M38 20 l6 -14 l8 9 l8 -12 l8 12 l8 -9 l6 14 z" fill="#f2c230" stroke="#b8860b" stroke-width="2" stroke-linejoin="round"/><circle cx="60" cy="10" r="3" fill="#e2403a"/><path d="M50 82 l10 6 l10 -6 l-2 10 l-8 -4 l-8 4 z" fill="#e2403a"/>',
+    binoculares: '<g fill="#25303f"><rect x="44" y="64" width="13" height="16" rx="5"/><rect x="63" y="64" width="13" height="16" rx="5"/><rect x="55" y="68" width="10" height="6"/></g><circle cx="50.5" cy="78" r="3.5" fill="#7fd0ff"/><circle cx="69.5" cy="78" r="3.5" fill="#7fd0ff"/><path d="M30 62 q30 14 60 0 l2 8 q-32 14 -64 0z" fill="#ff7a59"/>',
+    lupa: '<g class="p-objeto"><circle cx="99" cy="90" r="11" fill="rgba(170,225,255,.55)" stroke="#5a3b1c" stroke-width="4"/><path d="M106 99 l10 12" stroke="#5a3b1c" stroke-width="6" stroke-linecap="round"/></g><path d="M38 21 q22 -14 44 0 l4 6 h-52z" fill="#7a5a3a"/><rect x="30" y="25" width="60" height="5" rx="2.5" fill="#5e4329"/>',
+    lapiz: '<g class="p-objeto"><path d="M96 66 l18 -20 l6 5 l-18 20 z" fill="#ffcf3f" stroke="#a87a00" stroke-width="1.5"/><path d="M96 66 l-3 9 l9 -4z" fill="#3a2a1a"/></g><rect x="40" y="84" width="40" height="30" rx="3" fill="#fff" stroke="#c9d9e6"/><path d="M46 92 h28 M46 99 h28 M46 106 h18" stroke="#9db4c8" stroke-width="2"/>',
+    gafas: '<g fill="none" stroke="#2a2a35" stroke-width="3"><circle cx="50" cy="45" r="8"/><circle cx="70" cy="45" r="8"/><path d="M58 45 h4"/></g><g class="p-objeto"><rect x="92" y="78" width="18" height="12" rx="2" fill="#c43b2f"/><rect x="98" y="66" width="6" height="13" rx="2" fill="#7a4b2a"/></g>',
+    gorra: '<path d="M34 26 q26 -22 52 0 v6 h-52z" fill="#1f4f9c"/><path d="M80 28 q18 0 22 6 h-24z" fill="#173b75"/><circle cx="60" cy="20" r="4" fill="#f2c230"/><g class="p-objeto"><rect x="86" y="84" width="30" height="24" rx="5" fill="#a0612d"/><path d="M91 90 h20 v12 h-20z" fill="#fff"/><path d="M91 90 l10 7 l10 -7" fill="none" stroke="#2d6bcf" stroke-width="2"/></g><path d="M86 84 q-30 -30 -54 -18" stroke="#7a4a20" stroke-width="4" fill="none"/>',
+    casco: '<path d="M32 30 q28 -34 56 0 z" fill="#d9c08a"/><rect x="26" y="27" width="68" height="7" rx="3.5" fill="#bfa366"/><path d="M50 12 h20" stroke="#a88a4e" stroke-width="3"/><g class="p-objeto"><rect x="88" y="78" width="26" height="22" rx="2" fill="#f4e6c4" stroke="#b49b62"/><path d="M92 86 q6 -6 10 2 t8 -2 M92 94 h16" stroke="#3a8f3f" stroke-width="2" fill="none"/></g>',
+    audifonos: '<path d="M32 46 q0 -36 28 -36 q28 0 28 36" fill="none" stroke="#2a2a35" stroke-width="5"/><rect x="24" y="40" width="12" height="18" rx="5" fill="#2a2a35"/><rect x="84" y="40" width="12" height="18" rx="5" fill="#2a2a35"/><path d="M90 58 q2 14 -16 16" stroke="#2a2a35" stroke-width="3" fill="none"/><circle cx="72" cy="74" r="3" fill="#e2403a"/>',
+    'casco-obra': '<path d="M32 30 q28 -32 56 0 z" fill="#ffc21a" stroke="#c48f00" stroke-width="2"/><rect x="28" y="27" width="64" height="6" rx="3" fill="#f0a800"/><rect x="56" y="10" width="8" height="14" rx="3" fill="#f0a800"/><g class="p-objeto"><path d="M100 64 l10 10 l-22 22 l-6 -4 l4 -6z" fill="#8f9aa8"/><circle cx="108" cy="66" r="7" fill="none" stroke="#8f9aa8" stroke-width="5"/></g>',
+  };
+  function insignia(estado) {
+    if (estado === 'atencion') return '<g class="p-insignia"><circle cx="100" cy="18" r="13" fill="#ffb21f" stroke="#fff" stroke-width="3"/><path d="M100 10 v10" stroke="#3a2600" stroke-width="4" stroke-linecap="round"/><circle cx="100" cy="25" r="2.2" fill="#3a2600"/></g>';
+    if (estado === 'trabajando') return '<g class="p-puntos"><rect x="84" y="6" width="34" height="18" rx="9" fill="#fff" stroke="#8fbfdf"/><circle cx="93" cy="15" r="2.6" fill="#0b6e55"/><circle cx="101" cy="15" r="2.6" fill="#0b6e55"/><circle cx="109" cy="15" r="2.6" fill="#0b6e55"/></g>';
+    if (estado === 'listo') return '<g class="p-insignia"><circle cx="100" cy="18" r="12" fill="#2e9e55" stroke="#fff" stroke-width="3"/><path d="M94 18 l4 4 l8 -8" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/></g>';
+    if (estado === 'esperando') return '<g class="p-insignia" opacity=".9"><text x="92" y="20" font-family="Fredoka, sans-serif" font-size="15" font-weight="700" fill="#4b5d72">z</text><text x="102" y="11" font-family="Fredoka, sans-serif" font-size="11" font-weight="700" fill="#4b5d72">z</text></g>';
+    return '';
+  }
+  function escritorio(id) {
+    if (id === 'jefe') return '';
+    return '<path d="M18 112 h84 l6 22 h-96z" fill="#e7f5ff" stroke="#8fbfdf" stroke-width="2"/><path d="M12 134 h96" stroke="#8fbfdf" stroke-width="2"/>';
+  }
+  function pinguinoSvg(id, estado) {
+    var m = EQUIPO[id], c = m.color;
+    if (m.maquina) return maquinaSvg(id, estado);
+    var fondo = id === 'jefe' ? '<path d="M-6 134 a66 60 0 0 1 132 0z" fill="#f7fcff" stroke="#8fbfdf" stroke-width="2"/><path d="M4 116 h112 M14 98 h92 M30 80 h60 M46 66 h28" stroke="#c9e3f5" stroke-width="2"/><path d="M40 82 v-18 M80 82 v-18 M26 100 v-18 M60 100 v-18 M94 100 v-18 M40 118 v-18 M80 118 v-18" stroke="#c9e3f5" stroke-width="2"/>' : '';
+    return '<svg viewBox="0 0 120 140" aria-hidden="true">' + fondo +
+      '<ellipse cx="60" cy="133" rx="34" ry="5" fill="rgba(13,41,68,.16)"/>' +
+      '<g class="p-todo">' +
+        '<ellipse cx="45" cy="127" rx="12" ry="6" fill="#f59a23"/><ellipse cx="75" cy="127" rx="12" ry="6" fill="#f59a23"/>' +
+        '<path d="M24 66 q-16 22 -8 46 q10 -4 16 -24z" fill="' + c + '"/>' +
+        '<path d="M60 12 C32 12 22 42 22 74 C22 108 36 128 60 128 C84 128 98 108 98 74 C98 42 88 12 60 12Z" fill="' + c + '"/>' +
+        '<path d="M60 50 C42 50 34 70 34 90 C34 112 45 123 60 123 C75 123 86 112 86 90 C86 70 78 50 60 50Z" fill="#fff"/>' +
+        '<path d="M60 22 C45 22 36 34 38 48 C40 60 50 64 60 58 C70 64 80 60 82 48 C84 34 75 22 60 22Z" fill="#fff"/>' +
+        '<g class="p-ojos"><ellipse cx="51" cy="42" rx="4.2" ry="5.6" fill="#1a1d2e"/><ellipse cx="69" cy="42" rx="4.2" ry="5.6" fill="#1a1d2e"/><circle cx="52.4" cy="40" r="1.5" fill="#fff"/><circle cx="70.4" cy="40" r="1.5" fill="#fff"/></g>' +
+        '<path d="M51 51 q9 9 18 0 q-9 -4 -18 0z" fill="#f59a23"/>' +
+        '<circle cx="43" cy="53" r="4" fill="#ff9fb0" opacity=".55"/><circle cx="77" cy="53" r="4" fill="#ff9fb0" opacity=".55"/>' +
+        '<g class="p-aleta-d"><path d="M96 66 q16 22 8 46 q-10 -4 -16 -24z" fill="' + c + '"/></g>' +
+        (ACCESORIOS[m.acc] || '') +
+      '</g>' + escritorio(id) + insignia(estado) + '</svg>';
+  }
+  function maquinaSvg(id, estado) {
+    if (id === 'trineo') {
+      return '<svg viewBox="0 0 120 140" aria-hidden="true"><ellipse cx="60" cy="132" rx="46" ry="5" fill="rgba(13,41,68,.16)"/>' +
+        '<g class="p-todo"><path d="M14 122 h86 q12 0 12 -10" fill="none" stroke="#5a3b1c" stroke-width="5" stroke-linecap="round"/>' +
+        '<path d="M24 122 v-12 M86 122 v-12" stroke="#5a3b1c" stroke-width="4"/><rect x="18" y="88" width="76" height="24" rx="6" fill="' + EQUIPO.trineo.color + '"/>' +
+        '<rect x="30" y="60" width="44" height="30" rx="4" fill="#f4e6c4" stroke="#b49b62" stroke-width="2"/><path d="M52 66 v16 m-7 -7 l7 7 l7 -7" fill="none" stroke="#3a6ea5" stroke-width="3"/>' +
+        '<text x="56" y="106" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="12" font-weight="700" fill="#fff">AVISOS</text></g>' + insignia(estado) + '</svg>';
+    }
+    return '<svg viewBox="0 0 120 140" aria-hidden="true"><ellipse cx="60" cy="132" rx="44" ry="5" fill="rgba(13,41,68,.16)"/>' +
+      '<g class="p-todo"><rect x="20" y="52" width="80" height="76" rx="10" fill="' + EQUIPO.maquina.color + '" stroke="#3d679f" stroke-width="2"/>' +
+      '<rect x="30" y="62" width="40" height="26" rx="4" fill="#dff3ff"/><path d="M36 76 h28 M36 70 h20 M36 82 h24" stroke="#5d8fc0" stroke-width="2"/>' +
+      '<g class="m-engrane"><circle cx="84" cy="76" r="9" fill="#cfe6f7" stroke="#2c5f8a" stroke-width="3" stroke-dasharray="4 3"/><circle cx="84" cy="76" r="3" fill="#2c5f8a"/></g>' +
+      '<rect x="30" y="98" width="60" height="18" rx="4" fill="#2c5f8a"/><path d="M38 107 h44" stroke="#9fd0f0" stroke-width="3" stroke-dasharray="6 4"/>' +
+      '<rect x="72" y="36" width="12" height="18" fill="#3d679f"/><circle class="m-humo" cx="78" cy="30" r="6" fill="#fff" opacity=".8"/>' +
+      '<path d="M44 40 l4 -8 l4 8 l-4 8z M38 36 l20 0 M48 26 v20" stroke="#fff" stroke-width="2" fill="none"/></g>' + insignia(estado) + '</svg>';
+  }
+  function miniSvg(id) {
+    var w = document.createElement('span');
+    w.className = 'mini';
+    w.innerHTML = pinguinoSvg(EQUIPO[id] ? id : 'jefe', '');
+    return w;
+  }
+
+  // ---------- Pintar ----------
+  function chip(estado, extra) {
+    var s = ESTADOS[estado] || ESTADOS.libre;
+    return el('span', { class: 'chip chip--' + estado, text: s.icono + ' ' + s.texto + (extra || '') });
+  }
+  function estacion(a, ahora, i) {
+    var v = estadoVisible(a, ahora), m = EQUIPO[a.id];
+    var b = el('button', { type: 'button', class: 'estacion ' + v.estado, 'data-id': a.id, role: 'listitem',
+      'aria-label': m.nombre + ', ' + m.rol + '. ' + ESTADOS[v.estado].texto + (v.resumen ? '. ' + v.resumen : '') });
+    // El jefe no lleva globo: su tarjeta ya dice cuántos pedidos tiene
+    if ((v.estado === 'trabajando' || v.estado === 'atencion') && v.resumen && a.id !== 'jefe') {
+      b.appendChild(el('span', { class: 'globo', 'aria-hidden': 'true' }, [el('span', { text: v.resumen })]));
+    }
+    var fig = el('span', { class: 'figura' });
+    fig.style.setProperty('--retraso', (-(i || 0) * 0.37).toFixed(2) + 's');
+    fig.innerHTML = pinguinoSvg(a.id, v.estado);
+    b.appendChild(fig);
+    b.appendChild(el('span', { class: 'nombre', text: m.nombre }));
+    b.appendChild(el('span', { class: 'rol', text: m.rol }));
+    b.appendChild(chip(v.estado));
+    b.addEventListener('click', function () { abrirFicha(a.id); });
+    return b;
+  }
+  function equipoPorId() {
+    var out = Object.create(null);  // sin prototipo: «constructor» es uno de los agentes
+    ((modelo && modelo.equipo) || []).forEach(function (a) { out[a.id] = a; });
+    Object.keys(EQUIPO).forEach(function (id) { if (!out[id]) out[id] = { id: id, estado: 'libre', resumen: '', ultima: '', cifras: [] }; });
+    return out;
+  }
+  function ahoraSello() { return sello(Date.now()); }
+  function pintarPlaza() {
+    var eq = equipoPorId(), ahora = ahoraSello();
+    var jefe = $('jefe'); jefe.textContent = '';
+    var vj = estadoVisible(eq.jefe, ahora);
+    jefe.appendChild(estacion(eq.jefe, ahora, 0));
+    var abiertos = ((modelo && modelo.pedidos) || []).filter(function (p) { return p.estado !== 'hecho' && p.estado !== 'cancelado'; }).length;
+    jefe.appendChild(el('div', { class: 'jefe-info' }, [
+      el('h2', { text: 'Iglú del Emperador' }),
+      el('p', { text: modelo ? (abiertos ? abiertos + (abiertos === 1 ? ' pedido abierto' : ' pedidos abiertos') : 'Sin pedidos abiertos. ' + (vj.resumen || '')) : 'Esperando noticias del equipo…' }),
+      el('a', { class: 'btn btn--primario', href: '#buzon', text: 'Dejarle un pedido' }),
+    ]));
+    var est = $('estaciones'); est.textContent = '';
+    ORDEN.forEach(function (id, i) { est.appendChild(estacion(eq[id], ahora, i + 1)); });
+    var maq = $('maquinas'); maq.textContent = '';
+    MAQUINAS.forEach(function (id, i) { maq.appendChild(estacion(eq[id], ahora, i + 9)); });
+    $('plaza').classList.toggle('cargando', !modelo);
+    var f = faseDelDia(hhmm(ahora));
+    var fase = $('fase'); fase.textContent = '';
+    if (f.ahora) fase.appendChild(el('span', { class: 'punto', 'aria-hidden': 'true' }));
+    fase.appendChild(document.createTextNode(f.texto));
+  }
+  function pintarNecesitan() {
+    var lista = $('lista-necesitan'); lista.textContent = '';
+    var items = modelo ? teNecesitan(modelo) : [];
+    if (!modelo) { lista.appendChild(el('li', {}, [el('p', { class: 'vacio', text: 'Cargando…' })])); return; }
+    if (!items.length) { lista.appendChild(el('li', {}, [el('p', { class: 'vacio', text: 'Nada pendiente para ti. El equipo sigue con lo suyo.' })])); }
+    items.forEach(function (it) {
+      var b = el('button', { type: 'button', class: 'fila' }, [miniSvg(it.id),
+        el('span', { class: 'txt' }, [el('b', { text: EQUIPO[it.id].nombre }), el('span', { text: it.texto })]),
+        el('span', { class: 'flecha', 'aria-hidden': 'true', text: '›' })]);
+      b.addEventListener('click', function () { abrirFicha(it.id); });
+      lista.appendChild(el('li', {}, [b]));
+    });
+    var c = $('cuenta-base'); c.hidden = !items.length; c.textContent = String(items.length);
+  }
+  function caritas(ids) {
+    var w = el('span', { class: 'caritas', 'aria-hidden': 'true' });
+    ids.slice(0, 5).forEach(function (id) { if (EQUIPO[id]) { var s = document.createElement('span'); s.innerHTML = pinguinoSvg(id, ''); w.appendChild(s.firstChild); } });
+    return w;
+  }
+  var ESTADO_PEDIDO = { pendiente: 'esperando', 'en curso': 'trabajando', hecho: 'listo', bloqueado: 'atencion', cancelado: 'libre' };
+  var TEXTO_PEDIDO = { pendiente: 'En el buzón', 'en curso': 'En curso', hecho: 'Hecho', bloqueado: 'Bloqueado', cancelado: 'Cancelado' };
+  function pintarPedidos() {
+    var lista = $('lista-pedidos'); lista.textContent = '';
+    var ps = (modelo && modelo.pedidos) || [], ahora = ahoraSello();
+    if (!ps.length) lista.appendChild(el('li', {}, [el('p', { class: 'vacio', text: modelo ? 'Todavía no hay pedidos. Escríbele al jefe en el buzón.' : 'Cargando…' })]));
+    ps.forEach(function (p) {
+      var k = ESTADO_PEDIDO[p.estado] || 'esperando';
+      var s = ESTADOS[k];
+      var li = el('li', { class: 'pedido' }, [
+        el('div', { class: 'pedido-cab' }, [el('b', { text: p.asunto || p.id }),
+          el('span', { class: 'chip chip--' + k, text: s.icono + ' ' + (TEXTO_PEDIDO[p.estado] || p.estado) })]),
+        el('p', { text: (p.ultimo ? p.ultimo + ' · ' : '') + hace(p.hora, ahora) }),
+      ]);
+      if (p.agentes && p.agentes.length) li.appendChild(caritas(p.agentes));
+      if (p.pregunta) li.appendChild(el('p', { class: 'pregunta', text: 'Pregunta para ti: ' + p.pregunta }));
+      lista.appendChild(li);
+    });
+    var abiertos = ps.filter(function (p) { return p.estado !== 'hecho' && p.estado !== 'cancelado'; }).length;
+    var c = $('cuenta-pedidos'); c.hidden = !abiertos; c.textContent = String(abiertos);
+  }
+  function nombreDe(id) { return id === 'oscar' ? 'Tú' : id === 'todos' ? 'todos' : EQUIPO[id] ? EQUIPO[id].nombre : id; }
+  function mensajeLi(m, ahora) {
+    var cab = el('div', { class: 'mensaje-cab' }, [m.de === 'oscar' ? el('span', { class: 'mini', 'aria-hidden': 'true', text: '🙂' }) : miniSvg(m.de),
+      el('b', { text: nombreDe(m.de) + (m.para ? ' → ' + nombreDe(m.para) : '') }),
+      el('span', { class: 'tipo tipo--' + m.tipo, text: TIPOS[m.tipo] || m.tipo || 'Mensaje' }),
+      el('span', { class: 'hora', text: hace(m.hora, ahora) })]);
+    var li = el('li', { class: 'mensaje' }, [cab, el('div', { class: 'asunto', text: m.asunto })]);
+    if (m.detalle && m.detalle !== m.asunto) li.appendChild(el('p', { text: m.detalle }));
+    if (/^https:\/\//.test(m.enlace || '')) li.appendChild(el('a', { href: m.enlace, target: '_blank', rel: 'noopener', text: 'Abrir ↗' }));
+    return li;
+  }
+  function pintarRadio() {
+    var lista = $('lista-radio'); lista.textContent = '';
+    var ms = (modelo && modelo.mensajes) || [], ahora = ahoraSello();
+    if (!ms.length) lista.appendChild(el('li', {}, [el('p', { class: 'vacio', text: modelo ? 'Silencio en la radio. Los agentes escriben aquí cuando empiezan y terminan un trabajo.' : 'Cargando…' })]));
+    ms.slice(0, 15).forEach(function (m) { lista.appendChild(mensajeLi(m, ahora)); });
+  }
+  function pintarTodo() { pintarPlaza(); pintarNecesitan(); pintarPedidos(); pintarRadio(); }
+
+  // ---------- Ficha ----------
+  var dlg = $('ficha');
+  function enlaceJuego() {
+    if (!params.api || !params.k) return '';
+    return 'juego.html#api=' + encodeURIComponent(params.api) + '&k=' + encodeURIComponent(params.k) + (params.e ? '&e=' + encodeURIComponent(params.e) : '');
+  }
+  function abrirFicha(id) {
+    var a = equipoPorId()[id], m = EQUIPO[id], ahora = ahoraSello(), v = estadoVisible(a, ahora);
+    var fig = $('ficha-figura'); fig.innerHTML = pinguinoSvg(id, v.estado); fig.className = 'figura ' + v.estado;
+    $('ficha-nombre').textContent = m.nombre;
+    $('ficha-rol').textContent = m.rol + (m.maquina ? ' · automático' : '');
+    var c = $('ficha-chip'); c.className = 'chip chip--' + v.estado; c.textContent = ESTADOS[v.estado].icono + ' ' + ESTADOS[v.estado].texto + (v.porHorario ? ' (por horario)' : '');
+    $('ficha-resumen').textContent = v.resumen || m.hace;
+    var t = proximoTurno(id, hhmm(ahora));
+    $('ficha-cuando').textContent = [a.ultima ? 'Último reporte: ' + hace(a.ultima, ahora) + '.' : '',
+      t ? 'Próximo turno: ' + t.cuando + ' (' + t.que.toLowerCase() + ').' : 'Trabaja a pedido.'].filter(Boolean).join(' ');
+    var cifras = $('ficha-cifras'); cifras.textContent = '';
+    (a.cifras || []).forEach(function (x) { cifras.appendChild(el('li', {}, [el('b', { text: String(x[1]) }), document.createTextNode(String(x[0]))])); });
+    cifras.hidden = !(a.cifras && a.cifras.length);
+    var ct = $('ficha-contrato'); ct.textContent = '';
+    [['Qué hace', m.hace], ['Recibe', m.recibe], ['Entrega', m.entrega]].forEach(function (p) { ct.appendChild(el('div', {}, [el('dt', { text: p[0] }), el('dd', { text: p[1] })])); });
+    var ml = $('ficha-mensajes'); ml.textContent = '';
+    var mios = ((modelo && modelo.mensajes) || []).filter(function (x) { return x.de === id || x.para === id; }).slice(0, 4);
+    if (!mios.length) ml.appendChild(el('li', {}, [el('p', { class: 'vacio', text: 'Sin mensajes recientes.' })]));
+    mios.forEach(function (x) { ml.appendChild(mensajeLi(x, ahora)); });
+    var acc = $('ficha-acciones'); acc.textContent = '';
+    if (!m.maquina) {
+      var pedir = el('button', { type: 'button', class: 'btn btn--primario', text: id === 'jefe' ? 'Dejarle un pedido' : 'Pedirle algo' });
+      pedir.addEventListener('click', function () { dlg.close(); $('para').value = id; location.hash = demo ? '#demo' : ''; document.getElementById('buzon').scrollIntoView({ behavior: 'smooth' }); $('texto').focus(); });
+      acc.appendChild(pedir);
+    }
+    var j = enlaceJuego();
+    if (j && /^(inspector|editor|cartero|radio|escriba)$/.test(id)) acc.appendChild(el('a', { class: 'btn', href: j, text: 'Abrir en el juego' }));
+    if (typeof dlg.showModal === 'function') dlg.showModal(); else dlg.setAttribute('open', '');
+  }
+  $('cerrar-ficha').addEventListener('click', function () { dlg.close(); });
+  dlg.addEventListener('click', function (e) { if (e.target === dlg) dlg.close(); });
+
+  // ---------- Buzón ----------
+  var EJEMPLOS = ['Hazme la HV para este enlace: ', 'Busca fintech en Medellín que contraten diseño', 'Prepara el siguiente lote de correos en frío', 'Haz el seguimiento de esta semana'];
+  (function () {
+    var sel = $('para');
+    sel.appendChild(el('option', { value: 'jefe', text: 'El jefe decide' }));
+    ORDEN.forEach(function (id) { sel.appendChild(el('option', { value: id, text: EQUIPO[id].nombre + ' · ' + EQUIPO[id].rol.toLowerCase() })); });
+    var ej = $('ejemplos');
+    EJEMPLOS.forEach(function (t) {
+      var b = el('button', { type: 'button', class: 'ejemplo', text: t.replace(/: $/, '…') });
+      b.addEventListener('click', function () { $('texto').value = t; $('texto').focus(); });
+      ej.appendChild(b);
+    });
+    var puede = !!(params.e && URL_DATOS) && !demo;
+    $('enviar').disabled = !puede && !demo;
+    $('ayuda-buzon').textContent = demo ? 'En la demostración el pedido no se guarda.' : puede
+      ? 'El jefe lo toma la próxima vez que trabaje. Si lo necesitas ya, usa «Copiar para Claude» y pégalo en la app de Claude.'
+      : 'Para dejar pedidos en el buzón abre la base con tu enlace personal (el que trae la clave de escritura). Mientras tanto, «Copiar para Claude» te deja el pedido listo para pegar.';
+  })();
+  function textoPedido() {
+    var para = $('para').value, t = $('texto').value.replace(/\s+/g, ' ').trim();
+    return para !== 'jefe' && t ? 'Para ' + EQUIPO[para].nombre.toLowerCase() + ': ' + t : t;
+  }
+  $('form-pedido').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var r = $('resultado-pedido'), t = textoPedido();
+    if (t.length < 3) { r.textContent = 'Escribe qué necesitas.'; $('texto').focus(); return; }
+    if (demo) { r.textContent = 'Listo (demostración): así quedaría tu pedido en el buzón.'; return; }
+    var btn = $('enviar'); btn.disabled = true; r.textContent = 'Dejando el pedido…';
+    fetch(URL_DATOS + '&fresco=1&accion=pedido&e=' + encodeURIComponent(params.e) + '&texto=' + encodeURIComponent(t), { credentials: 'omit' })
+      .then(function (x) { return x.json(); })
+      .then(function (d) {
+        if (d && d.error) throw new Error(d.error === 'escritura' ? 'Tu enlace no tiene la clave de escritura.' : d.detalle || 'No se pudo guardar.');
+        recibir(d);
+        $('texto').value = '';
+        var p = (modelo && modelo.pedidos || [])[0];
+        r.textContent = 'Pedido en el buzón' + (p ? ' (' + p.id + ')' : '') + '. Lo verás avanzar en Pedidos.';
+      })
+      .catch(function (err) { r.textContent = 'No se pudo dejar el pedido: ' + (err && err.message || 'sin conexión') + ' Usa «Copiar para Claude».'; })
+      .then(function () { btn.disabled = false; });
+  });
+  $('copiar').addEventListener('click', function () {
+    var r = $('resultado-pedido'), t = textoParaClaude($('para').value, $('texto').value);
+    if (!t) { r.textContent = 'Escribe qué necesitas.'; $('texto').focus(); return; }
+    var ok = function () { r.textContent = 'Copiado. Ábrelo en la app de Claude (proyecto ux_job_agent) y pégalo.'; };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(ok, function () { r.textContent = t; });
+    else r.textContent = t;
+  });
+
+  // ---------- Datos ----------
+  function avisar(texto, error) { var a = $('estado-datos'); a.textContent = texto; a.className = 'aviso' + (error ? ' aviso--error' : ''); }
+  function recibir(d) {
+    if (!d || d.error) return false;
+    modelo = d.agentes || null;
+    datosHora = String(d.generado || '').replace('T', ' ');
+    if (!demo) guardar(CLAVE + ':modelo', d);
+    pintarTodo();
+    avisar(!modelo ? 'El equipo todavía no reporta: la base empieza a recibir datos cuando se instale la actualización.'
+      : 'Datos de ' + (datosHora ? hace(datosHora, ahoraSello()) : 'hoy') + (demo ? ' (demostración)' : ''));
+    return true;
+  }
+  function pedir(fresco) { return fetch(URL_DATOS + (fresco ? '&fresco=1' : ''), { credentials: 'omit' }).then(function (r) { return r.json(); }); }
+  function cargar(fresco) {
+    if (demo) { recibir(modeloDemo(ahoraSello())); return; }
+    if (!URL_DATOS) { pintarTodo(); avisar('Esta base es privada. Ábrela con tu enlace del juego, cambiando juego.html por oficina.html, o mira la demostración.', true); return; }
+    if (modelo) avisar('Actualizando…');
+    pedir(!!fresco).then(function (d) { return d && !d.error && !('agentes' in d) ? pedir(true) : d; })
+      .then(function (d) {
+        if (d && d.error) { avisar('Este enlace no abre la base: revisa que sea el tuyo completo.', true); return; }
+        if (!recibir(d)) throw new Error('sin datos');
+      })
+      .catch(function () { avisar(modelo ? 'Sin conexión. Estos datos son de ' + (datosHora ? hace(datosHora, ahoraSello()) : 'antes') + '.' : 'No se pudieron cargar los datos. Revisa la conexión.', true); if (!modelo) pintarTodo(); });
+  }
+  $('actualizar').addEventListener('click', function () { cargar(true); });
+  $('ver-demo').addEventListener('click', function () { location.hash = '#demo'; location.reload(); });
+
+  // ---------- Tema, nieve, navegación ----------
+  var tema = leer(CLAVE + ':tema');
+  if (tema === 'dark' || tema === 'light') document.documentElement.setAttribute('data-theme', tema);
+  $('tema').addEventListener('click', function () {
+    var oscuro = document.documentElement.getAttribute('data-theme') === 'dark' ||
+      (!document.documentElement.getAttribute('data-theme') && matchMedia('(prefers-color-scheme: dark)').matches);
+    var nuevo = oscuro ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', nuevo); guardar(CLAVE + ':tema', nuevo);
+  });
+  (function nieve() {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var n = $('nieve');
+    for (var i = 0; i < 26; i++) {
+      var c = document.createElement('i');
+      c.style.left = (Math.random() * 100).toFixed(1) + '%';
+      c.style.animationDuration = (9 + Math.random() * 10).toFixed(1) + 's';
+      c.style.animationDelay = (-Math.random() * 18).toFixed(1) + 's';
+      c.style.setProperty('--dx', (Math.random() * 60 - 30).toFixed(0) + 'px');
+      var s = (3 + Math.random() * 4).toFixed(1) + 'px'; c.style.width = s; c.style.height = s;
+      n.appendChild(c);
+    }
+  })();
+  var enlaces = document.querySelectorAll('.abajo a');
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (ents) {
+      ents.forEach(function (en) { if (en.isIntersecting) enlaces.forEach(function (a) { a.setAttribute('aria-current', a.getAttribute('data-sec') === en.target.id ? 'true' : 'false'); }); });
+    }, { rootMargin: '-40% 0px -55% 0px' });
+    ['base', 'buzon', 'pedidos', 'radio'].forEach(function (id) { io.observe($(id)); });
+  }
+
+  // ---------- Arranque ----------
+  var foto = !demo && leer(CLAVE + ':modelo');
+  if (foto && foto.agentes) { recibir(foto); avisar('Actualizando…'); } else pintarTodo();
+  $('aviso-demo').hidden = !demo;
+  cargar(false);
+  setInterval(function () { if (!document.hidden && !demo) cargar(false); }, 120000);
+  setInterval(function () { if (!dlg.open) { pintarPlaza(); } }, 30000);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden && !demo) cargar(false); });
+  if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('oficina-sw.js', { scope: './oficina.html' }).catch(function () { /* sin modo sin conexión */ });
+})();
+</script>
+</body>
+</html>
