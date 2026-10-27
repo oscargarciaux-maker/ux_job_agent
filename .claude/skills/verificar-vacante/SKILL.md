@@ -59,8 +59,8 @@ Primero lo barato y sin red (paso 4, repetidas; paso 3 con el texto de `Detalle_
 
 ## Paso 1. Abrir el aviso original
 
-- Abre el enlace de **postulación**, no solo el del listado. Si hay navegador con la sesión del usuario (Claude en
-  Chrome o el navegador de la app de escritorio), úsalo: LinkedIn muestra más con sesión.
+- Abre el enlace de **postulación**, no solo el del listado, con la vista pública. Nunca uses la sesión de LinkedIn del
+  usuario (decisión del usuario, 27 oct 2026: su cuenta no se automatiza).
 - Fuentes válidas como origen: LinkedIn (empleos y publicaciones "estamos contratando"), Indeed, Computrabajo, portal
   oficial de la empresa, Get on Board, elempleo, Magneto365, Torre, bolsa de empleo de la UNAL y comunidades de diseño
   UX de Colombia y LATAM.

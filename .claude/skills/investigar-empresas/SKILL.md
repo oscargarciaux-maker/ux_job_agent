@@ -81,9 +81,9 @@ Pocas consultas a LinkedIn y con calma; si aparece un límite o un captcha, para
   contratan diseño ahora.
 - Los bancos y fintechs grandes (Nu, Lulo, Davivienda, Banco de Bogotá) y algunas fábricas (Sophos, Gorilla Logic) no
   publican correos de talento: contratan por su portal y por LinkedIn. Regístralas con Estado `Sin correo` y su página
-  de empleo; **su ruta es LinkedIn con la sesión del usuario**, que queda pendiente hasta que él instale Claude en su PC
-  y diga que quiere conectar LinkedIn (decisión del usuario, 24 oct 2026). Sin esa sesión, el contenido de LinkedIn
-  (correos en publicaciones, personas de diseño o talento) no se ve: no lo des por revisado.
+  de empleo; su ruta es su portal de empleo (si usa Greenhouse, Lever, Ashby o Workable, Apps Script lo consulta a diario
+  desde "Empresas objetivo") y las alertas de LinkedIn del usuario. Nunca uses la sesión de LinkedIn del usuario
+  (decisión del usuario, 27 oct 2026: su cuenta no se automatiza). Lo que solo se ve con sesión no lo des por revisado.
 - Hunter.io y servicios parecidos no se usan (el usuario no los va a pagar y el plan gratuito no alcanza para 30
   empresas).
 - Los buscadores web resumen y no muestran los correos de las páginas; DuckDuckGo y Bing por `curl` no sirven (bloqueo o
