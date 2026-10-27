@@ -71,7 +71,14 @@ function computePriority(vacancy, score) {
   const years = requiredYears(vacancy);
   const tooMuch = years !== null && years >= CONFIG.EXPERIENCE_YEARS_LIMIT ? CONFIG.EXPERIENCE_PENALTY : 0;
   const verify = vacancy.roleToVerify ? CONFIG.ROLE_VERIFY_PENALTY : 0;
-  return score + (vacancy.sourceBonus || 0) + fintech - tooMuch - verify;
+  const english = englishAdvanced(vacancy) ? CONFIG.ENGLISH_ADVANCED_PENALTY : 0;
+  return score + (vacancy.sourceBonus || 0) + fintech - tooMuch - verify - english;
+}
+
+/** Pide inglés "avanzado", "alto" o "excelente" sin fluido/nativo/bilingüe/C1 ni un B1/B2 explícito: menor prioridad. */
+function englishAdvanced(vacancy) {
+  const text = vacancyText_(vacancy);
+  return CONFIG.ENGLISH_ADVANCED_PATTERN.test(text) && !CONFIG.ENGLISH_ADVANCED_UNLESS.test(text);
 }
 
 /**
