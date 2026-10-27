@@ -491,24 +491,31 @@ assert.ok(!/CV_HOUR\b/.test(textFiles().map(f => fs.readFileSync(path.join(dir, 
 const ex = d => context.exclusionReason({ title: 'UX Designer', description: d });
 assert.strictEqual(ex('Inglés intermedio y Figma avanzado'), null);
 assert.strictEqual(ex('English: B2'), null);
-assert.strictEqual(ex('Requisito: inglés avanzado (C1)'), 'exige inglés avanzado/fluido');
-assert.strictEqual(ex('Fluent English required'), 'exige inglés avanzado/fluido');
-assert.strictEqual(ex('Bilingual (Spanish/English)'), 'exige inglés avanzado/fluido');
-// Prueba de la skill (2026-10-24): BairesDev y Hireloom entraron con estas frases
-assert.strictEqual(ex('Requisitos: Nivel avanzado de inglés'), 'exige inglés avanzado/fluido');
-assert.strictEqual(ex('English: Excellent oral and written skills'), 'exige inglés avanzado/fluido');
-assert.strictEqual(ex('Excellent English communication'), 'exige inglés avanzado/fluido');
-assert.strictEqual(ex('Nivel alto de inglés'), 'exige inglés avanzado/fluido');
-assert.strictEqual(ex('Excelente manejo de Figma; inglés intermedio'), null);
+assert.strictEqual(ex('Requisito: inglés avanzado (C1)'), 'exige inglés C1/C2');
+assert.strictEqual(ex('Fluent English required'), 'exige inglés fluido, nativo o bilingüe');
+assert.strictEqual(ex('Bilingual (Spanish/English)'), 'exige inglés fluido, nativo o bilingüe');
+// Desde 2026-10-27 (decisión del usuario) "avanzado/alto/excelente" sin nivel no descarta: baja de prioridad
+const enAdv = d => ({ ex: ex(d), adv: context.englishAdvanced({ title: 'UX Designer', description: d }) });
+['Requisitos: Nivel avanzado de inglés', 'English: Excellent oral and written skills', 'Excellent English communication',
+ 'Nivel alto de inglés', 'Advanced English required'].forEach(d => {
+  const r = enAdv(d);
+  assert.ok(r.ex === null && r.adv, d);
+});
+assert.ok(!enAdv('Excelente manejo de Figma; inglés intermedio').adv && enAdv('Excelente manejo de Figma; inglés intermedio').ex === null);
+const pr = v => context.computePriority(v, 90);
+assert.strictEqual(pr({ title: 'UX', description: 'Nivel alto de inglés' }), pr({ title: 'UX', description: 'Figma' }) - 15);
 // Inglés B2 (decisión del usuario 2026-10-24): un B1/B2 explícito pasa aunque lo llamen avanzado; fluido/nativo/bilingüe no
-assert.strictEqual(ex('Requisitos: inglés avanzado (B2)'), null);
+assert.ok(enAdv('Requisitos: inglés avanzado (B2)').ex === null && !enAdv('Requisitos: inglés avanzado (B2)').adv);
 assert.strictEqual(ex('Advanced English (B2 level or higher)'), null);
 assert.strictEqual(ex('Nivel de inglés: B2 o C1'), null);
-assert.strictEqual(ex('Inglés C1'), 'exige inglés avanzado/fluido');
-assert.strictEqual(ex('English level: C1 or above'), 'exige inglés avanzado/fluido');
-assert.strictEqual(ex('Inglés fluido (B2)'), 'exige inglés avanzado/fluido');
-assert.strictEqual(ex('Bilingüe español-inglés, mínimo B2'), 'exige inglés avanzado/fluido');
+assert.strictEqual(ex('Inglés C1'), 'exige inglés C1/C2');
+assert.strictEqual(ex('English level: C1 or above'), 'exige inglés C1/C2');
+assert.strictEqual(ex('Inglés fluido (B2)'), 'exige inglés fluido, nativo o bilingüe');
+assert.strictEqual(ex('Bilingüe español-inglés, mínimo B2'), 'exige inglés fluido, nativo o bilingüe');
 assert.strictEqual(ex('Upper intermediate English'), null);
+const enSum = context.englishAdvancedSummary([['2026-10-27', 'A', 'UX', 'l', 90, 'Pendiente', 'X', 'Inglés avanzado'],
+  ['2026-10-27', 'B', 'UX', 'l', 90, 'Descartada: no acepta B2', 'X', 'Inglés avanzado'], ['2026-10-27', 'C', 'UX', 'l', 90, 'Pendiente', 'X', '']], '2026-10-14');
+assert.ok(enSum.total === 2 && enSum.hv === 1 && enSum.out === 1);
 const hidden = { 'bairesdev|disenador ui ux trabajo remoto': true, 'google|ux designer': true, 'https://x.co/1': true };
 assert.ok(context.isHiddenCompanyRepeat({ company: 'confidential', title: 'Diseñador Ui/Ux Trabajo Remoto (Barranquilla)',
   description: 'En BairesDev® llevamos 15 años con clientes como Google' }, hidden));

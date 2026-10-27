@@ -39,18 +39,25 @@ const CONFIG = {
       pattern: /modalidad freelance|freelance (role|position|contract|basis|job)|(contrato|contrataci[oó]n|pago|vinculaci[oó]n|modalidad) por proyecto|project[- ]based (contract|role|position|work)|paid per project|per project basis|\(freelance\)|- freelance\b/i },
     // Guía de búsqueda (2026-10-22): el inglés del usuario es B2 (intermedio alto, 2026-10-24); no le aplican vacantes exclusivas para
     // personas con discapacidad (no se descartan las que solo invitan a postularse en su declaración de igualdad).
-    // Inglés B2 (2026-10-24): fluido, nativo o bilingüe siempre descarta; avanzado, alto, excelente o C1/C2 no
-    // descartan si el aviso pide B1/B2 de forma explícita ("inglés avanzado (B2)", "B2 o C1").
-    { reason: 'exige inglés avanzado/fluido',
+    // Inglés B2 (2026-10-24): fluido, nativo o bilingüe siempre descarta; C1/C2 explícito descarta salvo que el aviso
+    // pida B1/B2 de forma explícita ("B2 o C1"). Desde 2026-10-27 (decisión del usuario) "avanzado", "alto",
+    // "excelente" o "proficient" sin nivel ya no descartan: bajan de prioridad (ENGLISH_ADVANCED_PATTERN). Ese día el
+    // inglés fue el primer motivo de descarte (7 de 12) y en Colombia "avanzado" suele aceptar un B2 sólido.
+    { reason: 'exige inglés fluido, nativo o bilingüe',
       pattern: /\b(ingl[eé]s|english)\s*[:\-–(]?\s*(nivel\s+|level\s+)?(fluid[oa]|nativo|fluent|native)\b|\bnivel\s+(de\s+)?ingl[eé]s\s*[:\-]?\s*(fluido|nativo)\b|\bnivel\s+(fluido|nativo)\s+(de|en)\s+(ingl[eé]s|english)\b|\bingl[eé]s\s+(a\s+)?nivel\s+(fluido|nativo)\b|\b(fluent|native)\s+(level\s+(of\s+)?)?(in\s+)?english\b|\benglish\s+fluency\b|\bfluency\s+in\s+english\b|\bbiling[uü]e\b|\bbilingual\b/i },
-    { reason: 'exige inglés avanzado/fluido',
+    { reason: 'exige inglés C1/C2',
       unless: /(ingl[eé]s|english)[^.\n]{0,60}\bB[12]\b|\bB[12]\b[^.\n]{0,60}(ingl[eé]s|english)/i,
-      pattern: /\b(ingl[eé]s|english)\s*[:\-–(]?\s*(nivel\s+|level\s+)?(avanzado|fluid[oa]|nativo|excelente|c1|c2|advanced|fluent|native|proficient|excellent)\b|(ingl[eé]s|english)[^.\n]{0,40}\bc[12]\b|\bc[12]\b[^.\n]{0,40}(ingl[eé]s|english)|\bnivel\s+(de\s+)?ingl[eé]s\s*[:\-]?\s*(avanzado|fluido|nativo|alto|c1|c2)\b|\bnivel\s+(avanzado|alto|fluido|nativo)\s+(de|en)\s+(ingl[eé]s|english)\b|\b(excellent|excelente)\s+(command\s+of\s+|level\s+of\s+)?(english|ingl[eé]s)\b|\bingl[eé]s\s+(a\s+)?nivel\s+(avanzado|fluido|nativo|alto)\b|\b(advanced|fluent|native|proficient)\s+(level\s+(of\s+)?)?(in\s+)?english\b|\benglish\s+(fluency|proficiency)\b|\b(fluency|proficiency)\s+in\s+english\b|\bbiling[uü]e\b|\bbilingual\b/i },
+      pattern: /(ingl[eé]s|english)[^.\n]{0,40}\bc[12]\b|\bc[12]\b[^.\n]{0,40}(ingl[eé]s|english)/i },
     { reason: 'exclusiva para personas con discapacidad',
       pattern: /(exclusiv[oa]|dirigid[oa]|solo|[uú]nicamente)\s+(para|a)\s+personas\s+con\s+discapacidad|vacante\s+(para|de)\s+personas\s+con\s+discapacidad|certificado\s+de\s+discapacidad|exclusively\s+for\s+(people|persons|candidates)\s+with\s+disabilit/i },
   ],
   // Texto de la página original que indica que la vacante ya no recibe postulaciones (se lee gratis con UrlFetchApp)
   CLOSED_POSTING_PATTERN: /no longer accepting applications|this job (is no longer available|has expired)|job (has been )?closed|ya no (acepta|recibe) (solicitudes|postulaciones|aplicaciones)|(oferta|vacante) (cerrada|caducada|finalizada|vencida)|esta oferta (ha caducado|ya no est[aá] disponible)|proceso (de selecci[oó]n )?cerrado/i,
+  // Inglés "avanzado" sin decir fluido, nativo, bilingüe ni C1 (2026-10-27): entra con menor prioridad, nota en
+  // Detalle_Vacante y "Inglés avanzado" en la columna Notas de Hoja 1 (para medir si vale la pena)
+  ENGLISH_ADVANCED_PATTERN: /\b(ingl[eé]s|english)\s*[:\-–(]?\s*(nivel\s+|level\s+)?(avanzado|excelente|advanced|proficient|excellent)\b|\bnivel\s+(de\s+)?ingl[eé]s\s*[:\-]?\s*(avanzado|alto)\b|\bnivel\s+(avanzado|alto)\s+(de|en)\s+(ingl[eé]s|english)\b|\b(excellent|excelente)\s+(command\s+of\s+|level\s+of\s+)?(english|ingl[eé]s)\b|\bingl[eé]s\s+(a\s+)?nivel\s+(avanzado|alto)\b|\b(advanced|proficient)\s+(level\s+(of\s+)?)?(in\s+)?english\b|\benglish\s+proficiency\b|\bproficiency\s+in\s+english\b/i,
+  ENGLISH_ADVANCED_UNLESS: /(ingl[eé]s|english)[^.\n]{0,60}\bB[12]\b|\bB[12]\b[^.\n]{0,60}(ingl[eé]s|english)/i,
+  ENGLISH_ADVANCED_PENALTY: 15,
   EXCLUDED_TITLE_PATTERN: /\b(staff|principal|head|director|directora|vp|manager|gerente)\b/i,
   // Piden 5 o más años: no se descartan, pero bajan de prioridad. Con menos de 5 años cuenta como mid aunque diga Senior.
   EXPERIENCE_YEARS_LIMIT: 5,
@@ -167,7 +174,7 @@ const CONFIG = {
   CV_EVERY_MINUTES: 10,
   CV_FIRST_HOUR: 7,
   CV_LAST_HOUR: 22,          // Hasta las 22:59: también arma las dudosas que el usuario apruebe en la tarde
-  SHEET_HEADERS: ['Fecha', 'Empresa', 'Cargo', 'Link', 'Match Score', 'Estado', 'Fuente'],
+  SHEET_HEADERS: ['Fecha', 'Empresa', 'Cargo', 'Link', 'Match Score', 'Estado', 'Fuente', 'Notas'],
   // Vacantes ya aplicadas por el usuario (carpetas coloreadas: rojo rechazada, verde en proceso, amarillo sin respuesta)
   APPLIED_FOLDER_NAME: 'CV',
   APPLIED_SHEET_NAME: 'Aplicadas',

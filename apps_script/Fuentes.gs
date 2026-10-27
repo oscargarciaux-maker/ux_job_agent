@@ -356,12 +356,28 @@ function writeSourceQuality_() {
   const rows = registry.getRange(2, 1, registry.getLastRow() - 1, CONFIG.SHEET_HEADERS.length).getDisplayValues();
   const since = Utilities.formatDate(new Date(Date.now() - (CONFIG.SOURCE_QUALITY_DAYS - 1) * 86400000), tz_(), 'yyyy-MM-dd');
   const values = [CONFIG.SOURCE_QUALITY_HEADERS].concat(sourceQualityRows(rows, since));
+  const en = englishAdvancedSummary(rows, since);
   const sheet = ss.getSheetByName(CONFIG.SOURCE_QUALITY_SHEET_NAME) ||
                 ss.insertSheet(CONFIG.SOURCE_QUALITY_SHEET_NAME, ss.getNumSheets());
   sheet.clear();
   sheet.getRange(1, 1, values.length, values[0].length).setValues(values);
+  sheet.getRange(values.length + 3, 1).setValue('Inglés "avanzado" (desde el 27 oct entran con menor prioridad en vez de ' +
+    'descartarse): ' + en.total + ' registradas, ' + en.hv + ' con HV, ' + en.doubt + ' dudosas y ' + en.out + ' descartadas por la IA.');
   sheet.getRange(values.length + 2, 1).setValue('Vacantes registradas desde ' + since + ' (' + CONFIG.SOURCE_QUALITY_DAYS +
     ' días). Con HV = la IA la verificó y se armó su hoja de vida. Actualizado ' +
     Utilities.formatDate(new Date(), tz_(), 'yyyy-MM-dd HH:mm') + '.');
   sheet.setFrozenRows(1);
+}
+
+/** Qué pasó con las vacantes marcadas "Inglés avanzado" en la columna Notas de Hoja 1 desde `since`. */
+function englishAdvancedSummary(rows, since) {
+  const out = { total: 0, hv: 0, doubt: 0, out: 0 };
+  rows.filter(r => String(r[0]) >= since && /ingl[eé]s avanzado/i.test(String(r[7] || ''))).forEach(r => {
+    const status = String(r[5] || '');
+    out.total++;
+    if (/^Pendiente|HV|enviad/i.test(status)) out.hv++;
+    else if (/^Dudosa/i.test(status)) out.doubt++;
+    else if (/^Descartada/i.test(status)) out.out++;
+  });
+  return out;
 }

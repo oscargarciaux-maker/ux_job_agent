@@ -46,7 +46,7 @@ Primero lo barato y sin red (paso 4, repetidas; paso 3 con el texto de `Detalle_
 (pasos 1, 2 y 6). Si una vacante ya cae por repetida o por no encajar, no hace falta abrir su enlace.
 
 **Qué pesa más** (prueba del 24 oct):
-- Un descarte por el **texto del aviso** (inglés avanzado, solo EE. UU., freelance, liderazgo, no es de diseño) manda
+- Un descarte por el **texto del aviso** (inglés fluido/bilingüe/C1, solo EE. UU., freelance, liderazgo, no es de diseño) manda
   sobre los chequeos que no se pudieron verificar: es DESCARTAR aunque la página no abra.
 - Un dato que solo sale de un **resumen de búsqueda web** (no de la página) queda "sin verificar". Sirve para
   DESCARTAR solo si el resultado es del mismo aviso (mismo enlace o id) y el dato es claro (p. ej. la fecha de
@@ -129,7 +129,7 @@ la de sus roles, entra; si el título suena a diseño pero la función principal
 | Nivel y años (los años mandan sobre el título) | Junior, o pide menos de 3 años aunque el título diga Senior | Pide 3 años o más (señalar siempre la diferencia con la experiencia real; la HV nunca infla años); senior sin años explícitos (buscar los años en otras versiones del aviso y decirlo) | Staff, principal, head, director, VP, manager, gerente |
 | Antigüedad | Hasta 21 días | De 22 a 28 días, solo si sigue abierta; o hasta 60 días si sigue publicada en el portal de empleo de la propia empresa (Greenhouse, Lever, Ashby, Workable; `Detalle_Vacante` dice "Portal oficial:"), porque esos portales solo muestran vacantes abiertas (decisión del usuario, 27 oct 2026: Clara, 54 días y abierta) | Más de 28 días (más de 60 en portal oficial) |
 | Ubicación | Colombia; remoto LATAM/mundial UTC-3 a -6 | Presencial en otra ciudad de Colombia (Medellín, Cali…): el candidato se relocaliza dentro de Colombia, así que "vivir en <ciudad>" nunca descarta (2026-10-26, Bancolombia) | Ver chequeo 2 |
-| Inglés (nivel real: B2, intermedio alto) | Sin requisito, o intermedio/B1–B2. **Si pide B1 o B2 de forma explícita, entra aunque lo llame avanzado o diga "B2 o C1"** (decisión del usuario, 24 oct 2026). Aviso en inglés sin nivel explícito: entra, pero **avisar** | — | Fluido, nativo o bilingüe (siempre, aunque mencione B2); avanzado, excelente ("excellent English", "nivel avanzado de inglés") o C1/C2 sin un B1/B2 explícito |
+| Inglés (nivel real: B2, intermedio alto) | Sin requisito, o intermedio/B1–B2. **Si pide B1 o B2 de forma explícita, entra aunque lo llame avanzado o diga "B2 o C1"** (decisión del usuario, 24 oct 2026). Aviso en inglés sin nivel explícito: entra, pero **avisar** | Avanzado, alto o excelente ("excellent English", "nivel avanzado de inglés") sin decir fluido, bilingüe ni C1: **menor prioridad** (decisión del usuario, 27 oct 2026: en Colombia "avanzado" suele aceptar un B2 sólido); lee el aviso completo y descarta solo si de verdad exige hablar como nativo | Fluido, nativo o bilingüe (siempre, aunque mencione B2); C1/C2 sin un B1/B2 explícito |
 | Contrato | Indefinido, término fijo, prestación de servicios, obra labor; "contractor"/"contract" de tiempo completo con una empresa del exterior (= prestación de servicios) | — | Freelance o por proyecto; pasantía sin pago; vacante reservada **exclusivamente** para personas con discapacidad (las inclusivas no exclusivas entran normal) |
 | Sector | Cualquiera | — (fintech y financiero van primero) | — |
 | Salario | Sin piso mínimo: no se descarta por monto. Si la vacante publica salario, **reportarlo** | — | — |

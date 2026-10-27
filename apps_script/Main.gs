@@ -57,9 +57,9 @@ function runPipeline_(opts) {
   let fresh = raw;
   if (!opts.dryRun) {
     sheet = getRegistrySheet_();
-    if (sheet.getRange(1, CONFIG.SHEET_HEADERS.length).getValue() !== 'Fuente') {
-      sheet.getRange(1, CONFIG.SHEET_HEADERS.length).setValue('Fuente');  // Registros creados antes del 27 oct 2026
-    }
+    // Columnas Fuente y Notas (27 oct 2026): el registro creado antes no las tiene
+    const head = sheet.getRange(1, 1, 1, CONFIG.SHEET_HEADERS.length).getValues()[0];
+    CONFIG.SHEET_HEADERS.forEach((h, i) => { if (head[i] !== h) sheet.getRange(1, i + 1).setValue(h); });
     const existing = getExistingUrls_(sheet);
     let applied = [];
     let cold = [];
