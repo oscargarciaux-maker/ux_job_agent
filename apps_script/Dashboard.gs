@@ -87,6 +87,8 @@ function configurarTablero() {
   console.log('TU enlace del juego (con la clave de escritura: no lo compartas): ' + pagesLink('juego', api, key, writeKey));
   console.log('Enlace del juego para el coach (solo lectura): ' + pagesLink('juego', api, key, '') + '&modo=coach');
   console.log('Enlace del tablero para el coach: ' + pagesLink('dashboard', api, key, ''));
+  // Oficina de agentes (2026-10-27, docs/MULTIAGENTE.md): con la clave de escritura el buzón deja pedidos para el jefe
+  console.log('TU oficina de agentes (Base Antártica, con el buzón; no la compartas): ' + pagesLink('oficina', api, key, writeKey));
   console.log('No abras script.google.com/…/exec directamente: con varias cuentas de Google abiertas responde «No se puede abrir el archivo».');
 }
 
@@ -144,6 +146,9 @@ function readDashboardTabs_(children) {
     correos: tab(CONFIG.COLD_EMAIL_SHEET_NAME).values,
     seguimiento: tab(CONFIG.FOLLOWUP_SHEET_NAME).values,
     objetivo: tab(CONFIG.TARGET_COMPANIES_SHEET_NAME).values,
+    // Oficina de agentes (2026-10-27, Agentes.gs): las corridas de hoy y la bitácora del equipo
+    fuentes: tab(CONFIG.SOURCES_SHEET_NAME).values.slice(-80),
+    agentes: tab(AGENTS_SHEET_NAME_).values,
   };
 }
 
@@ -398,5 +403,25 @@ function buildDashboardModel(tabs, now, timeZone) {
     acciones: pendingFollowups(history).filter(r => companyStillListed(r.empresa,
       applications.map(a => a.empresa).concat(pending.map(p => p.empresa), coldRows.map(c => c.empresa)))),
     objetivo: { total: targets.length, porEstado: targetStatus },
+    agentes: agentsModelSafe_(tabs, registry, pending, coldRows, history, targets, now, timeZone),
   };
+}
+
+/**
+ * Estado del equipo de agentes para la oficina (Agentes.gs). Si algo falla aquí, el tablero y el juego siguen igual: la
+ * oficina muestra que no hay datos del equipo.
+ */
+function agentsModelSafe_(tabs, registry, pending, coldRows, history, targets, now, timeZone) {
+  try {
+    const stamp = Utilities.formatDate(now, timeZone || 'America/Bogota', 'yyyy-MM-dd HH:mm').replace('T', ' ');
+    const acciones = pendingFollowups(history);
+    const fuentes = tabs.fuentes || [];
+    return buildAgentsModel({ registro: registry, fuentes: fuentes.length && fuentes[0][0] !== 'Fecha' ?
+        [CONFIG.SOURCES_HEADERS].concat(fuentes) : fuentes,
+      agentes: tabs.agentes || [], porEnviar: pending, correos: coldRows, seguimiento: tabs.seguimiento || [],
+      acciones: acciones, objetivo: targets }, stamp);
+  } catch (e) {
+    console.warn('Oficina de agentes -> ' + e.message);
+    return null;
+  }
 }

@@ -1,0 +1,17 @@
+{
+  "name": "Base Antártica · oficina de agentes",
+  "short_name": "Base Antártica",
+  "description": "Quién está trabajando en tu búsqueda de empleo y qué necesita de ti.",
+  "lang": "es",
+  "start_url": "oficina.html",
+  "scope": "oficina.html",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#e9f5fd",
+  "theme_color": "#0b5f9e",
+  "icons": [
+    { "src": "img/oficina/icono.svg", "sizes": "any", "type": "image/svg+xml" },
+    { "src": "img/oficina/icono-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "img/oficina/icono-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

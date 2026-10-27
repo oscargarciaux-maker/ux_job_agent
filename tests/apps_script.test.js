@@ -890,4 +890,90 @@ for (const fn of ['ejecutarPipeline', 'ejecutarPrueba', 'ejecutarSimulacion', 'c
 assert.ok(fs.readFileSync(path.join(__dirname, '..', 'instalador', 'Cargador.gs'), 'utf8')
   .includes("get('" + run('CONFIG').DASHBOARD_CACHE_KEY + "')"), 'Cargador y Config deben usar la misma clave de caché');
 
+
+// Base Antártica (2026-10-27, Agentes.gs): bitácora del equipo de agentes y estado de cada uno para la oficina
+{
+  const J = x => JSON.parse(JSON.stringify(x));
+  assert.ok(/^P-20261028-0615-[A-Z]{2}$/.test(context.requestId('20261028-0615', 0.37)));
+  assert.notStrictEqual(context.requestId('20261028-0615', 0.1), context.requestId('20261028-0615', 0.9));
+  assert.strictEqual(context.normalizeStamp('2026-10-28 6:05'), '2026-10-28 06:05');
+  assert.strictEqual(context.normalizeStamp('28/10/2026 14:30:00'), '2026-10-28 14:30');
+  assert.strictEqual(context.normalizeStamp('2026-10-28'), '2026-10-28');
+  assert.strictEqual(context.normalizeStamp('mañana'), '');
+  assert.strictEqual(context.minutesBetween('2026-10-28 06:00', '2026-10-28 07:30'), 90);
+  assert.strictEqual(context.minutesBetween('2026-10-28', '2026-10-28 07:30'), null);
+  assert.deepStrictEqual(J(context.agentRow('2026-10-28 06:00', 'oscar', 'jefe', 'pedido', '=HYPERLINK("x")', 'pendiente', '', '', 'P-1')).slice(4, 5),
+    ["'=HYPERLINK(\"x\")"], 'un pedido nunca entra como fórmula');
+  const head = ['Fecha y hora', 'De', 'Para', 'Tipo', 'Asunto', 'Estado', 'Detalle', 'Enlace', 'Id'];
+  const bitacora = [head,
+    ['2026-10-28 06:10', 'oscar', 'jefe', 'pedido', 'HV para Acme', 'pendiente', 'HV y correo para este enlace', '', 'P-20261028-0610-AB'],
+    ['2026-10-28 06:20', 'jefe', 'inspector', 'encargo', 'Verificar Acme', 'pendiente', '', '', 'P-20261028-0610-AB'],
+    ['2026-10-28 06:25', 'inspector', 'jefe', 'avance', 'Verificando Acme', 'en curso', '', '', 'P-20261028-0610-AB'],
+    ['2026-10-28 05:00', 'pinguino', 'jefe', 'aviso', 'desconocido', 'hecho', '', '', ''],
+    ['2026-10-27 18:00', 'radio', 'oscar', 'resultado', 'Seguimiento de ayer', 'hecho', '', 'javascript:alert(1)', 'DIARIO-20261027'],
+    ['2026-10-26 09:00', 'oscar', 'jefe', 'pedido', 'Más empresas', 'pendiente', '', '', 'P-20261026-0900-CD'],
+    ['2026-10-26 11:00', 'exploradora', 'jefe', 'resultado', '30 empresas', 'hecho', '', 'https://docs.google.com/x', 'P-20261026-0900-CD'],
+  ];
+  const msgs = J(context.agentMessages(bitacora));
+  assert.strictEqual(msgs.length, 6, 'solo agentes conocidos u Oscar');
+  assert.strictEqual(msgs[0].hora, '2026-10-26 09:00', 'en orden cronológico');
+  assert.strictEqual(msgs.find(m => m.de === 'radio').enlace, '', 'solo enlaces https');
+  const hilos = J(context.agentThreads(context.agentMessages(bitacora)));
+  assert.strictEqual(hilos[0].id, 'P-20261028-0610-AB');
+  assert.strictEqual(hilos[0].estado, 'en curso', 'manda la fila más reciente');
+  assert.deepStrictEqual(hilos[0].agentes, ['inspector']);
+  assert.strictEqual(hilos[1].estado, 'hecho', 'los cerrados van después de los abiertos');
+
+  const equipo = (d, now) => { const m = J(context.buildAgentsModel(d, now)); const o = {}; m.equipo.forEach(a => { o[a.id] = a; }); return { m, o }; };
+  // Sin datos: nadie trabaja, cada uno dice cuándo le toca
+  const vacio = equipo({}, '2026-10-28 03:00');
+  assert.strictEqual(vacio.m.equipo.length, 11);
+  assert.strictEqual(vacio.o.maquina.estado, 'esperando');
+  assert.ok(/5:00/.test(vacio.o.maquina.resumen));
+  assert.strictEqual(vacio.o.jefe.estado, 'libre');
+  // Un día con datos
+  const fuentes = [['Fecha', 'Hora', 'Corrida', 'Fuente', 'Traídas', 'Nuevas', 'Carpetas creadas'],
+    ['2026-10-28', '05:04', 'Búsqueda 05 h', 'JobSpy (GitHub Actions)', '30', '12', '8'],
+    ['2026-10-28', '05:04', 'Búsqueda 05 h', 'Get on Board', '4', '2', '2'],
+    ['2026-10-27', '07:02', 'Búsqueda 07 h', 'Remotive', '9', '9', '9']];
+  const dia = equipo({
+    fuentes,
+    registro: [{ Fecha: '2026-10-28', Estado: 'Dudosa: no dice si acepta Colombia' }, { Fecha: '2026-10-28', Estado: 'Descartada: cerrada' },
+               { Fecha: '2026-10-28', Estado: 'Esperando CV (IA)' }, { Fecha: '2026-10-27', Estado: 'Dudosa: vieja' }],
+    porEnviar: [{ fecha: '2026-10-28', revision: 'Lista para enviar' }, { fecha: '2026-10-28', revision: 'Revisar' },
+                { fecha: '2026-10-27', revision: 'Sin revisión' }],
+    correos: [{ clave: 'borrador', fecha: '' }, { clave: 'respondio', fecha: '2026-10-20 10:00' }],
+    seguimiento: [['Fecha revisión', 'Empresa'], ['2026-10-27', 'Acme'], ['2026-10-27', 'REVISIÓN']],
+    acciones: [{ empresa: 'Acme' }],
+    objetivo: [{ Fecha: '2026-10-24', Empresa: 'Uno' }, { Fecha: '2026-10-25', Empresa: 'Dos' }],
+    agentes: bitacora,
+  }, '2026-10-28 07:00');
+  assert.strictEqual(dia.o.trineo.estado, 'listo');
+  assert.ok(/30 avisos/.test(dia.o.trineo.resumen));
+  assert.strictEqual(dia.o.maquina.ultima, '2026-10-28 05:04');
+  assert.ok(/10 carpetas/.test(dia.o.maquina.resumen), 'solo las corridas de hoy');
+  assert.strictEqual(dia.o.inspector.estado, 'trabajando', 'la bitácora manda: está «en curso»');
+  assert.strictEqual(dia.o.escriba.estado, 'listo');
+  assert.ok(/2 HV nuevas hoy · 1 en cola/.test(dia.o.escriba.resumen));
+  assert.strictEqual(dia.o.editor.estado, 'atencion', 'una HV para que Oscar decida');
+  assert.strictEqual(dia.o.cartero.estado, 'atencion');
+  assert.ok(/1 borrador listo/.test(dia.o.cartero.resumen));
+  assert.strictEqual(dia.o.exploradora.ultima, '2026-10-25');
+  assert.strictEqual(dia.o.radio.estado, 'atencion');
+  assert.strictEqual(dia.o.radio.ultima, '2026-10-27 18:00', 'su fila de la bitácora (menos de 24 h) manda');
+  assert.strictEqual(dia.o.jefe.estado, 'trabajando');
+  assert.ok(/1 pedido abierto/.test(dia.o.jefe.resumen));
+  assert.strictEqual(dia.m.mensajes[0].de, 'inspector', 'el mensaje más nuevo primero');
+  // Una fila «en curso» de hace más de 3 horas ya no cuenta como trabajando
+  const tarde = equipo({ agentes: bitacora }, '2026-10-28 11:00');
+  assert.notStrictEqual(tarde.o.inspector.estado, 'trabajando');
+  // El tablero sigue funcionando aunque el modelo de agentes falle
+  assert.strictEqual(run('agentsModelSafe_')({ fuentes: [[1]], agentes: 'x' }, [], [], [], [], [], new Date('2026-10-28T12:00:00Z'), 'America/Bogota') === undefined, false);
+  assert.ok(dashModel.agentes && dashModel.agentes.equipo.length === 11, 'el JSON del tablero trae el equipo para la oficina');
+  assert.ok(JSON.stringify(dashModel.agentes).length < 20000, 'el equipo cabe holgado en el caché del tablero');
+  // El buzón llega por la acción «pedido» con la clave de escritura (Acciones.gs)
+  assert.ok(run('GAME_ACTIONS_').includes('pedido'));
+  assert.ok(/addMailboxRequest_/.test(fs.readFileSync(path.join(dir, 'Acciones.gs'), 'utf8')));
+}
+
 console.log('OK: todas las pruebas de apps_script pasaron');
