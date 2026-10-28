@@ -947,6 +947,28 @@ assert.strictEqual(run('pickCurrentWeek')([]), null);
 assert.deepStrictEqual(Array.from(run('followupRow')(['Fecha revisión', 'Empresa', 'Hecho', 'Plazo'], { 'Empresa': 'Pavago', 'Hecho': '=IMPORTXML(1)', 'Otra': 'x', 'Fecha revisión': '2026-10-27' })),
   ['2026-10-27', 'Pavago', "'=IMPORTXML(1)", ''], 'en el orden del encabezado y sin fórmulas');
 assert.strictEqual(run('safeCell')('+57 300'), "'+57 300");
+// Carpeta pintada a mano en Drive (2026-10-28, Bancolombia): Seguimiento gana la fila con la fecha para que el juego la reproduzca
+{
+  const seg = [['Fecha revisión', 'Empresa', 'Cargo', 'Estado nuevo'], ['2026-10-20', 'Experian', '', 'Rechazada (rojo)']];
+  const rows = [
+    { id: 'a', group: '4. Cuarta semana', company: 'Bancolombia', title: '', status: 'Rechazada' },
+    { id: 'b', group: '4. Cuarta semana', company: 'Experian', title: '', status: 'Rechazada' },
+    { id: 'c', group: '4. Cuarta semana', company: 'Nueva', title: '', status: 'Rechazada' },
+    { id: 'd', group: '3. Tercera semana', company: 'Viejo', title: 'UX', status: 'Rechazada' },
+    { id: 'e', group: '4. Cuarta semana', company: 'Pavago', title: 'Designer', status: 'En proceso' },
+    { id: 'f', group: '4. Cuarta semana', company: 'Right Balance', title: '', status: 'Aplicada sin respuesta' },
+  ];
+  const prev = { a: 'Aplicada sin respuesta', b: 'Aplicada sin respuesta', d: 'Rechazada', e: 'Aplicada', f: 'Aplicada' };
+  const out = JSON.parse(JSON.stringify(run('colorChangeFollowups')(prev, rows, seg, '2026-10-28')));
+  assert.deepStrictEqual(out.map(r => r['Empresa']), ['Bancolombia', 'Pavago'],
+    'solo cambios de color sin fila en Seguimiento; ni carpetas nuevas ni las que ya estaban rojas');
+  assert.strictEqual(out[0]['Estado nuevo'], 'Rechazada (rojo)');
+  assert.strictEqual(out[0]['Fecha revisión'], '2026-10-28');
+  assert.strictEqual(out[0]['Carpeta'], '4. Cuarta semana/Bancolombia');
+  assert.strictEqual(out[1]['Estado nuevo'], 'En proceso (verde)');
+  assert.strictEqual(out[1]['Siguiente acción'], 'Preparar la prueba o entrevista');
+  assert.strictEqual(run('applicationStatusKey')(out[0]['Estado nuevo']), 'rechazada', 'el tablero le lee la fecha al rechazo');
+}
 // «Ya los envié» de los correos en frío (2026-10-27): solo borradores de esa empresa y las direcciones marcadas
 {
   const v = [['Empresa', 'Destinatario(s)', 'Fecha y hora envío', 'Asunto', 'CV usado', 'Estado'],
