@@ -16,16 +16,21 @@ const TEMPLATE_LABELS_EN_ = {
   'Portafolio': 'Portfolio',  // Texto del enlace del encabezado (prueba de crear-hv, 2026-10-24)
 };
 
-/** Para cada carpeta de hoy con CV_IA.json y sin CV generado: valida, llena la plantilla, PDF (si está activo), borrador y registro. */
+/**
+ * Para cada carpeta de hoy (y de los CV_CATCHUP_DAYS días anteriores, por si una tanda de la IA falló) con CV_IA.json y sin
+ * CV generado: valida, llena la plantilla, PDF (si está activo), borrador y registro.
+ */
 function generarCVsDesdeIA() {
   const now = new Date();
   const hour = Number(Utilities.formatDate(now, tz_(), 'H'));
   if (!isWithinCvWindow(hour)) return;  // El activador corre cada CV_EVERY_MINUTES todo el día
   const root = DriveApp.getFolderById(getProp_(PROPS.ROOT_FOLDER_ID));
   const today = Utilities.formatDate(now, tz_(), 'yyyy-MM-dd');
-  // Sin revisar/<hoy> desde 2026-10-22; <hoy> en la raíz por si alguna corrida anterior la dejó allí
-  const pending = root.getFoldersByName(CONFIG.PENDING_FOLDER_NAME);
-  const candidates = [pending.hasNext() ? pending.next().getFoldersByName(today) : null, root.getFoldersByName(today)];
+  // Sin revisar/<día> desde 2026-10-22; <hoy> en la raíz por si alguna corrida anterior la dejó allí
+  const pendingIt = root.getFoldersByName(CONFIG.PENDING_FOLDER_NAME);
+  const pending = pendingIt.hasNext() ? pendingIt.next() : null;
+  const candidates = recentDays(today, CONFIG.CV_CATCHUP_DAYS).map(day => pending ? pending.getFoldersByName(day) : null)
+    .concat([root.getFoldersByName(today)]);
   const dateFolders = candidates.filter(it => it && it.hasNext()).map(it => it.next());
   if (!dateFolders.length) {
     console.log('No hay carpeta de vacantes para ' + today + '.');
@@ -33,6 +38,14 @@ function generarCVsDesdeIA() {
   }
   const sheet = getRegistrySheet_();
   dateFolders.forEach(f => buildCvsInFolder_(f, sheet));
+}
+
+/** Hoy y los `back` días anteriores, como 'yyyy-MM-dd', de hoy hacia atrás. */
+function recentDays(today, back) {
+  const t = Date.UTC(+today.slice(0, 4), +today.slice(5, 7) - 1, +today.slice(8, 10));
+  const out = [];
+  for (let i = 0; i <= back; i++) out.push(new Date(t - i * 86400000).toISOString().slice(0, 10));
+  return out;
 }
 
 /** true si la hora (0–23, Bogotá) está dentro de la ventana en que generarCVsDesdeIA trabaja. */

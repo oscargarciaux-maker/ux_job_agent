@@ -552,6 +552,11 @@ assert.ok(!context.isCvFile_({ name: 'HV_notas.txt', mimeType: 'text/plain' }));
   assert.ok(!/In-Reply-To/.test(context.buildMimeMessage('a@b.co', 'Hola', 'Texto', null)));
 }
 
+// Retoma (2026-10-28): generarCVsDesdeIA también arma las HV de los días anteriores que quedaron pendientes
+assert.deepStrictEqual(JSON.parse(JSON.stringify(context.recentDays('2026-11-01', 2))), ['2026-11-01', '2026-10-31', '2026-10-30']);
+assert.deepStrictEqual(JSON.parse(JSON.stringify(context.recentDays('2026-10-28', 0))), ['2026-10-28']);
+assert.strictEqual(run('CONFIG.CV_CATCHUP_DAYS'), 2);
+
 // Mañana compacta (2026-10-25): generarCVsDesdeIA corre cada 10 min, solo trabaja dentro de su ventana
 assert.ok(!context.isWithinCvWindow(4) && context.isWithinCvWindow(5) && context.isWithinCvWindow(22) &&
   !context.isWithinCvWindow(23));
