@@ -123,10 +123,25 @@ Es una bitácora en la que solo se agregan filas; nadie edita la fila de otro.
 - **Sin WebSockets:** pide datos al abrir y cada 2 minutos. «Actualizar» pide datos frescos. Entre una y otra, el reloj anima a quien tiene turno según el ritmo del día (`RITMO` en la página).
 - Toda la lógica de la página está en `<script id="motor-oficina">`, con pruebas en `tests/oficina.test.js`. Los datos se pintan solo con `textContent`.
 - `#demo` muestra datos de ejemplo inventados, para ver la oficina sin la clave.
+- **Pantallas (decisión de Oscar, 28 oct 2026):** la oficina es «qué hago hoy», el juego es la motivación y el tablero es para el coach. La página privada de claude.ai queda para retirar cuando Oscar lo confirme.
+- **Tu tanda de hoy** (28 oct 2026), primera tarjeta de la oficina (`tandaDeHoy`, `resumenTanda`):
+  - hasta 5 postulaciones de `Por enviar`, menos las que ya envió hoy (primero las que el editor dejó listas; entre iguales, la más vieja). Cada una con «Postular» (la vacante), «PDF» (descarga al día desde el Doc), «HV», «Copiar mensaje» (`_correo_cuerpo`) y «Ya la envié»;
+  - hasta 3 empresas con borradores de correo en frío, con «Gmail» y «Ya los envié» (elige las direcciones);
+  - los borradores de seguimiento, con «Gmail» y «Ya lo envié» (acción `seguimiento`);
+  - los minutos estimados («3 postulaciones y 2 empresas con correos · unos 15 min»), el avance del día y un aviso si hay más de 10 borradores de correos en frío sin enviar.
+  - Las acciones usan las mismas del juego (`Acciones.gs`), con confirmación y la clave de escritura.
+- **Producir menos (28 oct 2026):** el cuello de botella es que Oscar envíe, no que el equipo escriba.
+  - El escriba escribe máximo 4 HV por tanda (6 a 8 al día), y 2 si quedan 10 o más HV sin enviar de días anteriores.
+  - Con más de 10 borradores de correos en frío sin enviar, el cartero no prepara lotes nuevos.
+- **Vista 3D, estilo peluche (28 oct 2026, pedido de Oscar: «tipo Miniso»):** sombreado de caricatura en 3 tonos, contorno suave, colores pastel, cuerpo de huevo, ojos grandes con brillo y mejillas rosadas. La vista plana usa el mismo estilo.
+- **Rutinas con tiempo real:** cada especialista tiene un puesto de trabajo además de su escritorio (`PUESTOS_TRABAJO_3D`):
+  - el tablero de pedidos del jefe, la torre del vigía, el archivo del inspector, el estante del escriba, el corcho del editor, el buzón del cartero, el mapa de la exploradora, la antena de la radio y el banco del constructor;
+  - mientras trabaja de verdad, va y viene entre los dos;
+  - en el guion, después de cada encargo viene el trabajo de quien lo recibe (`conTrabajo`), con los minutos reales hasta su siguiente mensaje del mismo pedido, comprimidos (1 min = 0,4 s, entre 4 y 20 s). El globo dice cuánto tardó, con una barrita de avance.
+- **Ambientación:** plaza con letrero, caminos con faroles (brillan de noche), agujero de pesca, muñeco de nieve, montículos y cristales en la orilla, cinta de la máquina con cubos de hielo y huellas del trineo.
 
 ## 7. Próximas fases (con visto bueno de Oscar)
 
 1. El buzón encendido como tarea programada, y su horario.
 2. Conversación en vivo: el jefe responde en la oficina, en un hilo por pedido.
-3. Más agentes cuando hagan falta, por ejemplo un agente de portafolio o uno de entrevistas. Siempre por el paso 5 del método.
-4. Una escena en 3D, si después de usar la 2D sigue haciendo falta.
+3. Más agentes cuando hagan falta. Siempre por el paso 5 del método. El primero será el **entrenador de entrevistas**, cuando Oscar comparta sus documentos de apoyo (decisión del 28 oct 2026).

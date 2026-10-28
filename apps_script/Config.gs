@@ -4,9 +4,10 @@
  * (Configuración del proyecto > Propiedades del script).
  */
 const CONFIG = {
-  // Candidatas por día (sobre-reserva, decisión del usuario 2026-10-24): la IA las verifica y escribe HV solo a las 10
-  // mejores que pasan; las demás que pasan quedan de reserva. Meta del usuario: ~50 postulaciones por semana.
-  DAILY_LIMIT: 20,
+  // Candidatas por día (sobre-reserva, decisión del usuario 2026-10-24): la IA las verifica y escribe HV solo a las
+  // mejores que pasan; las demás que pasan quedan de reserva. Producir menos (2026-10-28): 4 HV por tanda (6 a 8 al día),
+  // así que 14 candidatas alcanzan (cerca de la mitad se descarta al verificar); antes 20 con 10 HV por tanda.
+  DAILY_LIMIT: 14,
   MIN_JUNIOR: 5,             // Al menos 5 de las 10 vacantes diarias serán Junior (si existen)
   // Rotación diaria (decisiones del usuario 2026-10-19). Cada día: 1 búsqueda de SEARCH_QUERY_POOL en Colombia y 1 de
   // REMOTE_QUERY_POOL (remoto para LATAM, sin limitar a Colombia), 1 crédito de SerpAPI cada una.
@@ -183,7 +184,11 @@ const CONFIG = {
   APPLIED_SHEET_NAME: 'Aplicadas',
   // HV preparadas sin enviar (Sin revisar/<fecha>/<vacante> con HV), las escribe sincronizarAplicadas (2026-10-25)
   PENDING_CV_SHEET_NAME: 'Por enviar',
-  PENDING_CV_SHEET_HEADERS: ['Fecha', 'Empresa', 'Cargo', 'Verificación', 'Revisión', 'Carpeta', 'HV'],
+  // PDF y Mensaje (2026-10-28, paquete de envío): el PDF lo renueva la corrida de cada hora si el Doc cambió; el mensaje es
+  // el _correo_cuerpo de CV_IA.json, para copiarlo al postular
+  PENDING_CV_SHEET_HEADERS: ['Fecha', 'Empresa', 'Cargo', 'Verificación', 'Revisión', 'Carpeta', 'HV', 'PDF', 'Mensaje'],
+  PENDING_PDF_PER_RUN: 8,
+  DASHBOARD_MESSAGE_MAX_CHARS: 900,   // El mensaje de cada HV por enviar en el JSON del tablero (la caché tiene tope)
   APPLIED_OLD_FOLDER_PATTERN: /^antigu[ao]s?$/i,   // Carpeta de postulaciones antiguas junto a CV/ (2026-10-25)
   COLD_EMAIL_SHEET_NAME: 'Correos en frío',   // Empresas ya contactadas (columna A): no se proponen de nuevo
   COLD_EMAIL_SHEET_HEADERS: ['Empresa', 'Destinatario(s)', 'Fecha y hora envío', 'Asunto', 'CV usado', 'Estado',
@@ -195,6 +200,14 @@ const CONFIG = {
   COLD_ERRORS_FILE: 'Correos_ERRORES.txt',
   CV_KEYWORDS_CHECKED: 5,                    // keywords principales que la HV debe probar fuera de las habilidades (personalizationErrors)
   COLD_EMAIL_MAX_WORDS: 35,                  // Guía Maestra de Cover Letters (la guía principal de correos del usuario)
+  // Seguimiento de correos en frío sin respuesta (2026-10-28): un borrador corto en el mismo hilo entre 8 y 30 días después
+  // del envío, uno por empresa, como máximo 5 al día (crearBorradoresDeSeguimiento_). Nunca se envía: Oscar decide.
+  FOLLOWUP_DRAFT_MIN_DAYS: 8,
+  FOLLOWUP_DRAFT_MAX_DAYS: 30,
+  FOLLOWUP_DRAFTS_PER_DAY: 5,
+  // Producir menos (2026-10-28): con más de esta cantidad de borradores de correos en frío sin enviar, el cartero no
+  // prepara un lote nuevo (la oficina lo muestra)
+  COLD_DRAFTS_BACKLOG_MAX: 10,
   // Skill investigar-empresas (2026-10-24): empresas que contratan diseñadores UX/UI, con correos verificados
   TARGET_COMPANIES_SHEET_NAME: 'Empresas objetivo',
   SOURCES_SHEET_NAME: 'Fuentes',   // Conteo por fuente en cada búsqueda (plan 2026-10-27: comparar antes y después)
@@ -233,6 +246,7 @@ const PROPS = {
   DASHBOARD_API_ID: 'DASHBOARD_API_ID',  // Id de la implementación (api= de los enlaces); lo guarda doGet (2026-10-27)
   DASHBOARD_WRITE_KEY: 'DASHBOARD_WRITE_KEY',  // Clave de escritura del juego (&e=), solo en el enlace de Oscar (Acciones.gs)
   SERPAPI_LAST_DAY: 'SERPAPI_LAST_DAY',   // Último día (yyyy-MM-dd) en que se gastaron créditos de SerpAPI
+  FOLLOWUP_DRAFTS_LAST_DAY: 'FOLLOWUP_DRAFTS_LAST_DAY',   // Último día (yyyy-MM-dd) en que se buscaron correos en frío para seguimiento
 };
 
 function getProp_(key) {

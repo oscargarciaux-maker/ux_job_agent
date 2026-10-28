@@ -6,6 +6,8 @@
  *   hecho     -> Seguimiento gana una fila que cierra la acción pendiente de esa empresa (queda «Esperar respuesta»).
  *   correos   -> las filas de borradores de esa empresa en Correos en frío (las direcciones que Oscar marcó) pasan a
  *                «Enviado (registrado desde el juego)» con la fecha y hora (2026-10-27, correos en frío como misión).
+ *   seguimiento -> el borrador de seguimiento de esa empresa (crearBorradoresDeSeguimiento_) pasa a «Seguimiento: enviado
+ *                <fecha>» en Notas de Correos en frío (2026-10-28).
  *   pedido    -> el buzón de la oficina de agentes: una fila «pedido» «pendiente» para el jefe en la pestaña Agentes
  *                (Agentes.gs, docs/MULTIAGENTE.md). No mueve nada en Drive.
  * Nunca envía nada (HITL): solo registra lo que Oscar hizo. Exige la clave del enlace (k) y además la clave de escritura
@@ -14,7 +16,7 @@
  * Llega por doGet (&accion=...) porque el Cargador solo tiene doGet; así no hay que volver a pegarlo.
  */
 
-const GAME_ACTIONS_ = ['enviada', 'descartar', 'rechazada', 'proceso', 'hecho', 'correos', 'pedido'];
+const GAME_ACTIONS_ = ['enviada', 'descartar', 'rechazada', 'proceso', 'hecho', 'correos', 'seguimiento', 'pedido'];
 const COLD_SENT_STATUS_ = 'Enviado (registrado desde el juego)';
 const GAME_FOLDER_COLORS_ = { rechazada: '#f83a22', proceso: '#16a765' };  // los mismos de la skill seguimiento
 
@@ -95,6 +97,24 @@ function runGameAction_(p) {
       sheet.getRange(r + 1, cStatus).setValue(COLD_SENT_STATUS_);
     });
     return p.empresa + ' -> ' + rows.length + ' correos en frío marcados como enviados';
+  }
+
+  if (action === 'seguimiento') {
+    const sheet = ss.getSheetByName(CONFIG.COLD_EMAIL_SHEET_NAME);
+    if (!sheet) throw new Error('No existe la pestaña ' + CONFIG.COLD_EMAIL_SHEET_NAME);
+    const values = sheet.getDataRange().getDisplayValues();
+    const cNotes = values[0].map(String).indexOf('Notas');
+    if (cNotes < 0) throw new Error('A la pestaña ' + CONFIG.COLD_EMAIL_SHEET_NAME + ' le falta la columna Notas');
+    let marked = 0;
+    for (let i = 1; i < values.length; i++) {
+      if (!sameCompany_(values[i][0], p.empresa)) continue;
+      const note = followupNoteSent(values[i][cNotes], today);
+      if (note === values[i][cNotes]) continue;
+      sheet.getRange(i + 1, cNotes + 1).setValue(note);
+      marked++;
+    }
+    if (!marked) throw new Error('No encontré un borrador de seguimiento de ' + p.empresa);
+    return p.empresa + ' -> seguimiento enviado';
   }
 
   const followup = ss.getSheetByName(CONFIG.FOLLOWUP_SHEET_NAME);
@@ -190,6 +210,11 @@ function coldRowsToMark(values, company, recipients) {
     out.push(i);
   }
   return out;
+}
+
+/** Notas con «Seguimiento: borrador <fecha>» -> «Seguimiento: enviado <hoy>» (sin cambios si no hay borrador). */
+function followupNoteSent(note, today) {
+  return String(note || '').replace(/Seguimiento:\s*borrador\s+\d{4}-\d{2}-\d{2}/i, 'Seguimiento: enviado ' + today);
 }
 
 /** Un texto escrito en el Sheet nunca se interpreta como fórmula. */

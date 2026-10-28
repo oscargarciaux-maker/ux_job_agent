@@ -181,9 +181,17 @@ function buildAgentsModel(d, now) {
   const cold = d.correos || [];
   const drafts = cold.filter(c => c.clave === 'borrador').length;
   const lastCold = latest(cold.map(c => normalizeStamp(c.fecha)));
-  set('cartero', { estado: drafts ? 'atencion' : 'libre', ultima: lastCold,
-    resumen: drafts ? drafts + (drafts === 1 ? ' borrador listo para que lo envíes' : ' borradores listos para que los envíes') : 'Sin borradores pendientes',
-    cifras: [['borradores', drafts], ['respondieron', cold.filter(c => c.clave === 'respondio').length]] });
+  // Seguimientos (2026-10-28): un borrador por empresa que no respondió; con más de COLD_DRAFTS_BACKLOG_MAX borradores
+  // el cartero no prepara lotes nuevos (producir menos: el cuello de botella es enviar)
+  const followups = {};
+  cold.filter(c => c.seguimiento && c.seguimiento.estado === 'borrador').forEach(c => { followups[followupKey_(c.empresa)] = true; });
+  const nFollow = Object.keys(followups).length;
+  const capped = drafts > CONFIG.COLD_DRAFTS_BACKLOG_MAX;
+  set('cartero', { estado: drafts || nFollow ? 'atencion' : 'libre', ultima: lastCold,
+    resumen: (drafts ? drafts + (drafts === 1 ? ' borrador listo para que lo envíes' : ' borradores listos para que los envíes') : 'Sin borradores pendientes') +
+      (nFollow ? ' · ' + nFollow + (nFollow === 1 ? ' seguimiento' : ' seguimientos') : '') +
+      (capped ? ' · sin lotes nuevos hasta que queden ' + CONFIG.COLD_DRAFTS_BACKLOG_MAX : ''),
+    cifras: [['borradores', drafts], ['seguimientos', nFollow], ['respondieron', cold.filter(c => c.clave === 'respondio').length]] });
 
   // Exploradora: empresas en la lista para correos en frío
   const targets = d.objetivo || [];

@@ -258,6 +258,24 @@ function vacancyLinkFor(pending, registryRows) {
   return pick ? pick['Link'] : '';
 }
 
+/** «Seguimiento: borrador|enviado <fecha>» en las Notas de Correos en frío -> { estado, dia } (el último), o null. */
+function followupNoteState(note) {
+  const all = String(note || '').match(/Seguimiento:\s*(borrador|enviado)\s+(\d{4}-\d{2}-\d{2})/gi);
+  if (!all) return null;
+  const m = /Seguimiento:\s*(borrador|enviado)\s+(\d{4}-\d{2}-\d{2})/i.exec(all[all.length - 1]);
+  return { estado: m[1].toLowerCase(), dia: m[2] };
+}
+
+/**
+ * Descarga del PDF siempre al día (2026-10-28): Google lo genera desde el Doc en el momento, así incluye los retoques que
+ * Oscar hizo después de la última exportación. Solo para Google Docs (enlace open?id=); un PDF suelto no tiene.
+ */
+function docPdfExportUrl(hvLink, hvName) {
+  const id = (String(hvLink || '').match(/[?&]id=([\w-]{10,})/) || [])[1];
+  if (!id || /\.pdf$/i.test(String(hvName || '').trim())) return '';
+  return 'https://docs.google.com/document/d/' + id + '/export?format=pdf';
+}
+
 /** El día (yyyy-MM-dd) al inicio de un texto de fecha del Sheet, o vacío ("—", "sin fecha"...). */
 function dayOf_(text) {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(text || '').trim());
@@ -343,6 +361,7 @@ function buildDashboardModel(tabs, now, timeZone) {
     });
     row.clave = /^\s*borrador/i.test(row.estado) ? 'borrador' : /respondi/i.test(row.estado) ? 'respondio' : row.estado ? 'enviado' : '';
     row.dia = dayOf_(row.fecha);
+    row.seguimiento = followupNoteState(row.notas);
     return row;
   });
   const repliedCompanies = {};
@@ -358,9 +377,12 @@ function buildDashboardModel(tabs, now, timeZone) {
   for (let i = 13; i >= 0; i--) perDay[daysAgo(i)] = 0;
   recent.forEach(r => { if (r['Fecha'] in perDay) perDay[r['Fecha']]++; });
 
+  // Paquete de envío (2026-10-28): PDF de la carpeta, descarga del PDF al día desde el Doc y el mensaje para copiar
   const pending = dashboardRows(tabs.porEnviar && tabs.porEnviar.values, tabs.porEnviar && tabs.porEnviar.links)
     .map(r => ({ fecha: r['Fecha'], empresa: r['Empresa'], cargo: r['Cargo'], verificacion: r['Verificación'],
-                 revision: r['Revisión'], carpeta: r._links['Carpeta'] || '', hv: r._links['HV'] || '' }));
+                 revision: r['Revisión'], carpeta: r._links['Carpeta'] || '', hv: r._links['HV'] || '',
+                 pdf: r._links['PDF'] || '', pdfDescarga: docPdfExportUrl(r._links['HV'], r['HV']),
+                 mensaje: String(r['Mensaje'] || '').slice(0, CONFIG.DASHBOARD_MESSAGE_MAX_CHARS) }));
   // Enlace de la vacante para el botón «Vacante» del juego (2026-10-27), desde Hoja 1
   pending.forEach(p => { p.vacante = vacancyLinkFor(p, registry); });
   const followup = followupRows.map(r => ({
@@ -390,6 +412,9 @@ function buildDashboardModel(tabs, now, timeZone) {
       entregados: states.filter(s => s === 'usado').length,
       rebotados: states.filter(s => s === 'rebotado').length,
       borradores: states.filter(s => s === 'borrador').length,
+      // Borradores de seguimiento sin enviar (2026-10-28), uno por empresa
+      seguimientos: coldRows.filter(r => r.seguimiento && r.seguimiento.estado === 'borrador').length,
+      tope: CONFIG.COLD_DRAFTS_BACKLOG_MAX,
       empresasContactadas: Object.keys(sentCompanies).length,
       empresasRespondieron: Object.keys(repliedCompanies).length,
       lista: coldRows,

@@ -201,6 +201,10 @@ main { max-width: 1280px; margin: 0 auto; padding: var(--e-12) var(--e-16) var(-
   background: var(--panel); color: var(--tinta); border: 2px solid var(--acento); font-size: 12px; font-weight: 700; line-height: 1.3; box-shadow: var(--sombra);
   will-change: transform; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .globo3d--respuesta { border-color: var(--trabajando); }
+/* Trabajo en curso: la barrita de abajo avanza con el tiempo comprimido */
+.globo3d--trabajo { border-color: var(--atencion); padding-bottom: 9px; }
+.globo3d--trabajo::after { content: ''; position: absolute; left: 10px; right: 10px; bottom: 4px; height: 3px; border-radius: 2px;
+  background: linear-gradient(90deg, var(--trabajando) calc(var(--p, 0) * 100%), var(--borde) 0); }
 .pista3d { position: absolute; left: 12px; bottom: 10px; margin: 0; padding: 4px 10px; border-radius: var(--r-full); background: var(--panel); color: var(--tinta-2);
   font-size: 12px; font-weight: 700; opacity: .92; max-width: calc(100% - 80px); }
 .centrar3d { position: absolute; right: 10px; bottom: 8px; background: var(--panel); }
@@ -245,6 +249,27 @@ select { min-height: 44px; }
 .mensaje .asunto { margin-top: var(--e-4); font-weight: 700; font-size: 15px; color: var(--tinta); }
 .mensaje a { display: inline-flex; align-items: center; min-height: 44px; font-weight: 700; }
 
+/* Tanda de hoy (2026-10-28): lo que Oscar envía hoy */
+.hoy h3 { font-size: 17px; margin: var(--e-16) 0 var(--e-8); display: flex; align-items: baseline; gap: var(--e-8); }
+.hoy h3 small { font-family: var(--f-texto); font-size: 14px; font-weight: 700; color: var(--tinta-2); }
+.hoy-resumen { margin: 0 0 var(--e-8); font-size: 17px; font-weight: 800; }
+.avance { height: 12px; border-radius: var(--r-full); background: var(--panel-2); border: 1px solid var(--borde); overflow: hidden; }
+.avance span { display: block; height: 100%; width: 0; background: var(--trabajando); border-radius: inherit; transition: width .4s; }
+.tope { margin: var(--e-12) 0 0; padding: var(--e-8) var(--e-12); border-radius: var(--r-8); background: var(--atencion-bg); color: var(--atencion); font-weight: 700; font-size: 14px; }
+.tarea { padding: var(--e-12); border-radius: var(--r-12); background: var(--panel-2); border: 1px solid var(--borde); }
+.tarea-cab { display: flex; align-items: center; gap: var(--e-8); flex-wrap: wrap; }
+.tarea-cab b { font-size: 16px; flex: 1; min-width: 55%; overflow-wrap: anywhere; }
+.tarea p { margin: 2px 0 0; font-size: 14px; color: var(--tinta-2); overflow-wrap: anywhere; }
+.tarea .botones { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--e-8); margin-top: var(--e-12); }
+.tarea .botones .btn { width: 100%; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-weight: 700; font-size: 15px; color: var(--tinta); }
+.tarea .botones .btn--primario { color: var(--acento-tinta); }
+.tarea .botones .ancho { grid-column: 1 / -1; }
+.tarea .msj { margin-top: var(--e-8); padding: var(--e-8) var(--e-12); border-left: 3px solid var(--hielo-borde); background: var(--panel); border-radius: 0 var(--r-8) var(--r-8) 0; font-size: 14px; color: var(--tinta); white-space: pre-line; }
+.direcciones { display: grid; gap: var(--e-8); margin-top: var(--e-12); }
+.dir { justify-content: flex-start; text-align: left; border-radius: var(--r-12); font-size: 15px; overflow-wrap: anywhere; }
+.dir[aria-pressed="true"] { border-color: var(--trabajando); background: var(--trabajando-bg); color: var(--tinta); }
+@media (min-width: 640px) { .tarea .botones { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
 /* Ficha de un agente */
 dialog { width: min(560px, 100vw); max-height: min(88dvh, 760px); margin: auto auto 0; padding: 0; border: 0; border-radius: var(--r-16) var(--r-16) 0 0;
   background: var(--panel); color: var(--tinta); box-shadow: 0 -8px 30px rgba(0, 0, 0, .25); }
@@ -264,7 +289,7 @@ dialog::backdrop { background: rgba(5, 20, 40, .45); }
 .contrato dd { margin: 0; }
 
 /* Navegación inferior (celular) */
-.abajo { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: grid; grid-template-columns: repeat(4, 1fr);
+.abajo { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: grid; grid-template-columns: repeat(5, 1fr);
   height: calc(var(--nav) + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom); background: var(--panel); border-top: 1px solid var(--borde); }
 .abajo a { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-decoration: none; color: var(--tinta-2); font-size: 12px; font-weight: 800; min-height: 44px; position: relative; }
 .abajo a svg { width: 24px; height: 24px; }
@@ -284,7 +309,8 @@ dialog::backdrop { background: rgba(5, 20, 40, .45); }
   body { padding-bottom: 0; }
   .abajo { display: none; }
   :root { --pingu: 84px; }
-  main { grid-template-columns: minmax(0, 1fr) 380px; grid-template-areas: "base lado"; align-items: start; padding-top: var(--e-16); }
+  main { grid-template-columns: minmax(0, 1fr) 380px; grid-template-areas: "hoy lado" "base lado"; grid-template-rows: auto 1fr; align-items: start; padding-top: var(--e-16); }
+  #hoy { grid-area: hoy; }
   #base { grid-area: base; }
   .lado { grid-area: lado; display: grid; gap: var(--e-16); }
   .paisaje { height: 190px; }
@@ -316,11 +342,24 @@ dialog::backdrop { background: rgba(5, 20, 40, .45); }
 </header>
 
 <main id="principal">
-  <section id="base" class="seccion" aria-labelledby="t-base">
-    <h2 id="t-base" class="sr">La base</h2>
+  <section id="hoy" class="seccion" aria-labelledby="t-hoy">
     <div class="aviso" id="estado-datos" aria-live="polite">Cargando la base…</div>
     <p class="demo" id="aviso-demo" hidden>Demostración con datos inventados. Con tu enlace se ven tus agentes de verdad.</p>
-    <div class="tarjeta" id="necesitan" style="margin: 12px 0 16px">
+    <div class="tarjeta hoy">
+      <h2 id="t-hoy"><span aria-hidden="true">🎒</span> Tu tanda de hoy</h2>
+      <p class="hoy-resumen" id="hoy-resumen">Cargando…</p>
+      <div class="avance" id="hoy-avance" role="progressbar" aria-label="Avance de la tanda de hoy" aria-valuemin="0" aria-valuemax="1" aria-valuenow="0"><span></span></div>
+      <p class="ayuda" id="hoy-avance-txt"></p>
+      <p class="tope" id="hoy-tope" hidden></p>
+      <div id="hoy-post"></div>
+      <div id="hoy-correos"></div>
+      <div id="hoy-seg"></div>
+      <p class="resultado" id="hoy-resultado" role="status" aria-live="polite"></p>
+    </div>
+  </section>
+  <section id="base" class="seccion" aria-labelledby="t-base">
+    <h2 id="t-base" class="sr">La base</h2>
+    <div class="tarjeta" id="necesitan" style="margin: 0 0 16px">
       <h2><span aria-hidden="true">🐧</span> Te necesitan</h2>
       <ul class="lista" id="lista-necesitan"></ul>
     </div>
@@ -399,11 +438,24 @@ dialog::backdrop { background: rgba(5, 20, 40, .45); }
 </main>
 
 <nav class="abajo" aria-label="Secciones">
-  <a href="#base" data-sec="base" aria-current="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 19a9 9 0 0 1 18 0zm7 0v-4a2 2 0 0 1 4 0v4z"/></svg>Base<span class="cuenta" id="cuenta-base" hidden></span></a>
+  <a href="#hoy" data-sec="hoy" aria-current="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8 5V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v1h3a1 1 0 0 1 1 1v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a1 1 0 0 1 1-1zm2 0h4V4h-4z"/></svg>Hoy<span class="cuenta" id="cuenta-hoy" hidden></span></a>
+  <a href="#base" data-sec="base" aria-current="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 19a9 9 0 0 1 18 0zm7 0v-4a2 2 0 0 1 4 0v4z"/></svg>Base<span class="cuenta" id="cuenta-base" hidden></span></a>
   <a href="#buzon" data-sec="buzon"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 7h16v12H4zm0 0 8 6 8-6" stroke="currentColor" stroke-width="0"/><path d="M4 8l8 6 8-6" fill="none" stroke="var(--panel)" stroke-width="2"/></svg>Buzón</a>
   <a href="#pedidos" data-sec="pedidos"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6 3h12v18l-6-3-6 3z"/></svg>Pedidos<span class="cuenta" id="cuenta-pedidos" hidden></span></a>
   <a href="#radio" data-sec="radio"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 9h16v11H4zm3-5 10 4" stroke="currentColor" stroke-width="2"/><circle cx="9" cy="14.5" r="2.5" fill="var(--panel)"/></svg>Radio</a>
 </nav>
+
+<dialog id="confirmar" aria-labelledby="conf-titulo" aria-describedby="conf-texto">
+  <form class="ficha" method="dialog">
+    <h2 id="conf-titulo" style="font-size:21px"></h2>
+    <p class="ayuda" id="conf-texto" style="margin-top:8px"></p>
+    <div id="conf-extra"></div>
+    <div class="acciones">
+      <button class="btn btn--primario" value="si" id="conf-si"></button>
+      <button class="btn" value="no">Cancelar</button>
+    </div>
+  </form>
+</dialog>
 
 <dialog id="ficha" aria-labelledby="ficha-nombre">
   <div class="ficha">
@@ -594,7 +646,7 @@ function guionInteracciones(mensajes, ahora, max) {
     var para = m.para === 'todos' ? null : m.para === 'oscar' ? 'oscar' : ESTACIONES_3D[m.para] ? m.para : undefined;
     if (para === undefined || para === m.de) return;
     pasos.push({ de: m.de, para: para, tipo: m.tipo, texto: m.asunto || TIPOS[m.tipo] || 'Mensaje',
-      respuesta: para && para !== 'oscar' ? (RESPUESTAS_3D[m.tipo] || 'Recibido') : '', hora: m.hora });
+      respuesta: para && para !== 'oscar' ? (RESPUESTAS_3D[m.tipo] || 'Recibido') : '', hora: m.hora, id: m.id || '' });
   });
   return pasos.reverse().slice(-(max || 8));
 }
@@ -615,12 +667,152 @@ function puntoDeVisita(desde, hasta, dist) {
   return [Math.round((b[0] + lado * dist) * 100) / 100, Math.round((b[1] + 0.4) * 100) / 100, lado];
 }
 
+/* ---------- Tanda de hoy (2026-10-28): lo que Oscar envía hoy, con todo a mano ---------- */
+var TANDA_POSTULACIONES = 5, TANDA_CORREOS = 3;
+// Minutos estimados por tarea (portal con PDF y mensaje; empresa con sus borradores ya escritos; un seguimiento)
+var MINUTOS_TAREA = { postulacion: 3, correo: 1.5, seguimiento: 1 };
+// Mismas notas de riesgo que el juego (juego.html, tandaCorreos): esas direcciones van al final y sin marcar
+var AVISO_CORREO = /advertencia|no enviar|no verificable|oscar decide|fuente antigua|no es (?:contacto de )?talento|no especializada|no lo pude confirmar|no lo encontr|puede rebotar/i;
+function claveEmpresa(x) { return String(x || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim(); }
+function diaDe(x) { var m = /^\d{4}-\d{2}-\d{2}/.exec(String(x || '')); return m ? m[0] : ''; }
+function idCarpeta(url) { var m = /folders\/([\w-]{10,})/.exec(String(url || '')); return m ? m[1] : ''; }
+/** Primero lo que el editor dejó listo, después lo verificado como lista; entre iguales, lo más viejo (se enfría antes). */
+function ordenPostulaciones(a, b) {
+  var p = function (x) { return (/^lista/i.test(x.revision || '') ? 0 : 2) + (/^lista/i.test(x.verificacion || '') ? 0 : 1); };
+  return p(a) - p(b) || ((a.fecha || '') < (b.fecha || '') ? -1 : (a.fecha || '') > (b.fecha || '') ? 1 : 0);
+}
+/**
+ * La tanda de hoy desde el JSON del tablero `d`: hasta TANDA_POSTULACIONES HV por enviar (menos las que ya envió hoy),
+ * TANDA_CORREOS empresas con borradores de correo en frío (menos las de hoy) y los borradores de seguimiento. Trae los
+ * minutos estimados y si los borradores pasan del tope (el cartero no prepara más hasta que bajen).
+ */
+function tandaDeHoy(d) {
+  d = d || {};
+  var hoy = d.hoy || '';
+  var enviadasHoy = (((d.postulaciones || {}).lista) || []).filter(function (a) { return a.clave !== 'preparada' && hoy && diaDe(a.creada) === hoy; }).length;
+  var todas = (d.porEnviar || []).slice().sort(ordenPostulaciones);
+  var faltanPost = Math.max(0, TANDA_POSTULACIONES - enviadasHoy);
+  var postulaciones = todas.slice(0, faltanPost).map(function (p) {
+    return { empresa: p.empresa || '', cargo: p.cargo || '', fecha: diaDe(p.fecha), id: idCarpeta(p.carpeta), carpeta: p.carpeta || '',
+      vacante: p.vacante || '', hv: p.hv || '', pdf: p.pdfDescarga || p.pdf || '', mensaje: p.mensaje || '',
+      lista: /^lista/i.test(p.revision || ''), revision: p.revision || '' };
+  });
+  var lista = ((d.correos || {}).lista) || [];
+  var grupos = [], porEmpresa = {}, hoyEmpresas = {}, seguimientos = [], conSeguimiento = {};
+  lista.forEach(function (c) {
+    var k = claveEmpresa(c.empresa);
+    if (!k) return;
+    if (c.seguimiento && c.seguimiento.estado === 'borrador' && !conSeguimiento[k]) {
+      conSeguimiento[k] = true;
+      seguimientos.push({ empresa: c.empresa, para: c.para || '', asunto: c.asunto || '', desde: c.seguimiento.dia });
+    }
+    if (c.clave && c.clave !== 'borrador') { if (hoy && diaDe(c.dia) === hoy) hoyEmpresas[k] = true; return; }
+    if (c.clave !== 'borrador') return;
+    var g = porEmpresa[k];
+    if (!g) { g = porEmpresa[k] = { empresa: c.empresa, asunto: c.asunto || '', filas: [], aviso: false }; grupos.push(g); }
+    var aviso = AVISO_CORREO.test(c.notas || '');
+    g.filas.push({ para: c.para || '', aviso: aviso, notas: c.notas || '' });
+    if (aviso) g.aviso = true;
+  });
+  grupos = grupos.filter(function (g) { return !g.aviso; }).concat(grupos.filter(function (g) { return g.aviso; }));
+  var correosHoy = Object.keys(hoyEmpresas).length;
+  var correos = grupos.slice(0, Math.max(0, TANDA_CORREOS - correosHoy));
+  var borradores = Number((d.correos || {}).borradores) || 0, tope = Number((d.correos || {}).tope) || 10;
+  var minutos = Math.round(postulaciones.length * MINUTOS_TAREA.postulacion + correos.length * MINUTOS_TAREA.correo +
+    seguimientos.length * MINUTOS_TAREA.seguimiento);
+  return { postulaciones: postulaciones, porEnviar: todas.length, enviadasHoy: enviadasHoy,
+    correos: correos, empresasConBorrador: grupos.length, correosHoy: correosHoy, seguimientos: seguimientos,
+    minutos: minutos, borradores: borradores, tope: tope, sobreTope: borradores > tope,
+    hechas: enviadasHoy + correosHoy, meta: enviadasHoy + correosHoy + postulaciones.length + correos.length };
+}
+/** Frase corta de la tanda: «5 postulaciones y 3 correos · unos 20 min». */
+function resumenTanda(t) {
+  var partes = [];
+  var n = function (k, uno, varios) { return k + ' ' + (k === 1 ? uno : varios); };
+  if (t.postulaciones.length) partes.push(n(t.postulaciones.length, 'postulación', 'postulaciones'));
+  if (t.correos.length) partes.push(n(t.correos.length, 'empresa con correos', 'empresas con correos'));
+  if (t.seguimientos.length) partes.push(n(t.seguimientos.length, 'seguimiento', 'seguimientos'));
+  if (!partes.length) return t.hechas ? '¡Tanda de hoy completa! Mañana a las 5:00 llega más.' : 'Nada por enviar hoy. Mañana a las 5:00 llega más.';
+  var texto = partes.length > 1 ? partes.slice(0, -1).join(', ') + ' y ' + partes[partes.length - 1] : partes[0];
+  return texto + ' · unos ' + Math.max(5, Math.ceil(t.minutos / 5) * 5) + ' min';
+}
+/** Búsqueda de Gmail (cuenta laboral) para los borradores de una empresa o de un seguimiento. */
+function enlaceGmail(cuenta, consulta) {
+  var c = String(cuenta || '').replace(/[^\w.@+-]/g, '');
+  return 'https://mail.google.com/mail/' + (c ? 'u/' + c + '/' : '') + '#search/' + encodeURIComponent(consulta);
+}
+
+/*
+ * Rutinas y tiempos reales (2026-10-28, pedido de Oscar: «que cuando van a pedir algo a otro agente, se muevan por el
+ * espacio durante el tiempo que tarda cada acción»). Cada especialista tiene un puesto de trabajo además de su escritorio
+ * (el estante del escriba, el buzón del cartero…): mientras trabaja va y viene entre los dos. En el guion, después de un
+ * encargo viene el trabajo de quien lo recibe, que dura en la escena lo que duró de verdad (comprimido) y dice cuánto fue.
+ */
+var PUESTOS_TRABAJO_3D = {
+  jefe: { x: -3.0, z: -6.6, que: 'Reparte en el tablero de pedidos' },
+  vigia: { x: -9.4, z: -2.0, que: 'Otea desde la torre' },
+  inspector: { x: -7.8, z: 1.6, que: 'Revisa el archivo' },
+  escriba: { x: -3.6, z: 2.2, que: 'Busca en tus documentos' },
+  editor: { x: 3.6, z: 2.2, que: 'Compara en el tablero' },
+  cartero: { x: 7.8, z: 1.6, que: 'Lleva borradores al buzón' },
+  exploradora: { x: 9.4, z: -2.0, que: 'Marca el mapa' },
+  radio: { x: -6.6, z: -6.0, que: 'Ajusta la antena' },
+  constructor: { x: 6.6, z: -6.0, que: 'Trabaja en el banco' },
+};
+var SEGUNDOS_POR_MINUTO = 0.4;  // 1 minuto real = 0,4 s en la escena; entre 4 y 20 s por trabajo
+function segundosDeEscena(minutosReales) {
+  return Math.max(4, Math.min(20, Math.round(4 + Math.max(0, minutosReales) * SEGUNDOS_POR_MINUTO)));
+}
+function duracionTexto(min) {
+  min = Math.max(1, Math.round(min));
+  return min < 60 ? min + ' min' : Math.floor(min / 60) + ' h' + (min % 60 ? ' ' + (min % 60) + ' min' : '');
+}
+/**
+ * Guion con el trabajo intercalado: tras un encargo (o un pedido de Oscar al jefe), un paso «trabajo» de quien lo recibe
+ * con los minutos reales hasta su siguiente mensaje del mismo pedido. Si aún no responde y van menos de 3 h, el trabajo
+ * sigue «en curso» con los minutos hasta `ahora`.
+ */
+function conTrabajo(pasos, ahora) {
+  var out = [];
+  (pasos || []).forEach(function (p, i) {
+    out.push(p);
+    if (p.tipo !== 'encargo' && p.tipo !== 'pedido') return;
+    if (!p.para || !PUESTOS_TRABAJO_3D[p.para]) return;
+    var resp = pasos.slice(i + 1).filter(function (q) { return q.de === p.para && (!p.id || !q.id || q.id === p.id); })[0];
+    var min = resp ? minutosEntre(p.hora, resp.hora) : minutosEntre(p.hora, ahora);
+    if (min == null || min < 0 || (!resp && min > 180)) return;
+    out.push({ de: p.para, para: null, tipo: 'trabajo', texto: p.texto, respuesta: '', hora: p.hora, id: p.id || '',
+      minutos: Math.max(1, min), segundos: segundosDeEscena(min), enCurso: !resp,
+      globo: '⏱ ' + (resp ? duracionTexto(min) : 'lleva ' + duracionTexto(min)) + ' · ' + (PUESTOS_TRABAJO_3D[p.para].que) });
+  });
+  return out;
+}
+
 /** Modelo de demostración (datos inventados), a la hora `ahora`. */
 function modeloDemo(ahora) {
   // Las horas son relativas a `ahora`: h(34) = hace 34 minutos
   var base = minutosEntre('2000-01-01 00:00', ahora), dia = ahora.slice(0, 10);
   var h = function (min) { return sello(Date.UTC(2000, 0, 1) + (base - min) * 60000 + 5 * 3600000); };
-  return { generado: ahora.replace(' ', 'T'), agentes: { ahora: ahora,
+  var carpeta = function (n) { return 'https://drive.google.com/drive/folders/DEMO' + n + 'xxxxxxxxxxxx'; };
+  return { generado: ahora.replace(' ', 'T'), hoy: dia, cuenta: '',
+    porEnviar: [
+      { fecha: dia, empresa: 'Glaciar Fintech', cargo: 'Diseñador UX/UI', verificacion: 'Lista', revision: 'Lista para enviar', carpeta: carpeta(1),
+        hv: '', pdf: '', pdfDescarga: '', vacante: 'https://example.com/vacante-glaciar',
+        mensaje: 'Hola, equipo de Glaciar Fintech: vi la vacante de Diseñador UX/UI y les comparto mi HV. ¿Tendrían 10 minutos esta semana?' },
+      { fecha: dia, empresa: 'Pingüinera Pay', cargo: 'Product Designer', verificacion: 'Menor prioridad', revision: 'Revisar', carpeta: carpeta(2),
+        hv: '', pdf: '', pdfDescarga: '', vacante: 'https://example.com/vacante-pinguinera', mensaje: '' },
+      { fecha: dia, empresa: 'Iceberg Labs', cargo: 'UI Designer', verificacion: 'Lista', revision: 'Lista para enviar', carpeta: carpeta(3),
+        hv: '', pdf: '', pdfDescarga: '', vacante: '', mensaje: 'Hola, adjunto mi HV para el cargo de UI Designer.' },
+    ],
+    postulaciones: { lista: [{ empresa: 'Témpano Seguros', clave: 'aplicada', creada: dia }] },
+    correos: { borradores: 12, tope: 10, lista: [
+      { empresa: 'Aurora Bank', para: 'talento@aurora.example', clave: 'borrador', asunto: 'Diseñador UX/UI - Banca digital', notas: '' },
+      { empresa: 'Aurora Bank', para: 'hola@aurora.example', clave: 'borrador', asunto: 'Diseñador UX/UI - Banca digital', notas: '' },
+      { empresa: 'Foca Labs', para: 'soporte@foca.example', clave: 'borrador', asunto: 'Product Designer', notas: 'ADVERTENCIA: ruta de soporte' },
+      { empresa: 'Krill Pagos', para: 'jobs@krill.example', clave: 'enviado', dia: '2026-10-18', asunto: 'Diseñador UX/UI - Pagos',
+        notas: 'msg 1 | Seguimiento: borrador ' + dia, seguimiento: { estado: 'borrador', dia: dia } },
+    ] },
+    agentes: { ahora: ahora,
     equipo: [
       { id: 'jefe', estado: 'trabajando', resumen: '2 pedidos abiertos', ultima: h(4), cifras: [['abiertos', 2]] },
       { id: 'vigia', estado: 'listo', resumen: 'Trajo la vacante de Pingüinera Pay', ultima: h(22), cifras: [] },
@@ -665,7 +857,7 @@ function modeloDemo(ahora) {
   else if (!demo) { var g = leer(CLAVE + ':enlace'); if (g && g.api && g.k) params = g; }
   var URL_DATOS = /^[\w-]+$/.test(params.api || '') && params.k
     ? 'https://script.google.com/macros/s/' + params.api + '/exec?formato=json&k=' + encodeURIComponent(params.k) : '';
-  var modelo = null, datosHora = '';
+  var modelo = null, datos = null, datosHora = '';
 
   // ---------- Pingüinos (SVG fijo, sin datos del Sheet) ----------
   function el(tag, attrs, kids) {
@@ -679,7 +871,7 @@ function modeloDemo(ahora) {
     binoculares: '<g fill="#25303f"><rect x="44" y="64" width="13" height="16" rx="5"/><rect x="63" y="64" width="13" height="16" rx="5"/><rect x="55" y="68" width="10" height="6"/></g><circle cx="50.5" cy="78" r="3.5" fill="#7fd0ff"/><circle cx="69.5" cy="78" r="3.5" fill="#7fd0ff"/><path d="M30 62 q30 14 60 0 l2 8 q-32 14 -64 0z" fill="#ff7a59"/>',
     lupa: '<g class="p-objeto"><circle cx="99" cy="90" r="11" fill="rgba(170,225,255,.55)" stroke="#5a3b1c" stroke-width="4"/><path d="M106 99 l10 12" stroke="#5a3b1c" stroke-width="6" stroke-linecap="round"/></g><path d="M38 21 q22 -14 44 0 l4 6 h-52z" fill="#7a5a3a"/><rect x="30" y="25" width="60" height="5" rx="2.5" fill="#5e4329"/>',
     lapiz: '<g class="p-objeto"><path d="M96 66 l18 -20 l6 5 l-18 20 z" fill="#ffcf3f" stroke="#a87a00" stroke-width="1.5"/><path d="M96 66 l-3 9 l9 -4z" fill="#3a2a1a"/></g><rect x="40" y="84" width="40" height="30" rx="3" fill="#fff" stroke="#c9d9e6"/><path d="M46 92 h28 M46 99 h28 M46 106 h18" stroke="#9db4c8" stroke-width="2"/>',
-    gafas: '<g fill="none" stroke="#2a2a35" stroke-width="3"><circle cx="50" cy="45" r="8"/><circle cx="70" cy="45" r="8"/><path d="M58 45 h4"/></g><g class="p-objeto"><rect x="92" y="78" width="18" height="12" rx="2" fill="#c43b2f"/><rect x="98" y="66" width="6" height="13" rx="2" fill="#7a4b2a"/></g>',
+    gafas: '<g fill="none" stroke="#2a2a35" stroke-width="3"><circle cx="47" cy="50" r="10"/><circle cx="73" cy="50" r="10"/><path d="M57 49 h6"/></g><g class="p-objeto"><rect x="92" y="78" width="18" height="12" rx="2" fill="#c43b2f"/><rect x="98" y="66" width="6" height="13" rx="2" fill="#7a4b2a"/></g>',
     gorra: '<path d="M34 26 q26 -22 52 0 v6 h-52z" fill="#1f4f9c"/><path d="M80 28 q18 0 22 6 h-24z" fill="#173b75"/><circle cx="60" cy="20" r="4" fill="#f2c230"/><g class="p-objeto"><rect x="86" y="84" width="30" height="24" rx="5" fill="#a0612d"/><path d="M91 90 h20 v12 h-20z" fill="#fff"/><path d="M91 90 l10 7 l10 -7" fill="none" stroke="#2d6bcf" stroke-width="2"/></g><path d="M86 84 q-30 -30 -54 -18" stroke="#7a4a20" stroke-width="4" fill="none"/>',
     casco: '<path d="M32 30 q28 -34 56 0 z" fill="#d9c08a"/><rect x="26" y="27" width="68" height="7" rx="3.5" fill="#bfa366"/><path d="M50 12 h20" stroke="#a88a4e" stroke-width="3"/><g class="p-objeto"><rect x="88" y="78" width="26" height="22" rx="2" fill="#f4e6c4" stroke="#b49b62"/><path d="M92 86 q6 -6 10 2 t8 -2 M92 94 h16" stroke="#3a8f3f" stroke-width="2" fill="none"/></g>',
     audifonos: '<path d="M32 46 q0 -36 28 -36 q28 0 28 36" fill="none" stroke="#2a2a35" stroke-width="5"/><rect x="24" y="40" width="12" height="18" rx="5" fill="#2a2a35"/><rect x="84" y="40" width="12" height="18" rx="5" fill="#2a2a35"/><path d="M90 58 q2 14 -16 16" stroke="#2a2a35" stroke-width="3" fill="none"/><circle cx="72" cy="74" r="3" fill="#e2403a"/>',
@@ -696,22 +888,31 @@ function modeloDemo(ahora) {
     if (id === 'jefe') return '';
     return '<path d="M18 112 h84 l6 22 h-96z" fill="#e7f5ff" stroke="#8fbfdf" stroke-width="2"/><path d="M12 134 h96" stroke="#8fbfdf" stroke-width="2"/>';
   }
+  /** Mezcla un color con blanco (k = 0..1): los pingüinos van en tonos pastel, como peluches. */
+  function aclarar(hex, k) {
+    var n = parseInt(String(hex).slice(1), 16), m = function (v) { return Math.round(v + (255 - v) * k); };
+    return '#' + [m(n >> 16 & 255), m(n >> 8 & 255), m(n & 255)].map(function (v) { return ('0' + v.toString(16)).slice(-2); }).join('');
+  }
   function pinguinoSvg(id, estado) {
-    var m = EQUIPO[id], c = m.color;
+    var m = EQUIPO[id];
     if (m.maquina) return maquinaSvg(id, estado);
+    var c = aclarar(m.color, id === 'jefe' ? 0.14 : 0.24), linea = '#22304a';
     var fondo = id === 'jefe' ? '<path d="M-6 134 a66 60 0 0 1 132 0z" fill="#f7fcff" stroke="#8fbfdf" stroke-width="2"/><path d="M4 116 h112 M14 98 h92 M30 80 h60 M46 66 h28" stroke="#c9e3f5" stroke-width="2"/><path d="M40 82 v-18 M80 82 v-18 M26 100 v-18 M60 100 v-18 M94 100 v-18 M40 118 v-18 M80 118 v-18" stroke="#c9e3f5" stroke-width="2"/>' : '';
+    // Estilo peluche (2026-10-28): cuerpo de huevo con contorno suave, cara y panza en forma de maní, ojos grandes con
+    // brillo, mejillas rosadas, pico chiquito y aletas cortas
     return '<svg viewBox="0 0 120 140" aria-hidden="true">' + fondo +
       '<ellipse cx="60" cy="133" rx="34" ry="5" fill="rgba(13,41,68,.16)"/>' +
       '<g class="p-todo">' +
-        '<ellipse cx="45" cy="127" rx="12" ry="6" fill="#f59a23"/><ellipse cx="75" cy="127" rx="12" ry="6" fill="#f59a23"/>' +
-        '<path d="M24 66 q-16 22 -8 46 q10 -4 16 -24z" fill="' + c + '"/>' +
-        '<path d="M60 12 C32 12 22 42 22 74 C22 108 36 128 60 128 C84 128 98 108 98 74 C98 42 88 12 60 12Z" fill="' + c + '"/>' +
-        '<path d="M60 50 C42 50 34 70 34 90 C34 112 45 123 60 123 C75 123 86 112 86 90 C86 70 78 50 60 50Z" fill="#fff"/>' +
-        '<path d="M60 22 C45 22 36 34 38 48 C40 60 50 64 60 58 C70 64 80 60 82 48 C84 34 75 22 60 22Z" fill="#fff"/>' +
-        '<g class="p-ojos"><ellipse cx="51" cy="42" rx="4.2" ry="5.6" fill="#1a1d2e"/><ellipse cx="69" cy="42" rx="4.2" ry="5.6" fill="#1a1d2e"/><circle cx="52.4" cy="40" r="1.5" fill="#fff"/><circle cx="70.4" cy="40" r="1.5" fill="#fff"/></g>' +
-        '<path d="M51 51 q9 9 18 0 q-9 -4 -18 0z" fill="#f59a23"/>' +
-        '<circle cx="43" cy="53" r="4" fill="#ff9fb0" opacity=".55"/><circle cx="77" cy="53" r="4" fill="#ff9fb0" opacity=".55"/>' +
-        '<g class="p-aleta-d"><path d="M96 66 q16 22 8 46 q-10 -4 -16 -24z" fill="' + c + '"/></g>' +
+        '<ellipse cx="46" cy="127" rx="11" ry="5.5" fill="#ffb347" stroke="' + linea + '" stroke-width="2"/><ellipse cx="74" cy="127" rx="11" ry="5.5" fill="#ffb347" stroke="' + linea + '" stroke-width="2"/>' +
+        '<path d="M22 76 q-13 16 -8 34 q9 -2 14 -18z" fill="' + c + '" stroke="' + linea + '" stroke-width="2.5" stroke-linejoin="round"/>' +
+        '<path d="M60 14 C30 14 18 44 18 78 C18 110 34 127 60 127 C86 127 102 110 102 78 C102 44 90 14 60 14Z" fill="' + c + '" stroke="' + linea + '" stroke-width="2.5"/>' +
+        '<path d="M60 60 C42 60 33 76 33 94 C33 113 45 123 60 123 C75 123 87 113 87 94 C87 76 78 60 60 60Z" fill="#fff"/>' +
+        '<path d="M60 30 C40 30 29 42 30 56 C31 70 44 76 60 72 C76 76 89 70 90 56 C91 42 80 30 60 30Z" fill="#fff"/>' +
+        '<g class="p-ojos"><ellipse cx="47" cy="50" rx="6.4" ry="7.6" fill="#141826"/><ellipse cx="73" cy="50" rx="6.4" ry="7.6" fill="#141826"/>' +
+          '<circle cx="49.4" cy="47" r="2.6" fill="#fff"/><circle cx="75.4" cy="47" r="2.6" fill="#fff"/><circle cx="45" cy="53.4" r="1.2" fill="#fff"/><circle cx="71" cy="53.4" r="1.2" fill="#fff"/></g>' +
+        '<ellipse cx="60" cy="58.5" rx="5" ry="3.4" fill="#ffb347" stroke="' + linea + '" stroke-width="1.5"/>' +
+        '<ellipse cx="37" cy="61" rx="6" ry="4" fill="#ff9fb4" opacity=".8"/><ellipse cx="83" cy="61" rx="6" ry="4" fill="#ff9fb4" opacity=".8"/>' +
+        '<g class="p-aleta-d"><path d="M98 76 q13 16 8 34 q-9 -2 -14 -18z" fill="' + c + '" stroke="' + linea + '" stroke-width="2.5" stroke-linejoin="round"/></g>' +
         (ACCESORIOS[m.acc] || '') +
       '</g>' + escritorio(id) + insignia(estado) + '</svg>';
   }
@@ -846,7 +1047,132 @@ function modeloDemo(ahora) {
     if (!ms.length) lista.appendChild(el('li', {}, [el('p', { class: 'vacio', text: modelo ? 'Silencio en la radio. Los agentes escriben aquí cuando empiezan y terminan un trabajo.' : 'Cargando…' })]));
     ms.slice(0, 15).forEach(function (m) { lista.appendChild(mensajeLi(m, ahora)); });
   }
-  function pintarTodo() { pintarPlaza(); pintarNecesitan(); pintarPedidos(); pintarRadio(); if (vista3d) { pintarEquipo3d(); actualizar3d(); } }
+
+  // ---------- Tanda de hoy ----------
+  var ESCRIBE = !!(params.e && URL_DATOS) && !demo;
+  function seguro(url) { return /^https:\/\//.test(String(url || '')) ? url : ''; }
+  function enlaceBtn(url, texto, etiqueta, clase) {
+    if (!seguro(url)) return null;
+    return el('a', { class: 'btn ' + (clase || ''), href: url, target: '_blank', rel: 'noopener', 'aria-label': etiqueta }, [
+      el('span', { text: texto }), el('span', { 'aria-hidden': 'true', text: '↗' })]);
+  }
+  function boton(texto, etiqueta, fn, clase) {
+    var b = el('button', { type: 'button', class: 'btn ' + (clase || ''), 'aria-label': etiqueta, text: texto });
+    b.addEventListener('click', fn);
+    return b;
+  }
+  function copiar(texto, empresa) {
+    var r = $('hoy-resultado');
+    var ok = function () { r.textContent = 'Mensaje para ' + empresa + ' copiado. Pégalo en el portal o en el correo.'; };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(texto).then(ok, function () { r.textContent = 'No pude copiar: selecciona el texto del mensaje y cópialo.'; });
+    else r.textContent = 'No pude copiar: selecciona el texto del mensaje y cópialo.';
+  }
+  var dlgConf = $('confirmar'), alConfirmar = null;
+  function confirmar(titulo, texto, si, fn, extra) {
+    $('conf-titulo').textContent = titulo; $('conf-texto').textContent = texto; $('conf-si').textContent = si;
+    var x = $('conf-extra'); x.textContent = ''; if (extra) x.appendChild(extra);
+    alConfirmar = fn;
+    dlgConf.showModal();
+  }
+  dlgConf.addEventListener('close', function () { var fn = alConfirmar; alConfirmar = null; if (dlgConf.returnValue === 'si' && fn) fn(); });
+  function accion(q, listo) {
+    var r = $('hoy-resultado');
+    if (demo) { r.textContent = 'Listo (demostración): ' + listo; return; }
+    r.textContent = 'Guardando…';
+    var url = URL_DATOS + '&fresco=1&e=' + encodeURIComponent(params.e) + Object.keys(q).map(function (k) { return '&' + k + '=' + encodeURIComponent(q[k]); }).join('');
+    fetch(url, { credentials: 'omit' }).then(function (x) { return x.json(); }).then(function (d) {
+      if (d && d.error) throw new Error(d.error === 'escritura' ? 'Tu enlace no tiene la clave de escritura.' : d.detalle || 'No se pudo guardar.');
+      recibir(d);
+      r.textContent = listo;
+    }).catch(function (err) { r.textContent = 'No se guardó: ' + (err && err.message || 'sin conexión') + '. Inténtalo de nuevo o márcalo en el juego.'; });
+  }
+  function yaLaEnvie(p) {
+    confirmar('¿Ya enviaste la HV a ' + p.empresa + '?', 'La carpeta pasa a la semana actual de CV/ con la fecha de hoy y Hoja 1 la marca como aplicada.',
+      'Sí, ya la envié', function () { accion({ accion: 'enviada', id: p.id }, p.empresa + ': enviada. ¡Una menos!'); });
+  }
+  function yaLosEnvie(g) {
+    var marcadas = g.filas.map(function (f) { return !f.aviso; });
+    var caja = el('div', { class: 'direcciones', role: 'group', 'aria-label': 'Direcciones que enviaste' });
+    g.filas.forEach(function (f, i) {
+      var b = el('button', { type: 'button', class: 'btn dir', 'aria-pressed': String(marcadas[i]), text: (marcadas[i] ? '✔ ' : '○ ') + (f.aviso ? '⚠ ' : '') + f.para });
+      b.addEventListener('click', function () { marcadas[i] = !marcadas[i]; b.setAttribute('aria-pressed', String(marcadas[i])); b.textContent = (marcadas[i] ? '✔ ' : '○ ') + (f.aviso ? '⚠ ' : '') + f.para; });
+      caja.appendChild(b);
+    });
+    confirmar('¿Enviaste los correos a ' + g.empresa + '?', 'Marca las direcciones que enviaste desde Gmail. Las que tienen ⚠ vienen sin marcar: sus notas dicen que no son de talento o que la fuente es antigua.',
+      'Sí, ya los envié', function () {
+        var para = g.filas.filter(function (f, i) { return marcadas[i]; }).map(function (f) { return f.para; });
+        if (!para.length) { $('hoy-resultado').textContent = 'No marcaste ninguna dirección: no se registró nada.'; return; }
+        accion({ accion: 'correos', empresa: g.empresa, para: para.join('|') }, 'Correos a ' + g.empresa + ' registrados.');
+      }, caja);
+  }
+  function yaElSeguimiento(sg) {
+    confirmar('¿Enviaste el seguimiento a ' + sg.empresa + '?', 'Queda anotado en Correos en frío para no volver a escribirle.', 'Sí, lo envié',
+      function () { accion({ accion: 'seguimiento', empresa: sg.empresa }, 'Seguimiento a ' + sg.empresa + ' registrado.'); });
+  }
+  function grupoHoy(caja, titulo, nota, items) {
+    caja.textContent = '';
+    if (!items.length) return;
+    caja.appendChild(el('h3', {}, [document.createTextNode(titulo), nota ? el('small', { text: nota }) : null]));
+    var ul = el('ul', { class: 'lista' });
+    items.forEach(function (li) { ul.appendChild(li); });
+    caja.appendChild(ul);
+  }
+  function pintarHoy() {
+    var t = datos ? tandaDeHoy(datos) : null, cuenta = (datos && datos.cuenta) || '';
+    $('hoy-resumen').textContent = !datos ? (URL_DATOS || demo ? 'Cargando…' : 'Abre la base con tu enlace para ver tu tanda.') : resumenTanda(t);
+    var av = $('hoy-avance'), pct = t && t.meta ? t.hechas / t.meta : 0;
+    av.firstChild.style.width = Math.round(pct * 100) + '%';
+    av.setAttribute('aria-valuenow', String(Math.round(pct * 100) / 100));
+    $('hoy-avance-txt').textContent = t ? 'Hoy llevas ' + t.enviadasHoy + (t.enviadasHoy === 1 ? ' postulación' : ' postulaciones') + ' y ' +
+      t.correosHoy + (t.correosHoy === 1 ? ' empresa con correos' : ' empresas con correos') + '.' : '';
+    var tope = $('hoy-tope');
+    tope.hidden = !(t && t.sobreTope);
+    if (t && t.sobreTope) tope.textContent = 'Tienes ' + t.borradores + ' borradores de correos en frío sin enviar. El cartero no prepara más hasta que queden ' + t.tope + ' o menos: envía primero estos.';
+    if (!t) { ['hoy-post', 'hoy-correos', 'hoy-seg'].forEach(function (id) { $(id).textContent = ''; }); $('cuenta-hoy').hidden = true; return; }
+    grupoHoy($('hoy-post'), 'Postulaciones', t.porEnviar > t.postulaciones.length ? t.postulaciones.length + ' de ' + t.porEnviar + ' por enviar' : '', t.postulaciones.map(function (p) {
+      var li = el('li', { class: 'tarea' }, [
+        el('div', { class: 'tarea-cab' }, [el('b', { text: p.empresa }), el('span', { class: 'chip chip--' + (p.lista ? 'listo' : 'atencion'), text: p.lista ? '✓ Lista' : '! Revísala antes' })]),
+        el('p', { text: (p.cargo || 'Sin cargo') + (p.fecha ? ' · lista desde el ' + fechaCorta(p.fecha) : '') }),
+      ]);
+      if (p.mensaje) li.appendChild(el('p', { class: 'msj', text: p.mensaje }));
+      var bs = el('div', { class: 'botones' }, [
+        enlaceBtn(p.vacante, 'Postular', 'Abrir la vacante de ' + p.empresa + ' para postular', 'btn--primario'),
+        enlaceBtn(p.pdf, 'PDF', 'Descargar el PDF de la HV para ' + p.empresa),
+        enlaceBtn(p.hv, 'HV', 'Abrir la HV para ' + p.empresa + ' en Google Docs'),
+        p.mensaje ? boton('Copiar mensaje', 'Copiar el mensaje para ' + p.empresa, function () { copiar(p.mensaje, p.empresa); }) : null,
+        enlaceBtn(!p.vacante && !p.hv ? p.carpeta : '', 'Carpeta', 'Abrir la carpeta de ' + p.empresa),
+        (ESCRIBE || demo) && p.id ? boton('Ya la envié', 'Ya envié la HV a ' + p.empresa, function () { yaLaEnvie(p); }, 'ancho') : null,
+      ]);
+      li.appendChild(bs);
+      return li;
+    }));
+    grupoHoy($('hoy-correos'), 'Correos en frío', t.empresasConBorrador > t.correos.length ? t.correos.length + ' de ' + t.empresasConBorrador + ' empresas' : '', t.correos.map(function (g) {
+      var nota = (g.filas.filter(function (f) { return f.aviso; })[0] || {}).notas || '';
+      var li = el('li', { class: 'tarea' }, [
+        el('div', { class: 'tarea-cab' }, [el('b', { text: g.empresa }), g.aviso ? el('span', { class: 'chip chip--atencion', text: '⚠ Revisa las direcciones' }) : null]),
+        el('p', { text: g.filas.length + (g.filas.length === 1 ? ' borrador listo en Gmail' : ' borradores listos en Gmail') + (g.asunto ? ' · ' + g.asunto : '') }),
+      ]);
+      if (g.aviso) li.appendChild(el('p', { text: '⚠ ' + (nota.length > 120 ? nota.slice(0, 117) + '…' : nota) }));
+      li.appendChild(el('div', { class: 'botones' }, [
+        enlaceBtn(enlaceGmail(cuenta, 'in:drafts "' + g.empresa + '"'), 'Gmail', 'Abrir en Gmail los borradores para ' + g.empresa, 'btn--primario'),
+        ESCRIBE || demo ? boton('Ya los envié', 'Ya envié los correos a ' + g.empresa, function () { yaLosEnvie(g); }) : null,
+      ]));
+      return li;
+    }));
+    grupoHoy($('hoy-seg'), 'Seguimientos', 'a quien no respondió', t.seguimientos.map(function (sg) {
+      return el('li', { class: 'tarea' }, [
+        el('div', { class: 'tarea-cab' }, [el('b', { text: sg.empresa })]),
+        el('p', { text: 'Borrador de respuesta en el mismo hilo para ' + sg.para + '. Léelo y ajústalo antes de enviarlo.' }),
+        el('div', { class: 'botones' }, [
+          enlaceBtn(enlaceGmail(cuenta, 'in:drafts to:' + sg.para), 'Gmail', 'Abrir en Gmail el seguimiento para ' + sg.empresa, 'btn--primario'),
+          ESCRIBE || demo ? boton('Ya lo envié', 'Ya envié el seguimiento a ' + sg.empresa, function () { yaElSeguimiento(sg); }) : null,
+        ]),
+      ]);
+    }));
+    var n = t.postulaciones.length + t.correos.length + t.seguimientos.length, c = $('cuenta-hoy');
+    c.hidden = !n; c.textContent = String(n);
+  }
+  function pintarTodo() { pintarHoy(); pintarPlaza(); pintarNecesitan(); pintarPedidos(); pintarRadio(); if (vista3d) { pintarEquipo3d(); actualizar3d(); } }
 
   // ---------- Ficha ----------
   var dlg = $('ficha');
@@ -939,6 +1265,7 @@ function modeloDemo(ahora) {
   function recibir(d) {
     if (!d || d.error) return false;
     modelo = d.agentes || null;
+    datos = d;
     datosHora = String(d.generado || '').replace('T', ' ');
     if (!demo) guardar(CLAVE + ':modelo', d);
     pintarTodo();
@@ -988,7 +1315,7 @@ function modeloDemo(ahora) {
     var io = new IntersectionObserver(function (ents) {
       ents.forEach(function (en) { if (en.isIntersecting) enlaces.forEach(function (a) { a.setAttribute('aria-current', a.getAttribute('data-sec') === en.target.id ? 'true' : 'false'); }); });
     }, { rootMargin: '-40% 0px -55% 0px' });
-    ['base', 'buzon', 'pedidos', 'radio'].forEach(function (id) { io.observe($(id)); });
+    ['hoy', 'base', 'buzon', 'pedidos', 'radio'].forEach(function (id) { io.observe($(id)); });
   }
 
   // ---------- Vista 3D (Three.js, se carga solo cuando se abre) ----------
@@ -1021,74 +1348,121 @@ function modeloDemo(ahora) {
     if (texto) a.appendChild(el('span', { text: texto }));
   }
 
-  // --- Modelos de baja poligonización: pingüinos, iglú, escritorios, máquinas ---
-  function mat(T, color, extra) { return new T.MeshStandardMaterial(Object.assign({ color: color, roughness: 0.65, metalness: 0 }, extra || {})); }
+  // --- Estilo peluche (2026-10-28, pedido de Oscar: «más tiernos y estilizados, tipo Miniso»): sombreado de caricatura
+  // en 3 tonos, contorno suave, colores pastel, cuerpo de huevo con cabeza grande, ojos brillantes y mejillas rosadas ---
+  var GRADIENTE = null, LINEA = null;
+  function gradiente(T) {
+    if (GRADIENTE) return GRADIENTE;
+    var c = document.createElement('canvas'); c.width = 3; c.height = 1;
+    var x = c.getContext('2d');
+    ['#8c8c8c', '#cfcfcf', '#ffffff'].forEach(function (col, i) { x.fillStyle = col; x.fillRect(i, 0, 1, 1); });
+    GRADIENTE = new T.CanvasTexture(c);
+    GRADIENTE.minFilter = GRADIENTE.magFilter = T.NearestFilter; GRADIENTE.generateMipmaps = false;
+    return GRADIENTE;
+  }
+  function mat(T, color, extra) {
+    var o = Object.assign({ color: color, gradientMap: gradiente(T) }, extra || {});
+    delete o.roughness; delete o.metalness;
+    return new T.MeshToonMaterial(o);
+  }
+  function plano(T, color, extra) { return new T.MeshBasicMaterial(Object.assign({ color: color }, extra || {})); }
   function malla(T, geo, material, x, y, z) {
     var m = new T.Mesh(geo, material); m.position.set(x || 0, y || 0, z || 0); m.castShadow = true; m.receiveShadow = true; return m;
   }
+  /** Contorno de caricatura: la misma figura un poco más grande, por dentro y en tinta azul oscura. */
+  function contorno(T, m, grosor) {
+    if (!LINEA) LINEA = new T.MeshBasicMaterial({ color: '#22304a', side: T.BackSide });
+    var o = new T.Mesh(m.geometry, LINEA); o.scale.setScalar(1 + (grosor || 0.045)); o.castShadow = false; m.add(o); return o;
+  }
+  function pastel(T, hex, k) { return '#' + new T.Color(hex).lerp(new T.Color('#ffffff'), k == null ? 0.24 : k).getHexString(); }
+  // Medidas de la cabeza del pingüino nuevo (los accesorios se ubican con ellas)
+  var CIMA = 1.46, OJOS_Y = 1.0, CARA_Z = 0.58;
   function accesorio3d(T, id, g) {
-    var oro = mat(T, '#f2c230', { metalness: 0.3, roughness: 0.35 }), oscuro = mat(T, '#2a2a35');
+    var oro = mat(T, '#f7cf4a'), oscuro = mat(T, '#3a3f55');
     var add = function (m) { g.add(m); return m; };
     if (id === 'jefe') {
-      var corona = add(malla(T, new T.CylinderGeometry(0.34, 0.38, 0.22, 10, 1, true), oro, 0, 1.78, 0));
+      var corona = add(malla(T, new T.CylinderGeometry(0.28, 0.32, 0.2, 12, 1, true), oro, 0, CIMA + 0.04, 0));
       corona.material.side = T.DoubleSide;
       for (var i = 0; i < 5; i++) {
-        var a = i / 5 * Math.PI * 2, pico = malla(T, new T.ConeGeometry(0.07, 0.2, 6), oro, Math.cos(a) * 0.34, 1.98, Math.sin(a) * 0.34); add(pico);
+        var a = i / 5 * Math.PI * 2;
+        add(malla(T, new T.SphereGeometry(0.06, 8, 6), oro, Math.cos(a) * 0.29, CIMA + 0.18, Math.sin(a) * 0.29));
       }
-      add(malla(T, new T.ConeGeometry(0.1, 0.16, 3), mat(T, '#e2403a'), 0, 0.98, 0.56)).rotation.x = Math.PI / 2;
+      add(malla(T, new T.SphereGeometry(0.05, 8, 6), mat(T, '#ff6b81'), 0, CIMA + 0.06, 0.31));
+      // Corbatín
+      [-1, 1].forEach(function (s) { var l = add(malla(T, new T.SphereGeometry(0.09, 10, 8), mat(T, '#ff6b81'), s * 0.09, 0.66, 0.6)); l.scale.set(1, 0.7, 0.5); });
     } else if (id === 'vigia') {
-      [-0.12, 0.12].forEach(function (x) { add(malla(T, new T.CylinderGeometry(0.08, 0.09, 0.28, 10), oscuro, x, 1.12, 0.55)).rotation.x = Math.PI / 2; });
-      add(malla(T, new T.TorusGeometry(0.4, 0.06, 6, 16), mat(T, '#ff7a59'), 0, 0.98, 0)).rotation.x = Math.PI / 2;
+      add(malla(T, new T.TorusGeometry(0.56, 0.08, 8, 22), mat(T, '#ffa38a'), 0, 0.7, 0)).rotation.x = Math.PI / 2;
+      [-0.1, 0.1].forEach(function (x) { add(malla(T, new T.CylinderGeometry(0.07, 0.08, 0.22, 12), oscuro, x, 0.82, 0.62)).rotation.x = Math.PI / 2; });
     } else if (id === 'inspector') {
-      add(malla(T, new T.CylinderGeometry(0.42, 0.42, 0.05, 16), mat(T, '#7a5a3a'), 0, 1.66, 0));
-      add(malla(T, new T.CylinderGeometry(0.26, 0.3, 0.22, 16), mat(T, '#7a5a3a'), 0, 1.78, 0));
-      var lupa = new T.Group(); lupa.position.set(0.62, 0.9, 0.35);
-      lupa.add(malla(T, new T.TorusGeometry(0.16, 0.035, 6, 16), mat(T, '#5a3b1c')));
-      lupa.add(malla(T, new T.CylinderGeometry(0.03, 0.03, 0.3, 6), mat(T, '#5a3b1c'), 0.12, -0.24, 0)).rotation.z = 0.5;
+      add(malla(T, new T.CylinderGeometry(0.4, 0.4, 0.04, 20), mat(T, '#a07c58'), 0, CIMA - 0.08, 0));
+      add(malla(T, new T.CylinderGeometry(0.24, 0.28, 0.2, 16), mat(T, '#a07c58'), 0, CIMA + 0.03, 0));
+      var lupa = new T.Group(); lupa.position.set(0.66, 0.78, 0.32);
+      lupa.add(malla(T, new T.TorusGeometry(0.14, 0.035, 8, 18), mat(T, '#7a5232')));
+      lupa.add(malla(T, new T.CircleGeometry(0.12, 16), plano(T, '#cdefff', { transparent: true, opacity: 0.6 })));
+      lupa.add(malla(T, new T.CylinderGeometry(0.03, 0.03, 0.26, 8), mat(T, '#7a5232'), 0.1, -0.2, 0)).rotation.z = 0.5;
       add(lupa);
     } else if (id === 'escriba') {
-      var lapiz = malla(T, new T.CylinderGeometry(0.035, 0.035, 0.5, 6), mat(T, '#ffcf3f'), 0.62, 0.95, 0.3); lapiz.rotation.z = -0.6; add(lapiz);
-      add(malla(T, new T.ConeGeometry(0.1, 0.18, 8), mat(T, '#d0453b'), 0, 1.86, 0));
+      var boina = add(malla(T, new T.SphereGeometry(0.3, 16, 10), mat(T, '#ff8a80'), 0.05, CIMA - 0.02, 0)); boina.scale.set(1, 0.36, 1);
+      add(malla(T, new T.SphereGeometry(0.04, 8, 6), mat(T, '#ff8a80'), 0.05, CIMA + 0.1, 0));
+      var lapiz = add(malla(T, new T.CylinderGeometry(0.035, 0.035, 0.42, 8), mat(T, '#ffd95a'), 0.64, 0.82, 0.3)); lapiz.rotation.z = -0.6;
     } else if (id === 'editor') {
-      [-0.15, 0.15].forEach(function (x) { add(malla(T, new T.TorusGeometry(0.1, 0.025, 6, 14), oscuro, x, 1.32, 0.5)); });
-      add(malla(T, new T.BoxGeometry(0.2, 0.14, 0.2), mat(T, '#c43b2f'), 0.62, 0.8, 0.3));
+      [-0.17, 0.17].forEach(function (x) { add(malla(T, new T.TorusGeometry(0.11, 0.022, 8, 18), oscuro, x, OJOS_Y, CARA_Z + 0.05)); });
+      add(malla(T, new T.BoxGeometry(0.1, 0.02, 0.02), oscuro, 0, OJOS_Y + 0.02, CARA_Z + 0.06));
+      add(malla(T, new T.BoxGeometry(0.22, 0.28, 0.06), mat(T, '#ff9e5e'), 0.62, 0.66, 0.3));
     } else if (id === 'cartero') {
-      add(malla(T, new T.CylinderGeometry(0.34, 0.36, 0.2, 14), mat(T, '#1f4f9c'), 0, 1.74, 0));
-      add(malla(T, new T.BoxGeometry(0.42, 0.06, 0.24), mat(T, '#173b75'), 0, 1.66, 0.34));
-      add(malla(T, new T.BoxGeometry(0.4, 0.32, 0.18), mat(T, '#a0612d'), 0.5, 0.62, 0.2));
+      add(malla(T, new T.CylinderGeometry(0.3, 0.32, 0.16, 16), mat(T, '#6f9be8'), 0, CIMA - 0.02, 0));
+      var visera = add(malla(T, new T.SphereGeometry(0.2, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2), mat(T, '#557fcc'), 0, CIMA - 0.08, 0.26)); visera.scale.set(1.2, 0.2, 1);
+      add(malla(T, new T.SphereGeometry(0.045, 8, 6), oro, 0, CIMA + 0.08, 0.2));
+      var bolsa = add(malla(T, new T.BoxGeometry(0.36, 0.28, 0.16), mat(T, '#c98a55'), 0.52, 0.48, 0.22)); bolsa.rotation.y = -0.4;
     } else if (id === 'exploradora') {
-      add(malla(T, new T.SphereGeometry(0.36, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), mat(T, '#d9c08a'), 0, 1.66, 0));
-      add(malla(T, new T.CylinderGeometry(0.52, 0.52, 0.04, 18), mat(T, '#bfa366'), 0, 1.66, 0));
+      add(malla(T, new T.SphereGeometry(0.31, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), mat(T, '#e8d3a2'), 0, CIMA - 0.12, 0));
+      add(malla(T, new T.CylinderGeometry(0.46, 0.46, 0.035, 22), mat(T, '#d3ba84'), 0, CIMA - 0.12, 0));
+      add(malla(T, new T.TorusGeometry(0.31, 0.03, 6, 22), mat(T, '#ff8fb8'), 0, CIMA - 0.08, 0)).rotation.x = Math.PI / 2;
     } else if (id === 'radio') {
-      add(malla(T, new T.TorusGeometry(0.42, 0.05, 6, 18, Math.PI), oscuro, 0, 1.36, 0));
-      [-0.42, 0.42].forEach(function (x) { add(malla(T, new T.BoxGeometry(0.1, 0.22, 0.18), oscuro, x, 1.3, 0)); });
+      add(malla(T, new T.TorusGeometry(0.6, 0.045, 8, 22, Math.PI), oscuro, 0, OJOS_Y + 0.02, 0));
+      [-0.6, 0.6].forEach(function (x) { add(malla(T, new T.SphereGeometry(0.12, 12, 8), mat(T, '#ffd95a'), x, OJOS_Y, 0)).scale.set(0.7, 1, 1); });
     } else if (id === 'constructor') {
-      add(malla(T, new T.SphereGeometry(0.4, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), mat(T, '#ffc21a'), 0, 1.62, 0));
-      add(malla(T, new T.CylinderGeometry(0.5, 0.5, 0.05, 18), mat(T, '#f0a800'), 0, 1.62, 0.06));
+      add(malla(T, new T.SphereGeometry(0.34, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), mat(T, '#ffd23f'), 0, CIMA - 0.14, 0));
+      add(malla(T, new T.CylinderGeometry(0.42, 0.42, 0.04, 22), mat(T, '#f2b705'), 0, CIMA - 0.13, 0.05));
     } else if (id === 'oscar') {
-      add(malla(T, new T.TorusGeometry(0.4, 0.09, 8, 18), mat(T, '#4fc9c4'), 0, 1.02, 0)).rotation.x = Math.PI / 2;
+      add(malla(T, new T.TorusGeometry(0.56, 0.09, 8, 22), mat(T, '#7fe0d9'), 0, 0.7, 0)).rotation.x = Math.PI / 2;
     }
   }
   function crearPinguino(T, id) {
-    var color = id === 'oscar' ? '#5b6b7f' : EQUIPO[id].color;
+    var color = pastel(T, id === 'oscar' ? '#5b6b7f' : EQUIPO[id].color, id === 'jefe' ? 0.14 : 0.24);
     var g = new T.Group(), cuerpo = new T.Group(); g.add(cuerpo);
-    var piel = mat(T, color), blanco = mat(T, '#ffffff'), naranja = mat(T, '#f59a23'), negro = mat(T, '#1a1d2e');
-    var tronco = malla(T, new T.SphereGeometry(0.55, 20, 16), piel, 0, 0.82, 0); tronco.scale.set(1, 1.45, 0.95); cuerpo.add(tronco);
-    var panza = malla(T, new T.SphereGeometry(0.44, 18, 14), blanco, 0, 0.7, 0.16); panza.scale.set(1, 1.3, 0.85); cuerpo.add(panza);
-    var cara = malla(T, new T.SphereGeometry(0.3, 16, 12), blanco, 0, 1.28, 0.3); cara.scale.set(1.15, 0.85, 0.7); cuerpo.add(cara);
-    var ojos = new T.Group(); ojos.position.set(0, 1.32, 0.5);
-    [-0.11, 0.11].forEach(function (x) { var o = malla(T, new T.SphereGeometry(0.055, 10, 8), negro, x, 0, 0); o.scale.set(1, 1.35, 0.6); ojos.add(o); });
+    var piel = mat(T, color), blanco = mat(T, '#ffffff'), naranja = mat(T, '#ffb347'), tinta = plano(T, '#141826');
+    // Cuerpo de huevo (cabeza y cuerpo en una sola pieza, como un peluche)
+    var huevo = malla(T, new T.SphereGeometry(0.62, 28, 22), piel, 0, 0.78, 0); huevo.scale.set(1, 1.1, 0.95); cuerpo.add(huevo); contorno(T, huevo);
+    // Panza y cara blancas que se unen (forma de maní)
+    var panza = malla(T, new T.SphereGeometry(0.44, 24, 18), blanco, 0, 0.55, 0.3); panza.scale.set(1, 1, 0.7); cuerpo.add(panza);
+    var cara = malla(T, new T.SphereGeometry(0.42, 24, 18), blanco, 0, 0.98, 0.3); cara.scale.set(1.2, 0.9, 0.7); cuerpo.add(cara);
+    // Ojos grandes y brillantes, bajos y separados
+    var ojos = new T.Group(); ojos.position.set(0, OJOS_Y, CARA_Z - 0.01);
+    [-0.17, 0.17].forEach(function (x) {
+      var o = new T.Group(); o.position.x = x;
+      var bola = malla(T, new T.SphereGeometry(0.095, 16, 12), tinta); bola.scale.set(1, 1.18, 0.55); o.add(bola);
+      o.add(malla(T, new T.SphereGeometry(0.032, 8, 6), plano(T, '#ffffff'), 0.028, 0.04, 0.05));
+      o.add(malla(T, new T.SphereGeometry(0.015, 6, 4), plano(T, '#ffffff'), -0.03, -0.035, 0.05));
+      ojos.add(o);
+    });
     cuerpo.add(ojos);
-    var pico = malla(T, new T.ConeGeometry(0.08, 0.2, 8), naranja, 0, 1.2, 0.6); pico.rotation.x = Math.PI / 2; cuerpo.add(pico);
+    // Mejillas rosadas y pico chiquito y redondo
+    [-1, 1].forEach(function (s) {
+      var m = malla(T, new T.CircleGeometry(0.075, 18), plano(T, '#ff9fb4', { transparent: true, opacity: 0.75 }), s * 0.31, 0.87, 0.53);
+      m.rotation.y = s * 0.55; m.castShadow = false; cuerpo.add(m);
+    });
+    var pico = malla(T, new T.SphereGeometry(0.065, 12, 8), naranja, 0, 0.91, 0.6); pico.scale.set(1.35, 0.7, 0.9); cuerpo.add(pico);
+    // Aletas cortas y patitas
     var aletas = [-1, 1].map(function (lado) {
-      var pivote = new T.Group(); pivote.position.set(0.5 * lado, 1.02, 0);
-      var a = malla(T, new T.SphereGeometry(0.2, 12, 10), piel, 0.06 * lado, -0.32, 0); a.scale.set(0.38, 1.35, 0.8); pivote.add(a);
+      var pivote = new T.Group(); pivote.position.set(0.6 * lado, 0.86, 0.02);
+      var a = malla(T, new T.SphereGeometry(0.2, 14, 10), piel, 0.03 * lado, -0.2, 0); a.scale.set(0.36, 1, 0.72); pivote.add(a); contorno(T, a, 0.08);
       cuerpo.add(pivote); return pivote;
     });
-    [-0.2, 0.2].forEach(function (x) { var p = malla(T, new T.SphereGeometry(0.16, 10, 8), naranja, x, 0.04, 0.16); p.scale.set(1, 0.35, 1.5); g.add(p); });
+    [-0.2, 0.2].forEach(function (x) { var p = malla(T, new T.SphereGeometry(0.14, 12, 8), naranja, x, 0.06, 0.24); p.scale.set(1.1, 0.42, 1.4); g.add(p); });
     accesorio3d(T, id, cuerpo);
     // Anillo de estado en el piso (decorativo: el estado siempre va también en texto)
-    var anillo = new T.Mesh(new T.RingGeometry(0.62, 0.74, 32), new T.MeshBasicMaterial({ color: '#8fbfdf', transparent: true, opacity: 0.85 }));
+    var anillo = new T.Mesh(new T.RingGeometry(0.66, 0.78, 36), new T.MeshBasicMaterial({ color: '#8fbfdf', transparent: true, opacity: 0.85 }));
     anillo.rotation.x = -Math.PI / 2; anillo.position.y = 0.02; g.add(anillo);
     g.traverse(function (o) { o.userData.id = id; });
     return { id: id, grupo: g, cuerpo: cuerpo, ojos: ojos, aletas: aletas, anillo: anillo, base: null, fase: Math.random() * 6.28 };
@@ -1156,6 +1530,164 @@ function modeloDemo(ahora) {
     cubo.visible = false; return cubo;
   }
 
+  // --- Puestos de trabajo (adonde va cada uno mientras trabaja) y ambientación de la base (2026-10-28) ---
+  function letreroTextura(T, texto, fondo, tinta) {
+    var c = document.createElement('canvas'); c.width = 256; c.height = 64;
+    var x = c.getContext('2d');
+    x.fillStyle = fondo; x.fillRect(0, 0, 256, 64);
+    x.fillStyle = tinta || '#22304a'; x.font = '700 34px Fredoka, Nunito, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.fillText(texto, 128, 34);
+    var t = new T.CanvasTexture(c); t.anisotropy = 4; return t;
+  }
+  /** El objeto de cada puesto de trabajo; queda detrás del punto donde se para el pingüino (visto desde la cámara). */
+  function crearPuestoTrabajo(T, id) {
+    var g = new T.Group(), add = function (m) { g.add(m); return m; };
+    var madera = mat(T, '#c98f5e'), hielo = mat(T, '#dff1fb', { transparent: true, opacity: 0.95 });
+    if (id === 'jefe') {  // Tablero de pedidos con notas de colores
+      [-0.55, 0.55].forEach(function (x) { add(malla(T, new T.CylinderGeometry(0.05, 0.05, 1.5, 8), madera, x, 0.75, 0)); });
+      add(malla(T, new T.BoxGeometry(1.4, 0.9, 0.06), mat(T, '#fff7e6'), 0, 1.15, 0));
+      ['#ffd95a', '#ff9fb4', '#9fe0c8', '#a9c8ff', '#ffd95a', '#ffb38a'].forEach(function (c, i) {
+        add(malla(T, new T.BoxGeometry(0.26, 0.22, 0.02), plano(T, c), -0.45 + (i % 3) * 0.45, 1.32 - Math.floor(i / 3) * 0.34, 0.04));
+      });
+    } else if (id === 'vigia') {  // Torre de vigía de bloques de hielo
+      for (var i = 0; i < 4; i++) add(malla(T, new T.CylinderGeometry(0.62 - i * 0.05, 0.66 - i * 0.05, 0.42, 10), hielo, 0, 0.21 + i * 0.42, 0));
+      add(malla(T, new T.CylinderGeometry(0.75, 0.75, 0.08, 12), madera, 0, 1.74, 0));
+      add(malla(T, new T.CylinderGeometry(0.03, 0.03, 0.9, 6), madera, 0.5, 2.2, 0));
+      add(malla(T, new T.PlaneGeometry(0.42, 0.26), mat(T, '#5fd0dc', { side: T.DoubleSide }), 0.72, 2.5, 0));
+      add(malla(T, new T.CylinderGeometry(0.06, 0.09, 0.4, 10), mat(T, '#3a3f55'), -0.2, 1.95, 0.3)).rotation.x = 1.2;
+    } else if (id === 'inspector') {  // Archivador con cajones
+      add(malla(T, new T.BoxGeometry(0.8, 1.2, 0.6), mat(T, '#9cc89f'), 0, 0.6, 0));
+      [0.3, 0.68, 1.04].forEach(function (y) {
+        add(malla(T, new T.BoxGeometry(0.66, 0.3, 0.02), mat(T, '#bfe0c1'), 0, y, 0.31));
+        add(malla(T, new T.BoxGeometry(0.18, 0.04, 0.04), mat(T, '#5c7a5e'), 0, y, 0.33));
+      });
+    } else if (id === 'escriba') {  // Estante con documentos (CONTEXTO_CV, plantillas)
+      add(malla(T, new T.BoxGeometry(1.1, 1.3, 0.4), madera, 0, 0.65, 0));
+      [0.35, 0.8].forEach(function (y, j) {
+        add(malla(T, new T.BoxGeometry(1.0, 0.04, 0.36), mat(T, '#a8754a'), 0, y - 0.18, 0.02));
+        ['#ff8a80', '#a9c8ff', '#ffd95a', '#9fe0c8', '#ffb38a'].forEach(function (c, i) {
+          var libro = add(malla(T, new T.BoxGeometry(0.13, 0.3 - (i % 2) * 0.05, 0.3), mat(T, c), -0.36 + i * 0.17 + j * 0.03, y, 0.04));
+          if (i === 4 && j === 1) libro.rotation.z = 0.35;
+        });
+      });
+    } else if (id === 'editor') {  // Tablero de corcho con HV fijadas
+      [-0.6, 0.6].forEach(function (x) { add(malla(T, new T.CylinderGeometry(0.04, 0.04, 1.4, 8), madera, x, 0.7, 0)); });
+      add(malla(T, new T.BoxGeometry(1.3, 0.9, 0.05), mat(T, '#d9a876'), 0, 1.1, 0));
+      [[-0.35, 1.2], [0.1, 1.05], [0.42, 1.25]].forEach(function (p, i) {
+        var hoja = add(malla(T, new T.BoxGeometry(0.3, 0.4, 0.01), plano(T, '#ffffff'), p[0], p[1], 0.04)); hoja.rotation.z = (i - 1) * 0.12;
+        add(malla(T, new T.SphereGeometry(0.03, 6, 4), plano(T, ['#ff6b81', '#5fd0dc', '#ffd23f'][i]), p[0], p[1] + 0.17, 0.06));
+      });
+    } else if (id === 'cartero') {  // Buzón grande
+      add(malla(T, new T.CylinderGeometry(0.07, 0.07, 0.6, 8), mat(T, '#3a3f55'), 0, 0.3, 0));
+      var caja = add(malla(T, new T.BoxGeometry(0.7, 0.55, 0.9), mat(T, '#7fa7f0'), 0, 0.85, 0));
+      var techo = add(malla(T, new T.CylinderGeometry(0.35, 0.35, 0.9, 16, 1, false, 0, Math.PI), mat(T, '#7fa7f0'), 0, 1.12, 0));
+      techo.rotation.z = Math.PI / 2; techo.rotation.y = Math.PI / 2;
+      add(malla(T, new T.BoxGeometry(0.4, 0.05, 0.02), plano(T, '#22304a'), 0, 0.95, 0.46));
+      add(malla(T, new T.BoxGeometry(0.04, 0.32, 0.04), mat(T, '#ff6b81'), 0.38, 1.1, 0.2));
+      caja.userData.buzon = true;
+    } else if (id === 'exploradora') {  // Mapa en un caballete
+      [-0.4, 0.4].forEach(function (x) { var p = add(malla(T, new T.CylinderGeometry(0.035, 0.035, 1.5, 6), madera, x, 0.72, 0)); p.rotation.z = x > 0 ? -0.12 : 0.12; });
+      var c = document.createElement('canvas'); c.width = 128; c.height = 96; var x = c.getContext('2d');
+      x.fillStyle = '#f4e6c4'; x.fillRect(0, 0, 128, 96); x.strokeStyle = '#7fb2d9'; x.lineWidth = 6;
+      x.beginPath(); x.moveTo(10, 70); x.bezierCurveTo(40, 20, 80, 90, 118, 30); x.stroke();
+      x.fillStyle = '#ff6b81'; [[28, 40], [64, 60], [100, 36]].forEach(function (p) { x.beginPath(); x.arc(p[0], p[1], 6, 0, 7); x.fill(); });
+      add(malla(T, new T.PlaneGeometry(0.95, 0.7), plano(T, '#ffffff', { map: new T.CanvasTexture(c) }), 0, 1.15, 0.05));
+    } else if (id === 'radio') {  // Antena con luz que parpadea
+      add(malla(T, new T.CylinderGeometry(0.05, 0.08, 2.6, 8), mat(T, '#9aa6b8'), 0, 1.3, 0));
+      [0.9, 1.6, 2.2].forEach(function (y, i) { add(malla(T, new T.TorusGeometry(0.28 - i * 0.07, 0.025, 6, 16), mat(T, '#9aa6b8'), 0, y, 0)).rotation.x = Math.PI / 2; });
+      var luz = add(malla(T, new T.SphereGeometry(0.1, 10, 8), mat(T, '#ff6b81', { emissive: '#ff3355', emissiveIntensity: 0.8 }), 0, 2.66, 0));
+      g.userData.luz = luz;
+      add(malla(T, new T.BoxGeometry(0.6, 0.4, 0.4), mat(T, '#ffd95a'), 0.4, 0.2, 0.2));
+    } else if (id === 'constructor') {  // Banco de trabajo con engranes y caja de herramientas
+      add(malla(T, new T.BoxGeometry(1.3, 0.08, 0.6), madera, 0, 0.7, 0));
+      [[-0.55, -0.22], [0.55, -0.22], [-0.55, 0.22], [0.55, 0.22]].forEach(function (p) { add(malla(T, new T.BoxGeometry(0.07, 0.7, 0.07), madera, p[0], 0.35, p[1])); });
+      var eng = add(malla(T, new T.TorusGeometry(0.15, 0.06, 6, 10), mat(T, '#b9c4d4'), -0.3, 0.94, 0)); g.userData.engrane = eng;
+      add(malla(T, new T.BoxGeometry(0.4, 0.2, 0.25), mat(T, '#ff8a80'), 0.3, 0.84, 0));
+      add(malla(T, new T.BoxGeometry(0.42, 0.04, 0.06), mat(T, '#3a3f55'), 0.3, 0.97, 0));
+    }
+    return g;
+  }
+  /** Caminos, faroles, letrero, pesca, muñeco de nieve, montículos, cristales, cinta de la máquina y huellas del trineo. */
+  function decorarBase(T, scene) {
+    var deco = { faroles: [], cubos: [], cinta: null };
+    var camino = mat(T, '#d3e7f6'), borde = mat(T, '#b7d3ea');
+    // Plaza central y caminos hasta cada puesto
+    var plaza = malla(T, new T.CircleGeometry(2.4, 40), camino, 0, 0.012, 0); plaza.rotation.x = -Math.PI / 2; plaza.castShadow = false; scene.add(plaza);
+    var orilla = malla(T, new T.RingGeometry(2.4, 2.6, 40), borde, 0, 0.014, 0); orilla.rotation.x = -Math.PI / 2; orilla.castShadow = false; scene.add(orilla);
+    ['jefe'].concat(ORDEN).forEach(function (id, k) {
+      var p = ESTACIONES_3D[id], largo = Math.sqrt(p[0] * p[0] + p[1] * p[1]) - 2.4;
+      var ang = Math.atan2(p[0], p[1]);
+      var tira = malla(T, new T.PlaneGeometry(0.9, largo), camino, Math.sin(ang) * (2.4 + largo / 2), 0.011, Math.cos(ang) * (2.4 + largo / 2));
+      tira.rotation.x = -Math.PI / 2; tira.rotation.z = ang; tira.castShadow = false; scene.add(tira);
+      // Un farol a un costado de cada camino (de noche brilla más)
+      if (k % 2 === 0 || id === 'jefe') {
+        var d = 2.4 + largo * 0.55, lx = Math.sin(ang) * d + Math.cos(ang) * 0.75, lz = Math.cos(ang) * d - Math.sin(ang) * 0.75;
+        var f = new T.Group(); f.position.set(lx, 0, lz);
+        f.add(malla(T, new T.CylinderGeometry(0.04, 0.06, 1.3, 8), mat(T, '#3a3f55'), 0, 0.65, 0));
+        var bombilla = malla(T, new T.SphereGeometry(0.13, 12, 8), mat(T, '#ffe9a8', { emissive: '#ffcf5a', emissiveIntensity: 0.5 }), 0, 1.38, 0);
+        f.add(bombilla); f.add(malla(T, new T.ConeGeometry(0.16, 0.12, 8), mat(T, '#3a3f55'), 0, 1.53, 0));
+        scene.add(f); deco.faroles.push(bombilla);
+      }
+    });
+    // Letrero en la plaza
+    var letrero = new T.Group(); letrero.position.set(0, 0, 1.2);
+    letrero.add(malla(T, new T.CylinderGeometry(0.05, 0.05, 1.5, 8), mat(T, '#c98f5e'), 0, 0.75, 0));
+    [['HV ✎', '#ffd95a', -0.4, 1.3], ['Correos ✉', '#a9c8ff', 0.35, 1.0], ['Iglú ⌂', '#ff9fb4', -0.25, 0.7]].forEach(function (s) {
+      var tabla = malla(T, new T.BoxGeometry(0.9, 0.24, 0.04), [mat(T, '#c98f5e'), mat(T, '#c98f5e'), mat(T, '#c98f5e'), mat(T, '#c98f5e'),
+        plano(T, '#ffffff', { map: letreroTextura(T, s[0], s[1]) }), mat(T, s[1])], 0, s[3], 0);
+      tabla.rotation.y = s[2]; letrero.add(tabla);
+    });
+    scene.add(letrero);
+    // Agujero de pesca con su caña y un balde
+    var pesca = new T.Group(); pesca.position.set(3.3, 0, 8.4);
+    var hueco = malla(T, new T.CircleGeometry(0.55, 24), plano(T, '#2f6f9f'), 0, 0.015, 0); hueco.rotation.x = -Math.PI / 2; pesca.add(hueco);
+    var aro = malla(T, new T.TorusGeometry(0.6, 0.1, 6, 24), mat(T, '#ffffff'), 0, 0.03, 0); aro.rotation.x = Math.PI / 2; pesca.add(aro);
+    var cana = malla(T, new T.CylinderGeometry(0.02, 0.025, 1.6, 6), mat(T, '#c98f5e'), -0.7, 0.55, 0.1); cana.rotation.z = -0.9; pesca.add(cana);
+    pesca.add(malla(T, new T.CylinderGeometry(0.004, 0.004, 0.75, 4), plano(T, '#22304a'), 0.02, 0.6, 0.1));
+    pesca.add(malla(T, new T.CylinderGeometry(0.2, 0.16, 0.3, 12), mat(T, '#7fa7f0'), 0.9, 0.15, 0.3));
+    var pez = malla(T, new T.SphereGeometry(0.1, 10, 8), mat(T, '#ffb38a'), 0.9, 0.34, 0.3); pez.scale.set(1.6, 0.7, 0.6); pez.rotation.z = 0.6; pesca.add(pez);
+    scene.add(pesca);
+    // Muñeco de nieve con bufanda
+    var muneco = new T.Group(); muneco.position.set(-3.4, 0, 8.6);
+    [[0.45, 0.42], [0.32, 1.08], [0.22, 1.52]].forEach(function (b) { muneco.add(malla(T, new T.SphereGeometry(b[0], 16, 12), mat(T, '#ffffff'), 0, b[1], 0)); });
+    muneco.add(malla(T, new T.ConeGeometry(0.05, 0.22, 8), mat(T, '#ffb347'), 0, 1.52, 0.27)).rotation.x = Math.PI / 2;
+    [-0.08, 0.08].forEach(function (x) { muneco.add(malla(T, new T.SphereGeometry(0.03, 6, 4), plano(T, '#141826'), x, 1.6, 0.19)); });
+    muneco.add(malla(T, new T.TorusGeometry(0.26, 0.06, 6, 18), mat(T, '#ff8a80'), 0, 1.3, 0)).rotation.x = Math.PI / 2;
+    muneco.rotation.y = 0.4; scene.add(muneco);
+    // Montículos de nieve y cristales de hielo en la orilla
+    for (var i = 0; i < 16; i++) {
+      var a = i / 16 * Math.PI * 2 + 0.2, r = 12.6 + (i % 3) * 0.6;
+      var mont = malla(T, new T.SphereGeometry(0.8 + (i % 4) * 0.25, 12, 8), mat(T, '#ffffff'), Math.sin(a) * r, 0, Math.cos(a) * r);
+      mont.scale.y = 0.45; mont.castShadow = false; scene.add(mont);
+      if (i % 2 === 0 && Math.cos(a) < 0.6) {
+        var cris = new T.Group(); cris.position.set(Math.sin(a + 0.15) * 13.4, 0, Math.cos(a + 0.15) * 13.4);
+        [[0, 1.4, 0.32], [0.38, 0.9, 0.22], [-0.32, 0.8, 0.2]].forEach(function (c) {
+          var cono = malla(T, new T.ConeGeometry(c[2], c[1], 5), mat(T, '#bfe6ff', { transparent: true, opacity: 0.9, flatShading: true }), c[0], c[1] / 2, 0);
+          cono.rotation.z = c[0] * 0.3; cris.add(cono);
+        });
+        scene.add(cris);
+      }
+    }
+    // Cinta de la máquina hacia la plaza (lleva cubos de hielo cuando trabaja)
+    var m = ESTACIONES_3D.maquina, dir = Math.atan2(-m[0], -m[1]), largoC = 3.4;
+    var cinta = new T.Group(); cinta.position.set(m[0] + Math.sin(dir) * 1.1, 0, m[1] + Math.cos(dir) * 1.1); cinta.rotation.y = dir;
+    cinta.add(malla(T, new T.BoxGeometry(0.7, 0.12, largoC), mat(T, '#5b6b7f'), 0, 0.42, largoC / 2));
+    [0.1, largoC / 2, largoC - 0.1].forEach(function (z) { [-0.3, 0.3].forEach(function (x) { cinta.add(malla(T, new T.BoxGeometry(0.06, 0.4, 0.06), mat(T, '#3a3f55'), x, 0.2, z)); }); });
+    for (var c = 0; c < 4; c++) { var cubo = malla(T, new T.BoxGeometry(0.26, 0.26, 0.26), mat(T, '#cdefff', { transparent: true, opacity: 0.92 }), 0, 0.62, c * largoC / 4); cinta.add(cubo); deco.cubos.push(cubo); }
+    deco.cinta = { largo: largoC };
+    scene.add(cinta);
+    // Huellas del trineo hacia la orilla
+    var t = ESTACIONES_3D.trineo;
+    for (var h = 0; h < 7; h++) {
+      [-0.45, 0.45].forEach(function (x) {
+        var huella = malla(T, new T.PlaneGeometry(0.1, 0.5), plano(T, '#c4dcee'), t[0] + x - h * 0.55, 0.013, t[1] + 1.4 + h * 0.2);
+        huella.rotation.x = -Math.PI / 2; huella.rotation.z = 1.2; huella.castShadow = false; scene.add(huella);
+      });
+    }
+    return deco;
+  }
+
+
   // --- Escena ---
   function colorCielo() { return tokenColor('--cielo-2', '#e6f6ff'); }
   function montarEscena(T) {
@@ -1170,12 +1702,12 @@ function modeloDemo(ahora) {
     var controls = new T.OrbitControls(camera, lienzo);
     controls.enableDamping = true; controls.enablePan = false; controls.minDistance = 8; controls.maxDistance = 34;
     controls.minPolarAngle = 0.3; controls.maxPolarAngle = 1.32; controls.target.set(0, 0.8, 0);
-    scene.add(new T.HemisphereLight('#eaf6ff', '#9fc6e0', 0.75));
+    var hemi = new T.HemisphereLight('#eaf6ff', '#9fc6e0', 0.75); scene.add(hemi);
     var sol = new T.DirectionalLight('#ffffff', 0.85); sol.position.set(8, 16, 10); sol.castShadow = true;
     sol.shadow.mapSize.set(1024, 1024); Object.assign(sol.shadow.camera, { left: -14, right: 14, top: 14, bottom: -14, near: 1, far: 50 });
     scene.add(sol);
     // Hielo, agua, témpanos y montañas
-    var piso = new T.Mesh(new T.CircleGeometry(15, 64), mat(T, '#f2f9fe', { roughness: 0.95 })); piso.rotation.x = -Math.PI / 2; piso.receiveShadow = true; scene.add(piso);
+    var piso = new T.Mesh(new T.CircleGeometry(15, 64), mat(T, '#e8f3fb')); piso.rotation.x = -Math.PI / 2; piso.receiveShadow = true; scene.add(piso);
     var borde = new T.Mesh(new T.CylinderGeometry(15, 15.4, 0.6, 64, 1, true), mat(T, '#cfe9fb', { side: T.DoubleSide })); borde.position.y = -0.3; scene.add(borde);
     var agua = new T.Mesh(new T.RingGeometry(15.4, 90, 64), mat(T, '#2f6f9f', { roughness: 0.3, metalness: 0.1 })); agua.rotation.x = -Math.PI / 2; agua.position.y = -0.55; scene.add(agua);
     [[-20, -16, 3], [22, -10, 2.2], [-24, 8, 1.8], [18, 16, 1.5], [-12, -34, 3], [-34, -22, 5], [32, -28, 5.5]].forEach(function (t, i) {
@@ -1218,6 +1750,15 @@ function modeloDemo(ahora) {
       }
       pinguinos[id] = p3;
     });
+    // Puestos de trabajo: el objeto queda detrás del punto donde se para el pingüino (de frente a la cámara)
+    var puestos = {};
+    Object.keys(PUESTOS_TRABAJO_3D).forEach(function (id) {
+      var q = PUESTOS_TRABAJO_3D[id], obj = crearPuestoTrabajo(T, id), giro = Math.atan2(-q.x * 0.6, 24 - q.z);
+      obj.position.set(q.x - Math.sin(giro) * 0.95, 0, q.z - Math.cos(giro) * 0.95); obj.rotation.y = giro;
+      scene.add(obj);
+      puestos[id] = { obj: obj, mira: Math.atan2(obj.position.x - q.x, obj.position.z - q.z) };
+    });
+    var deco = decorarBase(T, scene);
     var oscar = crearPinguino(T, 'oscar'); oscar.grupo.visible = false; oscar.base = { x: ESTACIONES_3D.oscar[0], z: ESTACIONES_3D.oscar[1] };
     oscar.grupo.position.set(oscar.base.x, 0, oscar.base.z); scene.add(oscar.grupo); pinguinos.oscar = oscar;
     var paquete = crearPaquete(T); scene.add(paquete);
@@ -1228,7 +1769,7 @@ function modeloDemo(ahora) {
       var globo = el('div', { class: 'globo3d' }); globo.hidden = true; capa.appendChild(globo); pinguinos[id].globo = globo;
     });
     e3 = { T: T, renderer: renderer, scene: scene, camera: camera, controls: controls, pinguinos: pinguinos, iglu: iglu, nieve: nieve,
-      aurora: aurora, paquete: paquete, reloj: new T.Clock(), guion: [], paso: -1, fasePaso: null, t0: 0, activo: true, raf: 0 };
+      aurora: aurora, paquete: paquete, hemi: hemi, sol: sol, puestos: puestos, deco: deco, reloj: new T.Clock(), guion: [], paso: -1, fasePaso: null, t0: 0, activo: true, raf: 0 };
     centrarCamara();
     ajustarTamano();
     if ('ResizeObserver' in window) new ResizeObserver(ajustarTamano).observe(caja);
@@ -1276,6 +1817,9 @@ function modeloDemo(ahora) {
       (!document.documentElement.getAttribute('data-theme') && matchMedia('(prefers-color-scheme: dark)').matches);
     e3.aurora.material.opacity = oscuro ? 0.8 : 0.3;
     e3.oscuro = oscuro;
+    // De noche la base se ilumina con los faroles
+    e3.hemi.intensity = oscuro ? 0.5 : 0.55; e3.sol.intensity = oscuro ? 0.55 : 0.72;
+    e3.deco.faroles.forEach(function (f) { f.userData.brillo = oscuro ? 1.5 : 0.5; f.material.emissiveIntensity = f.userData.brillo; });
   }
   var COLOR_ANILLO = { trabajando: '#2bb38a', atencion: '#ffb21f', listo: '#2e9e55', esperando: '#8fa3b8', libre: '#8fbfdf' };
   /** Estados, etiquetas y guion desde los datos actuales. */
@@ -1293,8 +1837,8 @@ function modeloDemo(ahora) {
       p3.etq.appendChild(el('span', { class: 'ic txt', text: ESTADOS[v.estado].texto }));
     });
     e3.pinguinos.oscar.etq.className = 'etq3d'; e3.pinguinos.oscar.etq.textContent = 'Tú';
-    var nuevo = guionInteracciones(modelo && modelo.mensajes, ahora, 8);
-    var firma = JSON.stringify(nuevo.map(function (p) { return p.hora + p.de + p.para; }));
+    var nuevo = conTrabajo(guionInteracciones(modelo && modelo.mensajes, ahora, 8), ahora);
+    var firma = JSON.stringify(nuevo.map(function (p) { return p.hora + p.de + p.para + p.tipo + (p.minutos || ''); }));
     if (firma !== e3.firma) { e3.firma = firma; e3.guion = nuevo; e3.paso = -1; e3.siguiente = 0; e3.esperaHasta = 0; e3.fasePaso = null; volverTodos(); }
     aviso3d(!modelo ? 'Esperando noticias del equipo…' : !nuevo.length ? 'Sin conversaciones en las últimas 24 horas: cuando trabajen, aquí los verás ir y venir.' : '');
   }
@@ -1302,7 +1846,7 @@ function modeloDemo(ahora) {
     Object.keys(e3.pinguinos).forEach(function (id) {
       var p3 = e3.pinguinos[id]; p3.globo.hidden = true;
       if (id === 'oscar') { p3.grupo.visible = false; p3.grupo.position.set(p3.base.x, 0, p3.base.z); return; }
-      p3.grupo.position.set(p3.base.x, 0, p3.base.z); p3.grupo.rotation.y = p3.mirarBase || 0;
+      p3.grupo.position.set(p3.base.x, 0, p3.base.z); p3.grupo.rotation.y = p3.mirarBase || 0; p3.rut = null;
     });
     e3.paquete.visible = false;
   }
@@ -1310,6 +1854,35 @@ function modeloDemo(ahora) {
     var p3 = e3.pinguinos[id]; if (!p3) return;
     p3.ladoGlobo = lado || 0;  // los dos globos de una conversación se separan hacia afuera
     p3.globo.textContent = texto; p3.globo.className = 'globo3d' + (respuesta ? ' globo3d--respuesta' : ''); p3.globo.hidden = !texto;
+  }
+  /** ¿Está en el paso del guion que corre ahora? (entonces no hace su rutina por su cuenta) */
+  function ocupado(id) {
+    var f = e3.fasePaso;
+    return !!f && ((f.destino && f.destino.id === id) || f.paso.para === id || f.paso.de === id);
+  }
+  /**
+   * Rutina de trabajo: va y viene entre su escritorio y su puesto (estante, buzón, torre…). Con `forzado` (el paso
+   * «trabajo» del guion) las paradas son cortas para que el ir y venir llene el tiempo comprimido.
+   */
+  function rutina(p3, t, dt, forzado) {
+    var q = PUESTOS_TRABAJO_3D[p3.id];
+    if (!q) return;
+    var r = p3.rut || (p3.rut = { enPuesto: false, yendo: false, hasta: t + (forzado ? 0.4 : 1 + p3.fase % 3) });
+    if (r.yendo) {
+      var x = r.enPuesto ? q.x : p3.base.x, z = r.enPuesto ? q.z : p3.base.z;
+      if (moverHacia(p3, x, z, dt)) {
+        r.yendo = false;
+        r.hasta = t + (forzado ? 1.6 : (r.enPuesto ? 4 : 6) + Math.random() * 2);
+        p3.grupo.rotation.y = r.enPuesto ? e3.puestos[p3.id].mira : p3.mirarBase;
+      }
+    } else if (t > r.hasta) { r.enPuesto = !r.enPuesto; r.yendo = true; }
+    p3.enPuesto = r.enPuesto && !r.yendo;
+  }
+  /** Vuelve a su escritorio (al terminar de trabajar o porque alguien viene a verlo). true cuando llegó. */
+  function volverAlEscritorio(p3, dt) {
+    if (!p3.rut) return true;
+    if (moverHacia(p3, p3.base.x, p3.base.z, dt)) { p3.grupo.rotation.y = p3.mirarBase || 0; p3.rut = null; p3.enPuesto = false; return true; }
+    return false;
   }
   // --- Guion: quien visita camina hasta el puesto del otro, conversan y vuelve ---
   var VEL = 2.4;  // unidades por segundo
@@ -1322,6 +1895,15 @@ function modeloDemo(ahora) {
   function iniciarPaso(i) {
     var paso = e3.guion[i]; e3.paso = i; e3.t0 = e3.reloj.elapsedTime;
     Object.keys(e3.pinguinos).forEach(function (id) { e3.pinguinos[id].globo.hidden = true; });
+    if (paso.tipo === 'trabajo') {
+      // Quien recibió el encargo trabaja el tiempo real comprimido, yendo entre su escritorio y su puesto
+      var w = e3.pinguinos[paso.de];
+      w.rut = null;
+      e3.fasePaso = { paso: paso, destino: null, etapa: 'trabajo', hasta: e3.t0 + (movReducido ? 3 : paso.segundos) };
+      decir(paso.de, paso.globo);
+      w.globo.className = 'globo3d globo3d--trabajo'; w.globo.style.setProperty('--p', '0');
+      return;
+    }
     var d = destinoDe(paso);
     if (paso.de === 'oscar') { var o = e3.pinguinos.oscar; o.grupo.visible = true; o.grupo.position.set(o.base.x, 0, o.base.z); }
     e3.fasePaso = { paso: paso, destino: d, etapa: d ? 'ida' : 'charla', desde: null };
@@ -1353,7 +1935,21 @@ function modeloDemo(ahora) {
     var t = e3.reloj.elapsedTime;
     if (!e3.fasePaso) { if (t >= (e3.esperaHasta || 0)) iniciarPaso(Math.min(e3.siguiente || 0, e3.guion.length - 1)); return; }
     var f = e3.fasePaso, paso = f.paso, d = f.destino, quien = d ? e3.pinguinos[d.id] : null;
+    if (f.etapa === 'trabajo') {
+      var w = e3.pinguinos[paso.de], k = Math.min(1, (t - e3.t0) / Math.max(0.1, f.hasta - e3.t0));
+      w.globo.style.setProperty('--p', k.toFixed(3));
+      if (!movReducido) rutina(w, t, dt, true);
+      if (t >= f.hasta) { decir(paso.de, ''); f.etapa = 'regreso'; }
+      return;
+    }
+    if (f.etapa === 'regreso') {
+      if (movReducido || volverAlEscritorio(e3.pinguinos[paso.de], dt)) f.etapa = 'fin';
+      if (f.etapa !== 'fin') return;
+    }
     if (f.etapa === 'ida') {
+      if (quien.rut) quien.rut = null;  // sale desde donde esté
+      var anfitrion = paso.para && paso.para !== 'oscar' ? e3.pinguinos[paso.para] : null;
+      if (anfitrion) volverAlEscritorio(anfitrion, dt);  // el que recibe la visita la espera en su escritorio
       if (moverHacia(quien, d.x, d.z, dt)) {
         f.etapa = 'charla'; e3.t0 = t;
         var otro = e3.pinguinos[paso.para].grupo.position; quien.grupo.rotation.y = Math.atan2(otro.x - d.x, otro.z - d.z);
@@ -1395,16 +1991,23 @@ function modeloDemo(ahora) {
       return;
     }
     var c = p3.cuerpo, f = p3.fase, e = p3.estado;
-    c.position.y = 0; c.rotation.z = 0; c.rotation.x = 0;
+    var fp = e3.fasePaso;
+    if (fp && fp.etapa === 'trabajo' && fp.paso.de === p3.id) e = 'trabajando';  // el paso «trabajo» del guion
+    c.position.y = 0; c.rotation.z = 0; c.rotation.x = 0; c.scale.set(1, 1, 1);
     p3.aletas[0].rotation.z = 0.12; p3.aletas[1].rotation.z = -0.12; p3.aletas[1].rotation.x = 0;
     if (p3.caminando) {
       c.rotation.z = Math.sin(t * 10 + f) * 0.14; c.position.y = Math.abs(Math.sin(t * 10 + f)) * 0.06;
       p3.aletas[0].rotation.z = 0.5; p3.aletas[1].rotation.z = -0.5;
+    } else if (e === 'trabajando' && p3.enPuesto) {
+      // En su puesto: estira las aletas hacia el estante, el buzón o el mapa, de puntitas
+      c.position.y = 0.03 + Math.abs(Math.sin(t * 3 + f)) * 0.05; c.rotation.x = -0.08;
+      p3.aletas[0].rotation.x = -1.6 + Math.sin(t * 5 + f) * 0.4; p3.aletas[1].rotation.x = -1.6 + Math.sin(t * 5 + f + 2) * 0.4;
     } else if (e === 'trabajando') {
       c.position.y = Math.abs(Math.sin(t * 6 + f)) * 0.03;
       p3.aletas[1].rotation.x = -0.9 + Math.sin(t * 16 + f) * 0.35; p3.aletas[0].rotation.x = -0.9 + Math.sin(t * 16 + f + 1.5) * 0.35;
     } else if (e === 'atencion') {
       var s = (t * 1.6 + f) % 2; c.position.y = s < 0.5 ? Math.sin(s / 0.5 * Math.PI) * 0.35 : 0;
+      if (s >= 0.5 && s < 0.65) c.scale.set(1.06, 0.92, 1.06);  // se aplasta un poquito al caer, como un peluche
       p3.aletas[1].rotation.z = -1.2 - Math.sin(t * 8 + f) * 0.5;
     } else if (e === 'esperando') {
       c.rotation.x = 0.12; c.rotation.z = Math.sin(t * 0.8 + f) * 0.05; c.position.y = Math.sin(t * 1.2 + f) * 0.01;
@@ -1415,6 +2018,17 @@ function modeloDemo(ahora) {
     }
     if (p3.ojos) p3.ojos.scale.y = ((t + f) % 4.5) < 0.12 ? 0.15 : 1;
     p3.caminando = false;
+  }
+  /** Faroles, cinta de la máquina, antena de la radio y engrane del constructor. */
+  function animarDecoracion(t, dt) {
+    var d = e3.deco, pin = e3.pinguinos;
+    d.faroles.forEach(function (f, i) { f.material.emissiveIntensity = (f.userData.brillo || 0.5) * (0.9 + Math.sin(t * 3 + i) * 0.1); });
+    var maq = pin.maquina && (pin.maquina.estado === 'trabajando' || pin.maquina.estado === 'listo');
+    d.cubos.forEach(function (cubo) { cubo.visible = !!maq; if (maq) cubo.position.z = (cubo.position.z + dt * 0.7) % d.cinta.largo; });
+    var luz = e3.puestos.radio && e3.puestos.radio.obj.userData.luz;
+    if (luz) luz.material.emissiveIntensity = (t % 1.4) < 0.5 ? 1.4 : 0.2;
+    var eng = e3.puestos.constructor && e3.puestos.constructor.obj.userData.engrane;
+    if (eng && pin.constructor) eng.rotation.z += dt * (pin.constructor.estado === 'trabajando' ? 3 : 0.2);
   }
   var vec = null;
   function proyectar(p3, alto, nodo, ancho, altoPx, desplazar) {
@@ -1429,10 +2043,19 @@ function modeloDemo(ahora) {
   function animar() {
     e3.raf = requestAnimationFrame(animar);
     if (!vista3d || !e3.activo || document.hidden) return;
-    var dt = Math.min(e3.reloj.getDelta(), 0.05), t = e3.reloj.elapsedTime;
+    var dt = Math.min(e3.reloj.getDelta(), 0.1), t = e3.reloj.elapsedTime;
     if (!movReducido) {
       avanzarGuion(dt);
-      Object.keys(e3.pinguinos).forEach(function (id) { animarPinguino(e3.pinguinos[id], t, dt); });
+      Object.keys(e3.pinguinos).forEach(function (id) {
+        var p3 = e3.pinguinos[id];
+        // Mientras trabaja de verdad (y no está en el guion) va y viene entre su escritorio y su puesto
+        if (id !== 'oscar' && !EQUIPO[id].maquina && !ocupado(id)) {
+          if (p3.estado === 'trabajando' && PUESTOS_TRABAJO_3D[id]) rutina(p3, t, dt, false);
+          else volverAlEscritorio(p3, dt);
+        }
+        animarPinguino(p3, t, dt);
+      });
+      animarDecoracion(t, dt);
       if (e3.nieve) { var p = e3.nieve.geometry.attributes.position; for (var i = 0; i < p.count; i++) { var y = p.getY(i) - dt * 1.1; p.setY(i, y < 0 ? 16 : y); } p.needsUpdate = true; }
       e3.aurora.position.x = Math.sin(t * 0.07) * 6;
       e3.iglu.userData.bandera.rotation.y = Math.sin(t * 2) * 0.25;
