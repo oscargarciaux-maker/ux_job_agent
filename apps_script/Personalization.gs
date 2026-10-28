@@ -71,11 +71,22 @@ function computePriority(vacancy, score) {
   const years = requiredYears(vacancy);
   const tooMuch = years !== null && years >= CONFIG.EXPERIENCE_YEARS_LIMIT ? CONFIG.EXPERIENCE_PENALTY : 0;
   const verify = vacancy.roleToVerify ? CONFIG.ROLE_VERIFY_PENALTY : 0;
-  const english = englishAdvanced(vacancy) ? CONFIG.ENGLISH_ADVANCED_PENALTY : 0;
+  const english = englishFluent(vacancy) ? CONFIG.ENGLISH_FLUENT_PENALTY
+                : englishAdvanced(vacancy) ? CONFIG.ENGLISH_ADVANCED_PENALTY : 0;
   return score + (vacancy.sourceBonus || 0) + fintech - tooMuch - verify - english;
 }
 
-/** Pide inglés "avanzado", "alto" o "excelente" sin fluido/nativo/bilingüe/C1 ni un B1/B2 explícito: menor prioridad. */
+/** Pide inglés "fluido", "fluent" o "bilingüe" (2026-10-28: menor prioridad, ya no descarte). */
+function englishFluent(vacancy) {
+  return CONFIG.ENGLISH_FLUENT_PATTERN.test(vacancyText_(vacancy));
+}
+
+/** Nota de inglés para Notas de Hoja 1 y la pestaña "Calidad por fuente": "Inglés fluido", "Inglés avanzado" o "". */
+function englishNote(vacancy) {
+  return englishFluent(vacancy) ? 'Inglés fluido' : englishAdvanced(vacancy) ? 'Inglés avanzado' : '';
+}
+
+/** Pide inglés "avanzado", "alto" o "excelente" sin nativo/C1 ni un B1/B2 explícito: menor prioridad. */
 function englishAdvanced(vacancy) {
   const text = vacancyText_(vacancy);
   return CONFIG.ENGLISH_ADVANCED_PATTERN.test(text) && !CONFIG.ENGLISH_ADVANCED_UNLESS.test(text);

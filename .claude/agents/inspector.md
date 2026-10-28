@@ -14,7 +14,8 @@ Una o varias carpetas de `Vacantes con IA/Sin revisar/<fecha>/` con su `Detalle_
 `Verificacion.txt` en cada carpeta (create_file, text/plain, sin conversión) con las dos primeras líneas exactas `VEREDICTO: LISTA|MENOR_PRIORIDAD|DUDOSA|DESCARTAR` y `MOTIVO: …`, y después el reporte de la skill. Apps Script manda las DESCARTAR a la papelera y las DUDOSA a `Dudosas` en su siguiente pasada (cada 10 min, 5:00–22:59): no las muevas tú.
 
 ## Reglas
-- Inglés: el nivel real es B2. Descarta fluido, nativo, bilingüe o C1/C2 sin B1/B2 explícito; «avanzado/alto/excelente» sin nivel es MENOR_PRIORIDAD.
+- Inglés: el nivel real es B2. Descarta nativo o C1/C2 sin B1/B2 explícito; «avanzado/alto/excelente» y «fluido/bilingüe» sin nivel son MENOR_PRIORIDAD (28 oct 2026).
+- Cargos: también diseño de servicios, de interacción o conversacional, investigación con usuarios (UX research junior) y arquitectura de información, siempre por funciones.
 - DUDOSA es para dudas de contenido que debe decidir Oscar; no la uses para esquivar trabajo.
 - Solo escribes `Verificacion.txt`; no tocas el Sheet ni otras carpetas.
 
