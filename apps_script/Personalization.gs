@@ -104,10 +104,29 @@ function exclusionReason(vacancy) {
   const text = vacancyText_(vacancy) + ' ' + (vacancy.company || '');
   const rule = CONFIG.EXCLUDED_VACANCY_RULES.filter(r => r.pattern.test(text) && !(r.unless && r.unless.test(text)))[0];
   if (rule) return rule.reason;
+  // Solo para otro país (28 oct 2026: 7 de 14 descartes del día eran de Costa Rica, Brasil, Ecuador o Perú y gastaban
+  // verificación de la IA): se decide aquí, sin tokens
+  const foreign = foreignOnlyLocation(vacancy);
+  if (foreign) return 'solo para ' + foreign + ' (no dice Colombia ni remoto LATAM)';
   // En el título basta con nombrarlo (27 oct 2026: "Diseñador/a de Experiencia de Cliente para personas con Discapacidad")
   if (CONFIG.DISABILITY_TITLE_PATTERN.test(vacancy.title || '')) return 'exclusiva para personas con discapacidad';
   // Cargos de liderazgo muy por encima de junior (Senior sí entra, con la regla de años)
   return CONFIG.EXCLUDED_TITLE_PATTERN.test(vacancy.title || '') ? 'cargo de liderazgo (staff/principal/head/director/manager)' : null;
+}
+
+/**
+ * El país de otro lugar si el título o la ubicación de la vacante nombran solo un sitio fuera de Colombia, sin Colombia,
+ * LATAM, «anywhere» ni zona horaria de la región. Solo mira el título y el campo de ubicación (la descripción nombra países
+ * por muchas razones); sin ubicación no decide nada. Devuelve '' si la vacante puede servir.
+ */
+function foreignOnlyLocation(vacancy) {
+  const check = text => {
+    const t = String(text || '');
+    if (!t.trim() || CONFIG.OPEN_TO_COLOMBIA_PATTERN.test(t)) return '';
+    const m = CONFIG.FOREIGN_LOCATION_PATTERN.exec(t);
+    return m ? m[0] : '';
+  };
+  return check(vacancy.title) || check(vacancy.location);
 }
 
 /** Palabras del cargo comparables entre idiomas, sin nivel, modalidad ni conectores. */
@@ -169,7 +188,9 @@ function distinctPostings(scored, maxPerCompany) {
     const company = norm(v.company);
     const hidden = !company || /confiden/.test(company);
     const desc = norm(v.description);
-    const keys = (hidden ? [] : [vacancyBaseKey(v)]).concat(desc.length >= 200 ? [company + '#' + desc.slice(0, 400)] : []);
+    // La descripción COMPLETA (28 oct 2026): con solo los primeros 400 caracteres, el texto de presentación que Greenhouse y
+    // Ashby ponen al inicio de cada aviso hacía «repetidos» cargos distintos de la misma empresa (Clara, Truelogic)
+    const keys = (hidden ? [] : [vacancyBaseKey(v)]).concat(desc.length >= 200 ? [company + '#' + desc] : []);
     // Mismo aviso: se marca para registrarlo como repetido y que no vuelva en las corridas siguientes
     if (keys.some(k => seen[k])) { v.duplicate = true; return false; }
     if (!hidden && (perCompany[company] || 0) >= maxPerCompany) return false;

@@ -240,6 +240,47 @@ assert.deepStrictEqual(distintas.map(x => x.vacancy.title),
   ['UI Systems Designer (Remote, Cucuta)', 'Design Systems Lead (Remote, Ibague)',
    'Profesional de comunicaciones y experiencia de usuario', 'Diseñador UX', 'Post']);
 assert.strictEqual(context.distinctPostings(bs.slice(1, 3), 5).length, 1, 'mismo cargo en otra ciudad = mismo aviso');
+// 28 oct 2026: el texto de presentación de Greenhouse/Ashby al inicio de cada aviso no los vuelve el mismo aviso
+const intro = 'About Clara: Clara is the leading spend management platform in Latin America, trusted by thousands of companies. '.repeat(4);
+const clara = ['Product Designer, Design Systems', 'Product Designer Associate']
+  .map((t, i) => ({ vacancy: { title: t, company: 'Clara', description: intro + (i ? 'You will support squads with UI.' : 'You will own our tokens and components.') }, priority: 90 - i }));
+assert.strictEqual(context.distinctPostings(clara, 5).length, 2, 'cargos distintos con la misma presentación de la empresa');
+assert.ok(!clara[1].vacancy.duplicate);
+const claraCopia = [0, 1].map(i => ({ vacancy: { title: i ? 'Diseñador UX' : 'UX Designer', company: 'Clara', description: intro + 'Same body.' }, priority: 90 - i }));
+assert.strictEqual(context.distinctPostings(claraCopia, 5).length, 1, 'el mismo texto completo con otro cargo sí es el mismo aviso');
+// Himalayas (28 oct 2026): abiertas a Colombia o a todo el mundo; sin voluntariados ni regiones lejanas en el texto
+{
+  const h = (extra) => context.parseHimalayasJob(Object.assign({ title: 'UX/UI Designer', companyName: 'Acme', employmentType: 'Full Time',
+    locationRestrictions: [], description: '<p>We build things.</p>', pubDate: Date.UTC(2026, 9, 27) / 1000,
+    guid: 'https://himalayas.app/companies/acme/jobs/ux-ui-designer-1' }, extra || {}));
+  const base = JSON.parse(JSON.stringify(h()));
+  assert.strictEqual(base.link, 'https://himalayas.app/companies/acme/jobs/ux-ui-designer-1');
+  assert.strictEqual(base.postedAt, '2026-10-27');
+  assert.strictEqual(base.location, 'Remote worldwide');
+  assert.strictEqual(JSON.parse(JSON.stringify(h({ locationRestrictions: ['Brazil', 'Colombia', 'Mexico'] }))).location, 'Remote Colombia');
+  assert.strictEqual(h({ locationRestrictions: ['Brazil', 'Mexico'] }), null, 'países permitidos sin Colombia');
+  assert.strictEqual(h({ employmentType: 'Volunteer' }), null);
+  assert.strictEqual(h({ description: '<h3>Lead UX/UI Designer</h3><p>Heptic Arena — Full-Time — Remote (Europe)</p>' }), null);
+  assert.ok(h({ description: '<p>Full-Time — Remote (LATAM)</p>' }), 'una región abierta a Colombia sí sirve');
+  assert.ok(context.isReachableRemoteJob(h()), 'pasa el filtro de remotas');
+  assert.ok(/searchHimalayas_, 'Himalayas'/.test(fs.readFileSync(path.join(dir, 'Search.gs'), 'utf8')), 'Himalayas está en la lista de fuentes');
+}
+// Prefiltro por país (28 oct 2026): sin tokens para vacantes que solo son de otro país
+const solo = (title, location) => context.exclusionReason({ title: title, location: location, description: '' });
+assert.ok(/solo para costa rica/i.test(solo('UI/UX Designer', 'San José, Costa Rica')));
+assert.ok(/solo para Quito/i.test(solo('UX Designer - Sector Financiero', 'Quito, Pichincha, Ecuador')));
+assert.ok(/solo para brazil/i.test(solo('Senior Product Designer - Feegow (100% remote friendly in Brazil)', 'Remote LATAM')));
+assert.ok(/solo para s[aã]o paulo/i.test(solo('Product Designer Associate - São Paulo [Hybrid]', '')));
+assert.ok(/solo para (lima|perú)/i.test(solo('Product Design Intern', 'Lima, Perú')), solo('Product Design Intern', 'Lima, Perú'));
+assert.strictEqual(solo('Product Designer', 'Remote LATAM (Brazil, Mexico, Colombia)'), null, 'nombra Colombia o LATAM');
+assert.strictEqual(solo('UX Designer', 'Montería, Córdoba, Colombia'), null, 'Córdoba también es un departamento de Colombia');
+assert.strictEqual(solo('UX Designer', 'Santiago de Cali, Valle del Cauca, Colombia'), null);
+assert.strictEqual(solo('UI Systems Designer (Remote, Cucuta)', 'Colombia'), null);
+assert.strictEqual(solo('Senior Product Designer - Global Insights & Strategy', ''), null);
+assert.strictEqual(solo('Diseñador UX', ''), null, 'sin ubicación no decide');
+assert.strictEqual(solo('Product Designer', 'Remote (UTC-5)'), null);
+assert.strictEqual(context.exclusionReason({ title: 'UX Designer', location: 'Bogotá', description: 'Clientes en México, Perú y Chile.' }), null,
+  'la descripción no cuenta: nombra países por muchas razones');
 assert.strictEqual(context.exclusionReason({ title: 'Diseñador/a de Experiencia de Cliente para personas con Discapacidad', description: '' }),
                    'exclusiva para personas con discapacidad');
 assert.strictEqual(context.exclusionReason({ title: 'Diseñador UX', description: 'Promovemos la inclusión de personas con discapacidad.' }), null);

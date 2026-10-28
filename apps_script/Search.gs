@@ -45,7 +45,7 @@ function searchUxJobs_(startedAt) {
   // 2026) y el buscador público de LinkedIn (60 búsquedas, 24 con 429) ya no se buscan aquí: llegan en el JSON de GitHub
   // Actions (tools/jobspy_buscar.py).
   [[searchJobSpy_, 'JobSpy (GitHub Actions)'], [searchEmailAlerts_, 'Alertas de LinkedIn (correo)'],
-   [searchGetOnBoard_, 'Get on Board'], [searchRemotive_, 'Remotive'], [searchJobicy_, 'Jobicy'],
+   [searchGetOnBoard_, 'Get on Board'], [searchRemotive_, 'Remotive'], [searchJobicy_, 'Jobicy'], [searchHimalayas_, 'Himalayas'],
    [searchAtsBoards_, 'Portales de empresas objetivo']].forEach(([source, origin]) => {
     if (Date.now() - startedAt > CONFIG.SEARCH_BUDGET_MS) {
       console.warn('Sin tiempo para ' + origin + ' en esta corrida (' + Math.round((Date.now() - startedAt) / 1000) + ' s de búsqueda)');
@@ -123,6 +123,41 @@ function parseJobicyJob(job) {
     title: job.jobTitle || '', company: job.companyName || '', location: 'Remote ' + (job.jobGeo || 'LATAM'),
     description: stripHtml_(job.jobDescription || job.jobExcerpt), snippet: '', link: job.url || '',
     postedAt: String(job.pubDate || '').slice(0, 10), source: 'Jobicy', sourceBonus: 0,
+  };
+}
+
+function searchHimalayas_() {
+  const cfg = CONFIG.EXTRA_SOURCES.himalayas;
+  const byLink = {};
+  cfg.queries.forEach(q => {
+    (fetchJson_(cfg.url + encodeURIComponent(q)).jobs || []).map(parseHimalayasJob)
+      .forEach(v => { if (v && v.link) byLink[v.link] = v; });
+  });
+  const jobs = Object.keys(byLink).map(k => byLink[k]);
+  const kept = jobs.filter(v => acceptRoleTitle_(v) && isRecent(v.postedAt, CONFIG.MAX_POST_AGE_DAYS) && isReachableRemoteJob(v));
+  console.log('Himalayas: ' + jobs.length + ' resultados abiertos a Colombia, ' + kept.length + ' de UX/UI recientes');
+  return kept;
+}
+
+/**
+ * Un aviso de Himalayas, o null si no sirve: voluntariado, o con países permitidos que no incluyen a Colombia (sin
+ * lista = todo el mundo). Muchos dicen la región solo al inicio de la descripción («Remote (Europe)»): se pasa a la
+ * ubicación para que isReachableRemoteJob y el prefiltro por país la vean.
+ */
+function parseHimalayasJob(job) {
+  if (!job || /volunteer/i.test(job.employmentType || '')) return null;
+  const allowed = [].concat(job.locationRestrictions || []);
+  if (allowed.length && !allowed.some(c => /colombia/i.test(c))) return null;
+  const description = stripHtml_(job.description || job.excerpt || '');
+  const region = (/remote\s*\(([^)]{2,40})\)/i.exec(description.slice(0, 400)) || [])[1] || '';
+  if (region && /\b(europe|eu|emea|us|usa|united states|uk|united kingdom|canada|india|apac|asia)\b/i.test(region) &&
+      !CONFIG.OPEN_TO_COLOMBIA_PATTERN.test(region)) return null;
+  const published = job.pubDate ? new Date(Number(job.pubDate) * 1000).toISOString().slice(0, 10) : '';
+  return {
+    title: job.title || '', company: job.companyName || '',
+    location: 'Remote ' + (allowed.length ? 'Colombia' : 'worldwide') + (region ? ' (' + region + ')' : ''),
+    description: description, snippet: '', link: String(job.guid || job.applicationLink || '').replace(/\?utm_source=api$/, ''),
+    postedAt: published, source: 'Himalayas', sourceBonus: 0,
   };
 }
 
