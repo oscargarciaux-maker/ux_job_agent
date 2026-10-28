@@ -319,4 +319,12 @@ assert.ok(efectos.every(f => typeof f.despues.avalancha === 'boolean'));
   assert.ok(!/oscar\.png|Press Start 2P|VT323/.test(html), 'sin la foto ni las fuentes anteriores');
 }
 
+// Acciones confirmadas mientras el juego lee Drive o repite eventos (2026-10-28: «Descartar» no hacía nada): esperan en fila
+{
+  const fn = /function accionJuego\(datos, listo\) \{([\s\S]*?)\n  \}/.exec(html)[1];
+  assert.ok(!/sincronizando \|\| replayActivo[^;]*\) return;/.test(fn), 'accionJuego no puede ignorar en silencio una acción confirmada');
+  assert.ok(/enEspera\.push/.test(fn), 'si está ocupado, la acción queda en espera');
+  ['libre(); })', 'aplicarPendiente(); libre(); });'].forEach(t => assert.ok(html.includes(t), 'la fila se suelta al quedar libre: ' + t));
+}
+
 console.log('OK: todas las pruebas del motor del juego pasaron');

@@ -1451,11 +1451,13 @@ var ARTE = {
         if (replayActivo || introAbierta) { pendiente = d; avisoDatos = 'Drive leído: lo nuevo va al final'; tonoDatos = 'cia'; pintarDatos(); }
         else pintarTodo(d, null, true);
         if (!auto) anunciar('Listo. ' + textoBase() + '.');
+        libre();
       })
       .catch(function () {
         sincronizando = false; avisoDatos = 'No se pudo leer Drive. ' + textoBase(); tonoDatos = 'mag';
         pintarDatos();
         if (!auto) anunciar(avisoDatos);
+        libre();
       });
   }
   function verEstado(sync, tono) {
@@ -1477,9 +1479,27 @@ var ARTE = {
   // ===================== ACCIONES (2026-10-27): registrar lo que Oscar ya hizo, sin salir a Drive =====================
   function idCarpeta(url) { var m = /folders\/([\w-]{10,})/.exec(String(url || '')); return m ? m[1] : ''; }
   var MENSAJE_ERROR = { escritura: 'Tu enlace no tiene permiso para cambiar cosas (le falta la clave de escritura).' };
+  /**
+   * Acciones confirmadas mientras el juego lee Drive o repite eventos (2026-10-28: «Descartar» no hacía nada porque al
+   * abrir el juego estaba leyendo Drive y la acción se ignoraba sin avisar). Esperan en fila y salen al quedar libre.
+   */
+  var enEspera = [];
+  function soltarAccion() {
+    if (!enEspera.length || sincronizando || replayActivo || introAbierta) return;
+    var a = enEspera.shift();
+    accionJuego(a.datos, a.listo);
+  }
+  function libre() { setTimeout(soltarAccion, 0); }
   /** Manda la acción a Apps Script; con la respuesta (el JSON ya actualizado) repinta y reproduce lo nuevo. */
   function accionJuego(datos, listo) {
-    if (!ESCRIBE || sincronizando || replayActivo || !URL_DATOS) return;
+    if (!ESCRIBE || !URL_DATOS) return;
+    if (sincronizando || replayActivo || introAbierta) {
+      enEspera.push({ datos: datos, listo: listo });
+      var espera = (sincronizando ? 'Leyendo Drive… luego registro ' : 'Al terminar la repetición registro ') +
+        (enEspera.length === 1 ? 'tu acción.' : 'tus ' + enEspera.length + ' acciones.');
+      avisoDatos = espera; tonoDatos = 'cia'; pintarDatos(); anunciar(espera);
+      return;
+    }
     sincronizando = true; avisoDatos = 'Registrando en Drive…'; tonoDatos = 'cia'; pintarDatos();
     anunciar('Registrando en Drive.');
     var q = Object.keys(datos).map(function (k) { return '&' + k + '=' + encodeURIComponent(datos[k] == null ? '' : datos[k]); }).join('');
@@ -1493,9 +1513,11 @@ var ARTE = {
         avisoDatos = ''; tonoDatos = '';
         anunciar(listo);
         pintarTodo(d, null, true);
+        libre();
       })
       .catch(function (err) {
         sincronizando = false; avisoDatos = err.message || 'No se pudo registrar.'; tonoDatos = 'mag'; pintarDatos(); anunciar(avisoDatos);
+        libre();
       });
   }
   /** Paso de confirmación: nada se mueve con un toque accidental. `extra`: nodos opcionales (p. ej. motivos). */
@@ -1826,7 +1848,7 @@ var ARTE = {
       if (it.tamano === 'dialogo') { var t = dialogoDe(it); decir(t.voz, t.dato, []); anunciar(t.voz + ' ' + t.dato); }
       coreografia(it, sig, mostrado)
         .then(function () { return it.tamano === 'mediano' || it.tamano === 'grande' ? modalEvento(it) : espera(1500); })
-        .then(function () { replayActivo = false; pintarDatos(); verArena(final); decirReposo(); aplicarPendiente(); });
+        .then(function () { replayActivo = false; pintarDatos(); verArena(final); decirReposo(); aplicarPendiente(); libre(); });
     };
     alCerrar = null; cerrarModal(); irA('arena'); setTimeout(alTerminar, 0);
   }
@@ -2043,6 +2065,7 @@ var ARTE = {
       decir(r.voz, r.dato + resumen, cola.resumen ? [el('button', { class: 'btn', type: 'button', text: 'Bitácora ▶', onclick: function () { irA('bitacora'); } })] : []);
       guardar(CLAVE + ':visto', ultimoVistoDe(resultado.efectos));
       aplicarPendiente();
+      libre();
     });
   }
   /** Lo que dice el jefe en reposo, con el dato real al lado (principio 1). */
@@ -2119,7 +2142,7 @@ var ARTE = {
     if (!visto) {
       verArena(resultado.estado); decirReposo();
       introAbierta = true;
-      intro().then(function () { introAbierta = false; guardar(CLAVE + ':visto', ultimoVistoDe(resultado.efectos)); aplicarPendiente(); });
+      intro().then(function () { introAbierta = false; guardar(CLAVE + ':visto', ultimoVistoDe(resultado.efectos)); aplicarPendiente(); libre(); });
       return;
     }
     var cola = colaReplay(resultado.efectos, visto);
