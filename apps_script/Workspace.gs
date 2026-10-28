@@ -26,7 +26,7 @@ function appendVacancyRow_(sheet, vacancy, score, status) {
   const today = Utilities.formatDate(new Date(), tz_(), 'yyyy-MM-dd');
   // Fuente (columna G, 27 oct 2026): la usa la pestaña "Calidad por fuente"
   sheet.appendRow([today, vacancy.company || 'N/D', vacancy.title, vacancy.link, score, status, vacancy.origin || '',
-                   englishAdvanced(vacancy) ? 'Inglés avanzado' : '']);
+                   englishNote(vacancy)]);
 }
 
 // ---------- Google Drive (/Vacantes con IA/Sin revisar/YYYY-MM-DD/[Empresa] o [Empresa]_[detalle del cargo]) ----------
@@ -121,7 +121,9 @@ function createVacancyDetailDoc_(folder, vacancy, item, language) {
                                 'correo, mensaje directo o el enlace que trae; si el enlace lleva a una vacante formal, verifícala allí'] : [])
    .concat(vacancy.roleToVerify ? ['Rol: VERIFICAR FUNCIONES (el título no es de diseño; entra solo si la función principal es diseño)'] : [])
    .concat(vacancy.companyNote ? ['Aviso empresa: ' + vacancy.companyNote] : [])
-   .concat(englishAdvanced(vacancy) ? ['Inglés: pide "avanzado" sin decir fluido, bilingüe ni C1 (tu nivel es B2): menor ' +
+   .concat(englishFluent(vacancy) ? ['Inglés: pide "fluido" o "bilingüe" (tu nivel es B2): menor prioridad; lee el aviso ' +
+                                      'completo antes de decidir'] :
+           englishAdvanced(vacancy) ? ['Inglés: pide "avanzado" sin decir fluido, bilingüe ni C1 (tu nivel es B2): menor ' +
                                         'prioridad; lee el aviso completo antes de decidir'] : [])
    .concat(vacancy.officialBoard ? ['Portal oficial: aviso en el portal de empleo de la empresa (sigue publicado); hasta ' +
                                     CONFIG.OFFICIAL_BOARD_MAX_AGE_DAYS + ' días cuenta como vigente, con más de ' +

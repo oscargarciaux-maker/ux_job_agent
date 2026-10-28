@@ -30,8 +30,10 @@ from datetime import datetime, timedelta, timezone
 
 
 TERMINOS = ["diseñador ux", "diseñador ui ux", "diseñador ux ui", "ux designer", "ui designer", "ux ui designer",
-            "product designer", "diseñador de producto", "ux researcher", "design system"]
-DISENO = re.compile(r"\bux\b|\bui\b|dise[ñn]ador|designer|design system|experiencia de usuario|ux research", re.I)
+            "product designer", "diseñador de producto", "ux researcher", "design system",
+            "diseñador de servicios", "diseñador de interacción"]  # 2026-10-28: más cargos (decisión del usuario)
+DISENO = re.compile(r"\bux\b|\bui\b|dise[ñn]ador|designer|design system|experiencia de usuario|ux research|user research|"
+                    r"design research|investigador(\(a\)|a)? (ux|de usuario)|information architect", re.I)
 NO_DISENO = re.compile(r"graphic|gr[aá]fico|developer|desarrollador|engineer|ingenier|copywriter|redactor", re.I)
 HORAS = 168           # Ventana de cada búsqueda (7 días): lo ya visto lo descarta la deduplicación de Apps Script
 DIAS_GUARDADOS = 7
@@ -69,7 +71,8 @@ def buscar(sitio, termino):
 
 
 ELEMPLEO = "https://www.elempleo.com"
-ELEMPLEO_TERMINOS = ["diseñador ux", "diseñador ui", "product designer", "diseñador de producto", "experiencia de usuario"]
+ELEMPLEO_TERMINOS = ["diseñador ux", "diseñador ui", "product designer", "diseñador de producto", "experiencia de usuario",
+                     "diseñador de servicios"]
 NAVEGADOR = {"User-Agent": "Mozilla/5.0", "Accept-Language": "es-CO,es;q=0.9"}
 
 
@@ -177,7 +180,8 @@ LINKEDIN_BUSQUEDA = "https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPost
 LINKEDIN_AVISO = "https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/"
 LINKEDIN_TERMINOS = ["diseñador ux", "diseñador ui ux", "diseñador ux ui", "ux designer", "ui designer", "ux ui designer",
                      "product designer", "diseñador de producto", "ux researcher", "design system",
-                     "diseñador ux junior", "junior product designer"]
+                     "diseñador ux junior", "junior product designer",
+                     "service designer", "diseñador de servicios", "user researcher"]
 # Colombia (todas las modalidades) y remotas en Colombia; "Latin America" traía sobre todo avisos de Brasil y Argentina
 LINKEDIN_BUSQUEDAS = [{"location": "Colombia"}, {"location": "Colombia", "f_WT": "2"}]
 LINKEDIN_PAGINAS = 3

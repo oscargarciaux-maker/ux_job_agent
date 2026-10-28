@@ -44,8 +44,10 @@ const CONFIG = {
     // pida B1/B2 de forma explícita ("B2 o C1"). Desde 2026-10-27 (decisión del usuario) "avanzado", "alto",
     // "excelente" o "proficient" sin nivel ya no descartan: bajan de prioridad (ENGLISH_ADVANCED_PATTERN). Ese día el
     // inglés fue el primer motivo de descarte (7 de 12) y en Colombia "avanzado" suele aceptar un B2 sólido.
-    { reason: 'exige inglés fluido, nativo o bilingüe',
-      pattern: /\b(ingl[eé]s|english)\s*[:\-–(]?\s*(nivel\s+|level\s+)?(fluid[oa]|nativo|fluent|native)\b|\bnivel\s+(de\s+)?ingl[eé]s\s*[:\-]?\s*(fluido|nativo)\b|\bnivel\s+(fluido|nativo)\s+(de|en)\s+(ingl[eé]s|english)\b|\bingl[eé]s\s+(a\s+)?nivel\s+(fluido|nativo)\b|\b(fluent|native)\s+(level\s+(of\s+)?)?(in\s+)?english\b|\benglish\s+fluency\b|\bfluency\s+in\s+english\b|\bbiling[uü]e\b|\bbilingual\b/i },
+    // Desde 2026-10-28 (decisión del usuario) "fluido", "fluent" o "bilingüe" tampoco descartan: bajan de prioridad
+    // (ENGLISH_FLUENT_PATTERN); solo "nativo"/"native" sigue descartando.
+    { reason: 'exige inglés nativo',
+      pattern: /\b(ingl[eé]s|english)\s*[:\-–(]?\s*(nivel\s+|level\s+)?(nativo|native)\b|\bnivel\s+(de\s+)?ingl[eé]s\s*[:\-]?\s*nativo\b|\bnivel\s+nativo\s+(de|en)\s+(ingl[eé]s|english)\b|\bingl[eé]s\s+(a\s+)?nivel\s+nativo\b|\bnative\s+(level\s+(of\s+)?)?(in\s+)?english\b|\bnative\s+english\s+speaker\b/i },
     { reason: 'exige inglés C1/C2',
       unless: /(ingl[eé]s|english)[^.\n]{0,60}\bB[12]\b|\bB[12]\b[^.\n]{0,60}(ingl[eé]s|english)/i,
       pattern: /(ingl[eé]s|english)[^.\n]{0,40}\bc[12]\b|\bc[12]\b[^.\n]{0,40}(ingl[eé]s|english)/i },
@@ -59,6 +61,10 @@ const CONFIG = {
   ENGLISH_ADVANCED_PATTERN: /\b(ingl[eé]s|english)\s*[:\-–(]?\s*(nivel\s+|level\s+)?(avanzado|excelente|advanced|proficient|excellent)\b|\bnivel\s+(de\s+)?ingl[eé]s\s*[:\-]?\s*(avanzado|alto)\b|\bnivel\s+(avanzado|alto)\s+(de|en)\s+(ingl[eé]s|english)\b|\b(excellent|excelente)\s+(command\s+of\s+|level\s+of\s+)?(english|ingl[eé]s)\b|\bingl[eé]s\s+(a\s+)?nivel\s+(avanzado|alto)\b|\b(advanced|proficient)\s+(level\s+(of\s+)?)?(in\s+)?english\b|\benglish\s+proficiency\b|\bproficiency\s+in\s+english\b/i,
   ENGLISH_ADVANCED_UNLESS: /(ingl[eé]s|english)[^.\n]{0,60}\bB[12]\b|\bB[12]\b[^.\n]{0,60}(ingl[eé]s|english)/i,
   ENGLISH_ADVANCED_PENALTY: 15,
+  // Inglés "fluido", "fluent" o "bilingüe" (2026-10-28, decisión del usuario): entra con más castigo que "avanzado",
+  // nota "Inglés fluido" en Detalle_Vacante y en Notas de Hoja 1; la IA la marca MENOR_PRIORIDAD
+  ENGLISH_FLUENT_PATTERN: /\b(ingl[eé]s|english)\s*[:\-–(]?\s*(nivel\s+|level\s+)?(fluid[oa]|fluent)\b|\bnivel\s+(de\s+)?ingl[eé]s\s*[:\-]?\s*fluido\b|\bnivel\s+fluido\s+(de|en)\s+(ingl[eé]s|english)\b|\bingl[eé]s\s+(a\s+)?nivel\s+fluido\b|\bfluent\s+(level\s+(of\s+)?)?(in\s+)?english\b|\benglish\s+fluency\b|\bfluency\s+in\s+english\b|\bbiling[uü]e\b|\bbilingual\b/i,
+  ENGLISH_FLUENT_PENALTY: 25,
   EXCLUDED_TITLE_PATTERN: /\b(staff|principal|head|director|directora|vp|manager|gerente)\b/i,
   // Piden 5 o más años: no se descartan, pero bajan de prioridad. Con menos de 5 años cuenta como mid aunque diga Senior.
   EXPERIENCE_YEARS_LIMIT: 5,
@@ -74,7 +80,8 @@ const CONFIG = {
     // abiertas a Colombia (o a todo el mundo). En la prueba de ese día: ~44 de diseño en 3 semanas (≈2 al día), 0 créditos.
     // RemoteOK, Working Nomads y We Work Remotely se probaron el mismo día y no traían diseño abierto a Colombia.
     himalayas: { url: 'https://himalayas.app/jobs/api/search?limit=100&country=Colombia&q=',
-                 queries: ['ux designer', 'ui designer', 'product designer', 'ux/ui', 'diseñador ux'] },
+                 queries: ['ux designer', 'ui designer', 'product designer', 'ux/ui', 'diseñador ux',
+                           'service designer', 'ux researcher'] },
     getonbrd: { url: 'https://www.getonbrd.com/api/v0/search/jobs?per_page=100&expand=%5B%22company%22%5D&query=' ,
                 queries: ['ux', 'ui', 'product designer', 'diseñador', 'figma', 'experiencia de usuario', 'diseño de producto'] },
     // LinkedIn: buscador público de empleos (sin sesión, 0 créditos), solo avisos de la última semana (f_TPR=r604800).
@@ -127,6 +134,7 @@ const CONFIG = {
     '"ux designer" OR "ui designer" OR "ux/ui designer"',
     '"junior ux" OR "ux junior" OR "junior product designer"',
     '"ux researcher" OR "investigador ux" OR "design system"',
+    '"service designer" OR "diseñador de servicios" OR "interaction designer"',
   ],
   LINKEDIN_POST_HIRING_TERMS: '("hiring" OR "contratando" OR "buscamos" OR "vacante" OR "estamos buscando")',
   LINKEDIN_POST_LOCATION_TERMS: '("remoto" OR "remote" OR "LATAM" OR "Colombia")',
