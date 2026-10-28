@@ -177,7 +177,10 @@ const CONFIG = {
   // del usuario 2026-10-25: compactar la mañana; antes una sola vez a las 10:00–11:00). Las corridas sin trabajo son cortas.
   CV_EVERY_MINUTES: 10,
   CV_FIRST_HOUR: 5,         // Desde la búsqueda de las 5:00 (mañana condensada, 2026-10-27)
-  CV_LAST_HOUR: 22,          // Hasta las 22:59: también arma las dudosas que el usuario apruebe en la tarde
+  CV_LAST_HOUR: 22,
+  // Retoma de días anteriores (2026-10-28): el 27 oct la tanda de HV falló por el límite de uso del plan de Claude y las 20
+  // vacantes del día quedaron sin HV; la IA y generarCVsDesdeIA también miran los CV_CATCHUP_DAYS días anteriores
+  CV_CATCHUP_DAYS: 2,          // Hasta las 22:59: también arma las dudosas que el usuario apruebe en la tarde
   SHEET_HEADERS: ['Fecha', 'Empresa', 'Cargo', 'Link', 'Match Score', 'Estado', 'Fuente', 'Notas'],
   // Vacantes ya aplicadas por el usuario (carpetas coloreadas: rojo rechazada, verde en proceso, amarillo sin respuesta)
   APPLIED_FOLDER_NAME: 'CV',

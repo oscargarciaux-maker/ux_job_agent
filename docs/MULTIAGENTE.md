@@ -123,7 +123,7 @@ Es una bitácora en la que solo se agregan filas; nadie edita la fila de otro.
 - **Sin WebSockets:** pide datos al abrir y cada 2 minutos. «Actualizar» pide datos frescos. Entre una y otra, el reloj anima a quien tiene turno según el ritmo del día (`RITMO` en la página).
 - Toda la lógica de la página está en `<script id="motor-oficina">`, con pruebas en `tests/oficina.test.js`. Los datos se pintan solo con `textContent`.
 - `#demo` muestra datos de ejemplo inventados, para ver la oficina sin la clave.
-- **Pantallas (decisión de Oscar, 28 oct 2026):** la oficina es «qué hago hoy», el juego es la motivación y el tablero es para el coach. La página privada de claude.ai queda para retirar cuando Oscar lo confirme.
+- **Pantallas (decisión de Oscar, 28 oct 2026):** la oficina es «qué hago hoy», el juego es la motivación y el tablero es para el coach. La página privada de claude.ai se retiró el 28 oct 2026.
 - **Tu tanda de hoy** (28 oct 2026), primera tarjeta de la oficina (`tandaDeHoy`, `resumenTanda`):
   - hasta 5 postulaciones de `Por enviar`, menos las que ya envió hoy (primero las que el editor dejó listas; entre iguales, la más vieja). Cada una con «Postular» (la vacante), «PDF» (descarga al día desde el Doc), «HV», «Copiar mensaje» (`_correo_cuerpo`) y «Ya la envié»;
   - hasta 3 empresas con borradores de correo en frío, con «Gmail» y «Ya los envié» (elige las direcciones);
