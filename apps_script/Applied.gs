@@ -63,6 +63,11 @@ function sincronizarRegistro_(opts) {
     const ss = SpreadsheetApp.openById(getProp_(PROPS.SHEET_ID));
     const sheet = ss.getSheetByName(CONFIG.APPLIED_SHEET_NAME) ||
                   ss.insertSheet(CONFIG.APPLIED_SHEET_NAME, ss.getNumSheets());  // Al final: la hoja 1 sigue siendo el registro
+    try {
+      recordColorChanges_(ss, previousAppliedStatuses_(sheet), rows);
+    } catch (e) {
+      console.error('Cambios de color -> ERROR: ' + e.message);
+    }
     sheet.clear();
     const header = CONFIG.APPLIED_SHEET_HEADERS;
     const values = [header].concat(rows.map(r => [r.group, r.company, r.title, r.status, r.color || '',
@@ -283,6 +288,59 @@ function collectAppliedFolders_(parentId, groupName, rows, inTest, weekName, chi
                 status: test ? 'Preparada, sin enviar' : colorToStatus(f.folderColorRgb), color: f.folderColorRgb,
                 // Fecha de envío: la que deja «Ya la envié» del juego (2026-10-27); si no, la creación de la carpeta
                 created: sentDayFromDescription(f.description) || localDay(f.createdTime, tz_()), week: weekName || groupName });
+  });
+}
+
+/** Estado de cada carpeta en la hoja "Aplicadas" antes de reescribirla: { idCarpeta: estado }. */
+function previousAppliedStatuses_(sheet) {
+  const out = {};
+  if (sheet.getLastRow() < 2) return out;
+  const n = sheet.getLastRow() - 1;
+  const status = sheet.getRange(2, 4, n, 1).getDisplayValues();
+  sheet.getRange(2, 6, n, 1).getFormulas().forEach((f, i) => {
+    const id = extractFolderId(f[0]);
+    if (id) out[id] = String(status[i][0] || '');
+  });
+  return out;
+}
+
+/**
+ * Rechazos y pruebas que Oscar marcó pintando la carpeta en Drive (2026-10-28: Bancolombia se volvió roja y el juego no
+ * mostró el rechazo, porque sin fila en Seguimiento no tenía fecha y quedaba como historia). Una fila con la fecha de hoy.
+ */
+function recordColorChanges_(ss, previous, rows) {
+  const sheet = ss.getSheetByName(CONFIG.FOLLOWUP_SHEET_NAME);
+  if (!sheet || sheet.getLastRow() < 1) return;
+  const values = sheet.getDataRange().getDisplayValues();
+  const today = Utilities.formatDate(new Date(), tz_(), 'yyyy-MM-dd');
+  const records = colorChangeFollowups(previous, rows, values, today);
+  const header = values[0].map(String);
+  records.forEach(r => sheet.appendRow(followupRow(header, r)));
+  if (records.length) console.log('Seguimiento: ' + records.map(r => r['Empresa'] + ' ' + r['Estado nuevo']).join(', '));
+}
+
+/**
+ * Filas para Seguimiento por cada carpeta que ya estaba en "Aplicadas" y pasó a rechazada o en proceso sin que Seguimiento
+ * lo diga (ni el juego ni la skill seguimiento lo anotaron). Las carpetas nuevas no cuentan: una carpeta de antiguas recién
+ * reconocida llenaría el juego de rechazos viejos con la fecha de hoy. `followupValues`: la pestaña con su encabezado.
+ */
+function colorChangeFollowups(previous, rows, followupValues, today) {
+  const followups = dashboardRows(followupValues);
+  return rows.filter(r => {
+    const key = applicationStatusKey(r.status);
+    if (key !== 'rechazada' && key !== 'proceso') return false;
+    if (!(r.id in previous) || applicationStatusKey(previous[r.id]) === key) return false;
+    return !followups.some(f => sameCompany_(f['Empresa'], r.company) &&
+      (!f['Cargo'] || !r.title || sameCompany_(f['Cargo'], r.title)) && applicationStatusKey(f['Estado nuevo']) === key);
+  }).map(r => {
+    const rejected = applicationStatusKey(r.status) === 'rechazada';
+    return {
+      'Fecha revisión': today, 'Empresa': r.company, 'Cargo': r.title, 'Carpeta': (r.group ? r.group + '/' : '') +
+        r.company + (r.title ? '_' + r.title : ''),
+      'Hecho': 'La carpeta pasó a ' + (rejected ? 'rojo' : 'verde') + ' en Drive', 'Fuente': 'Color de la carpeta (sincronización)',
+      'Estado anterior': previous[r.id] || '—', 'Estado nuevo': rejected ? 'Rechazada (rojo)' : 'En proceso (verde)',
+      'Siguiente acción': rejected ? 'Ninguna' : 'Preparar la prueba o entrevista', 'Quién': rejected ? '—' : 'candidato',
+    };
   });
 }
 
