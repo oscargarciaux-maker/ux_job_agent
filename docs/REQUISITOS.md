@@ -129,3 +129,6 @@ Estados: ✅ hecho y probado · 🟡 parcial · ⏳ pendiente · ❓ falta una d
 | Producir menos: máximo 4 HV por tanda (2 con 10 o más sin enviar) y sin lotes de correos con más de 10 borradores | ✅ | `ia/prompt_cv_diario.md`, skill `correo-en-frio`, agente `cartero`, skill `jefe`; `DAILY_LIMIT`=14; aviso en el cartero (`buildAgentsModel`, pruebas) |
 | Vista 3D con pingüinos estilo peluche, rutinas de trabajo con duración real y base ambientada | ✅ | `PUESTOS_TRABAJO_3D`, `conTrabajo`, `segundosDeEscena` (`tests/oficina.test.js`); revisado con capturas |
 | Retoma: si una tanda de la IA falla (límite de uso del plan), la siguiente verifica y arma las vacantes de los 2 días anteriores | ✅ | `recentDays`, `CV_CATCHUP_DAYS` en `generarCVsDesdeIA` (pruebas); `ia/prompt_cv_diario.md` y `ia/prompt_revision_diaria.md` |
+| Prefiltro por país antes de la IA (solo otro país, sin Colombia ni LATAM) | ✅ | `foreignOnlyLocation`, `FOREIGN_LOCATION_PATTERN`, `OPEN_TO_COLOMBIA_PATTERN` (pruebas) |
+| Mismo aviso = misma descripción completa (no solo el inicio, que repite la presentación de la empresa) | ✅ | `distinctPostings` (pruebas con Clara) |
+| Fuente Himalayas (remotas abiertas a Colombia, 0 créditos) | ✅ | `searchHimalayas_`, `parseHimalayasJob` (pruebas) |

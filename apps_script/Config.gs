@@ -70,6 +70,11 @@ const CONFIG = {
     remotive: { url: 'https://remotive.com/api/remote-jobs?category=design&limit=100' },
     // Jobicy: solo vacantes remotas abiertas a LATAM (geo=latam)
     jobicy: { url: 'https://jobicy.com/api/v2/remote-jobs?count=100&geo=latam' },
+    // Himalayas (2026-10-28, más fuentes a pedido del usuario): API pública de empleos remotos; country=Colombia deja las
+    // abiertas a Colombia (o a todo el mundo). En la prueba de ese día: ~44 de diseño en 3 semanas (≈2 al día), 0 créditos.
+    // RemoteOK, Working Nomads y We Work Remotely se probaron el mismo día y no traían diseño abierto a Colombia.
+    himalayas: { url: 'https://himalayas.app/jobs/api/search?limit=100&country=Colombia&q=',
+                 queries: ['ux designer', 'ui designer', 'product designer', 'ux/ui', 'diseñador ux'] },
     getonbrd: { url: 'https://www.getonbrd.com/api/v0/search/jobs?per_page=100&expand=%5B%22company%22%5D&query=' ,
                 queries: ['ux', 'ui', 'product designer', 'diseñador', 'figma', 'experiencia de usuario', 'diseño de producto'] },
     // LinkedIn: buscador público de empleos (sin sesión, 0 créditos), solo avisos de la última semana (f_TPR=r604800).
@@ -103,6 +108,10 @@ const CONFIG = {
     elempleo: { bonus: 3 },
   },
   // Ubicaciones de vacantes remotas a las que se puede aplicar desde Colombia
+  // Prefiltro por país (2026-10-28, foreignOnlyLocation): una vacante cuyo título o ubicación nombra solo otro país se
+  // descarta antes de la IA, salvo que también diga Colombia, LATAM, anywhere o una zona horaria de la región
+  OPEN_TO_COLOMBIA_PATTERN: /colombia|bogot|medell[ií]n|\bcali\b|barranquilla|cartagena|bucaramanga|pereira|manizales|c[uú]cuta|ibagu[eé]|santa marta|latam|latin|am[eé]rica latina|latinoam|south america|sudam[eé]rica|anywhere|worldwide|global|(utc|gmt)\s*[-−]\s*0?[3-6]\b/i,
+  FOREIGN_LOCATION_PATTERN: /(?<![a-z])(costa rica|brasil|brazil|s[aã]o paulo|rio de janeiro|curitiba|itaja[ií]|belo horizonte|florian[oó]polis|porto alegre|ecuador|quito|guayaquil|per[uú]|lima|argentina|buenos aires|m[eé]xico|cdmx|guadalajara|monterrey|chile|santiago de chile|uruguay|montevideo|paraguay|bolivia|venezuela|panam[aá]|guatemala|honduras|el salvador|nicaragua|rep[uú]blica dominicana|puerto rico|united states|estados unidos|canad[aá]|espa[ñn]a|spain|madrid|portugal|lisboa|india|philippines|filipinas)(?![a-z])/i,
   REACHABLE_REMOTE_LOCATION: /worldwide|anywhere|latam|latin|(?<!north )am[eé]ricas?\b|south america|colombia|global|international|(utc|gmt)\s*[-−]\s*0?[3-6]\b/i,
   // Sector preferido (no excluyente): suma puntos al elegir las 10 del día.
   FINTECH_PATTERN: /fintech|banc[oa]|bancari|financier|pagos|payments|cr[eé]dito|neobanco|seguros|insurtech|wallet|billetera|nequi|daviplata|nubank|rappipay/i,
