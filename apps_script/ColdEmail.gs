@@ -315,3 +315,136 @@ function validateColdEmails(data, contextText, contacted) {
   if (!errors.length && !recipients.length) warnings.push('Todos los destinatarios ya estaban usados o rebotados: no se crea ningún borrador');
   return { errors, warnings, recipients: errors.length ? [] : recipients };
 }
+
+/**
+ * Seguimiento de correos en frío sin respuesta (decisión del usuario 2026-10-28: «un borrador corto de seguimiento a los
+ * 7–10 días sin respuesta, solo si hay correo de contacto»). Una vez al día (propiedad FOLLOWUP_DRAFTS_LAST_DAY), para
+ * cada empresa cuyo último envío tiene entre FOLLOWUP_DRAFT_MIN_DAYS y FOLLOWUP_DRAFT_MAX_DAYS días, sin respuesta y sin
+ * seguimiento previo, deja un borrador de respuesta en el mismo hilo (In-Reply-To/References) a la primera dirección que
+ * no rebotó, y anota «Seguimiento: borrador <fecha>» en Notas. Nunca se envía: Oscar lo revisa y lo manda él.
+ */
+function crearBorradoresDeSeguimiento_() {
+  const today = Utilities.formatDate(new Date(), tz_(), 'yyyy-MM-dd');
+  if (getProp_(PROPS.FOLLOWUP_DRAFTS_LAST_DAY) === today) return;
+  const ss = SpreadsheetApp.openById(getProp_(PROPS.SHEET_ID));
+  const sheet = ss.getSheetByName(CONFIG.COLD_EMAIL_SHEET_NAME);
+  setProp_(PROPS.FOLLOWUP_DRAFTS_LAST_DAY, today);
+  if (!sheet || sheet.getLastRow() < 2) return;
+  const width = CONFIG.COLD_EMAIL_SHEET_HEADERS.length;
+  const rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, width).getDisplayValues();
+  const candidates = followupCandidates(rows, today).slice(0, CONFIG.FOLLOWUP_DRAFTS_PER_DAY);
+  candidates.forEach(c => {
+    try {
+      const original = sentMessageFor_(c);
+      if (!original) {
+        console.warn('Seguimiento ' + c.empresa + ' -> no encontré el correo enviado a ' + c.para + '; no se crea borrador');
+        return;
+      }
+      const headers = {};
+      ((original.payload && original.payload.headers) || []).forEach(h => { headers[h.name.toLowerCase()] = h.value; });
+      const subject = /^re:/i.test(headers.subject || c.asunto) ? (headers.subject || c.asunto) : 'Re: ' + (headers.subject || c.asunto);
+      const ref = headers['message-id'];
+      const extra = ref ? ['In-Reply-To: ' + ref, 'References: ' + ((headers.references ? headers.references + ' ' : '') + ref)] : [];
+      const body = followupBody(c, senderName(headers.from));
+      const raw = Utilities.base64EncodeWebSafe(buildMimeMessage(c.para, subject, body, null, extra));
+      Gmail.Users.Drafts.create({ message: { raw: raw, threadId: original.threadId } }, 'me');
+      const note = String(rows[c.fila][7] || '');
+      const stamp = 'Seguimiento: borrador ' + today;
+      sheet.getRange(c.fila + 2, 8).setValue(note ? note + ' | ' + stamp : stamp);
+      console.log('Seguimiento ' + c.empresa + ' -> borrador para ' + c.para + ' (enviado el ' + c.dia + ')');
+    } catch (e) {
+      console.error('Seguimiento ' + c.empresa + ' -> ERROR: ' + e.message);
+    }
+  });
+}
+
+/** El correo enviado: por el id que la skill seguimiento deja en Notas («msg <id>») o, si no, el último enviado a esa dirección. */
+function sentMessageFor_(c) {
+  const opts = { format: 'metadata', metadataHeaders: ['Subject', 'Message-ID', 'References', 'From'] };
+  if (c.mensajeId) {
+    try {
+      return Gmail.Users.Messages.get('me', c.mensajeId, opts);
+    } catch (e) {
+      console.warn('Seguimiento ' + c.empresa + ' -> el id ' + c.mensajeId + ' no abrió: ' + e.message);
+    }
+  }
+  const list = Gmail.Users.Messages.list('me', { q: 'in:sent to:' + c.para, maxResults: 1 });
+  const first = (list.messages || [])[0];
+  return first ? Gmail.Users.Messages.get('me', first.id, opts) : null;
+}
+
+/**
+ * Empresas para seguimiento (puro). rows: filas de «Correos en frío» sin encabezado; today: 'yyyy-MM-dd'. Una por empresa,
+ * en el orden del Sheet: su último envío tiene entre MIN y MAX días, ninguna fila suya dice «Respondió» ni tiene ya un
+ * «Seguimiento:» en Notas, y la fila elegida (la más reciente enviada) tiene una dirección que no rebotó.
+ */
+function followupCandidates(rows, today) {
+  const byCompany = {};
+  const order = [];
+  rows.forEach((row, i) => {
+    const key = followupKey_(row[0]);
+    if (!key) return;
+    if (!byCompany[key]) { byCompany[key] = { rows: [], blocked: false }; order.push(key); }
+    const entry = byCompany[key];
+    if (/respondi/i.test(String(row[5] || '')) || /seguimiento\s*:/i.test(String(row[7] || ''))) entry.blocked = true;
+    entry.rows.push(i);
+  });
+  const out = [];
+  order.forEach(key => {
+    const entry = byCompany[key];
+    if (entry.blocked) return;
+    const sent = entry.rows.map(i => ({ i: i, dia: dayOf_(rows[i][2]) }))
+      .filter(x => x.dia && !/^\s*borrador/i.test(String(rows[x.i][5] || '')) && String(rows[x.i][5] || '').trim());
+    if (!sent.length) return;
+    const last = sent.reduce((a, b) => (b.dia > a.dia ? b : a));
+    const age = daysBetweenDays_(last.dia, today);
+    if (age < CONFIG.FOLLOWUP_DRAFT_MIN_DAYS || age > CONFIG.FOLLOWUP_DRAFT_MAX_DAYS) return;
+    // La fila más reciente con alguna dirección entregada (en un «Rebotado parcialmente», la que no nombra el rebote)
+    const pick = sent.filter(x => x.dia === last.dia).concat(sent).map(x => {
+      const states = contactedAddresses([rows[x.i]]);
+      const ok = Object.keys(states).filter(a => states[a] === 'usado');
+      return ok.length ? { x: x, para: ok[0] } : null;
+    }).filter(Boolean)[0];
+    if (!pick) return;
+    const row = rows[pick.x.i];
+    out.push({
+      empresa: String(row[0]).trim(), para: pick.para, asunto: String(row[3] || ''), dia: pick.x.dia, fila: pick.x.i,
+      mensajeId: (String(row[7] || '').match(/\bmsg\s+([0-9a-f]{12,})/i) || [])[1] || '',
+      ingles: /correo en ingl[eé]s/i.test(String(row[7] || '')),
+    });
+  });
+  return out;
+}
+
+/** Días entre dos fechas 'yyyy-MM-dd'. */
+function daysBetweenDays_(from, to) {
+  const t = d => Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10));
+  return Math.round((t(to) - t(from)) / 86400000);
+}
+
+/** Nombre visible del remitente («Oscar Garcia <a@b.co>» -> «Oscar Garcia»); '' si no trae. */
+function senderName(fromHeader) {
+  const m = String(fromHeader || '').match(/^\s*"?([^"<]+?)"?\s*</);
+  return m ? m[1].trim() : '';
+}
+
+/**
+ * Texto del seguimiento (puro): corto (menos de COLD_EMAIL_MAX_WORDS sin la firma), en el idioma del primer correo, sin
+ * cifras ni datos nuevos —solo recuerda el envío y propone los 10 minutos de la guía de cover letters—. Oscar lo ajusta.
+ */
+function followupBody(c, name) {
+  const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre',
+                  'noviembre', 'diciembre'];
+  const monthsEn = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October',
+                    'November', 'December'];
+  const day = +c.dia.slice(8, 10), month = +c.dia.slice(5, 7) - 1;
+  const sign = name ? '\n' + name : '';
+  if (c.ingles) {
+    return 'Hi, following up on my email from ' + monthsEn[month] + ' ' + day + ' in case it got buried. I would still ' +
+      'love to help ' + c.empresa + ' as a UX/UI designer. Could we talk for 10 minutes this week or next?' +
+      '\n\nThank you,' + sign;
+  }
+  return 'Hola, retomo mi correo del ' + day + ' de ' + months[month] + ' por si quedó entre otros mensajes. Me sigue ' +
+    'interesando aportar como diseñador UX/UI en ' + c.empresa + '. ¿Tendrían 10 minutos esta semana o la próxima?' +
+    '\n\nGracias,' + sign;
+}

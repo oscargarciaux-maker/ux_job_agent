@@ -33,6 +33,7 @@ La máquina de hielo (Apps Script) y el trineo (GitHub Actions) corren solos con
    - Un enlace → `vigia` → `inspector` → si queda LISTA o MENOR_PRIORIDAD → `escriba` → (la máquina la arma, unos 10 min) → `editor` → `cartero`, solo si la vacante trae correo.
    - «Escríbele a X» → `escriba` (modo empresa) → `editor` → `cartero`.
    - «Más empresas» → `exploradora`; si Oscar lo pide, después `cartero` con un lote de 3.
+   - **Producir menos (28 oct 2026):** el cuello de botella es que Oscar envíe, no que el equipo escriba. Con más de 10 borradores de correos en frío sin enviar, no encargues lotes nuevos al `cartero` (solo una empresa que Oscar nombre); con 10 o más HV sin enviar en «Sin revisar», propón primero su tanda de hoy en la oficina antes de pedir HV nuevas.
 3. **Delega:**
    - Con la herramienta Agent y el `subagent_type` del agente (sus archivos están en `.claude/agents/<id>.md`).
    - Si ese tipo no existe en esta sesión (tareas programadas sin el repositorio), descarga `https://raw.githubusercontent.com/oscargarciaux-maker/ux_job_agent/main/.claude/agents/<id>.md` y lanza un agente general con ese texto como instrucciones, más el encargo.

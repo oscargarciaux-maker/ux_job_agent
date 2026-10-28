@@ -14,7 +14,13 @@ function sincronizarAplicadas() {
   } catch (e) {
     console.error('Correos en frío -> ERROR: ' + e.message);
   }
-  sincronizarRegistro_();
+  sincronizarRegistro_({ pdf: true });
+  // Seguimiento de correos en frío sin respuesta (2026-10-28): un borrador corto en el mismo hilo, una vez al día
+  try {
+    crearBorradoresDeSeguimiento_();
+  } catch (e) {
+    console.error('Borradores de seguimiento -> ERROR: ' + e.message);
+  }
   try {
     writeSourceQuality_();
   } catch (e) {
@@ -28,8 +34,9 @@ function sincronizarAplicadas() {
  * recalculaba con el Sheet de la última hora y no se veían las carpetas recién movidas). Las carpetas se leen con una sola
  * consulta a Drive (folderChildren_) para que el botón responda en segundos. Si otra sincronización está corriendo, espera
  * hasta un minuto a que termine; si sigue ocupada, se usa lo que ella deje. Devuelve el JSON del tablero (o null).
+ * opts.pdf (solo la corrida de cada hora): renueva el PDF de las HV por enviar; el botón no lo hace para responder rápido.
  */
-function sincronizarRegistro_() {
+function sincronizarRegistro_(opts) {
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(60000)) {
     console.warn('Otra sincronización sigue corriendo: se usa lo que ella deje');
@@ -71,7 +78,7 @@ function sincronizarRegistro_() {
     console.log('Aplicadas sincronizadas: ' + rows.length + ' ' + JSON.stringify(count));
     lap('Aplicadas');
     try {
-      writePendingCvs_(ss, root, children);
+      writePendingCvs_(ss, root, children, !!(opts && opts.pdf));
     } catch (e) {
       console.error('Por enviar -> ERROR: ' + e.message);
     }
@@ -117,17 +124,25 @@ function folderChildren_() {
  * HV preparadas que el usuario aún no envía (2026-10-25): cada Sin revisar/<fecha>/<vacante> con una HV (Google Doc o
  * PDF HV_/CV_) va a la hoja "Por enviar" con su verificación y su revisión. Al enviarla, el usuario mueve la carpeta a
  * CV/<semana> y sale de esta lista en la siguiente sincronización.
+ * Paquete de envío (2026-10-28): con exportPdf, el PDF de cada HV se crea o se renueva si el Doc cambió después (Oscar
+ * retoca el Doc; el PDF es lo que sube al portal), como máximo CONFIG.PENDING_PDF_PER_RUN por corrida. La columna Mensaje
+ * trae el _correo_cuerpo de CV_IA.json para copiarlo; se reutiliza el de la corrida anterior para no releer cada JSON.
  */
-function writePendingCvs_(ss, root, children) {
+function writePendingCvs_(ss, root, children, exportPdf) {
   children = children || listChildFolders_;
+  const sheet = ss.getSheetByName(CONFIG.PENDING_CV_SHEET_NAME) || ss.insertSheet(CONFIG.PENDING_CV_SHEET_NAME, ss.getNumSheets());
+  const header = CONFIG.PENDING_CV_SHEET_HEADERS;
+  const previous = previousPendingMessages_(sheet, header);
   const rows = [];
+  let exported = 0;
   const pending = root.getFoldersByName(CONFIG.PENDING_FOLDER_NAME);
   if (pending.hasNext()) {
     children(pending.next().getId()).forEach(day => {
       children(day.id).forEach(f => {
         if (f.name === CONFIG.POSTS_FOLDER_NAME || f.name === CONFIG.DOUBTFUL_FOLDER_NAME) return;
         const files = listChildFiles_(f.id);
-        const hv = files.find(isCvFile_);
+        const cv = pendingCvFiles(files);
+        const hv = cv.doc || cv.pdf;
         if (!hv) return;
         const text = name => {
           const file = files.find(x => x.name === name);
@@ -135,21 +150,80 @@ function writePendingCvs_(ss, root, children) {
         };
         const record = pendingCvRecord(day.name, f.name, files.filter(isCvFile_).map(x => x.name),
                                        text(CONFIG.VERIFICATION_FILE_NAME), text('Revision.txt'));
-        if (record) rows.push(Object.assign(record, { id: f.id, hvId: hv.id }));
+        if (!record) return;
+        let pdf = cv.pdf;
+        if (exportPdf && cv.stale && exported < CONFIG.PENDING_PDF_PER_RUN) {
+          try {
+            pdf = refreshPendingPdf_(f.id, cv);
+            exported++;
+          } catch (e) {
+            console.warn(f.name + ' -> no se pudo exportar el PDF: ' + e.message);
+          }
+        }
+        let message = previous[f.id];
+        if (message === undefined) {
+          try {
+            message = pendingMessage(text(CONFIG.CV_JSON_NAME));
+          } catch (e) {
+            message = '';
+          }
+        }
+        rows.push(Object.assign(record, { id: f.id, hvId: hv.id, hv: hv.name, pdfId: pdf ? pdf.id : '', mensaje: message }));
       });
     });
   }
   rows.sort((a, b) => (a.fecha < b.fecha ? 1 : a.fecha > b.fecha ? -1 : 0));
-  const sheet = ss.getSheetByName(CONFIG.PENDING_CV_SHEET_NAME) || ss.insertSheet(CONFIG.PENDING_CV_SHEET_NAME, ss.getNumSheets());
   sheet.clear();
-  const header = CONFIG.PENDING_CV_SHEET_HEADERS;
   const values = [header].concat(rows.map(r => [r.fecha, r.empresa, r.cargo, r.verificacion, r.revision,
     '=HYPERLINK("https://drive.google.com/drive/folders/' + r.id + '","Abrir")',
-    '=HYPERLINK("https://drive.google.com/open?id=' + r.hvId + '","' + r.hv.replace(/"/g, "'") + '")']));
+    '=HYPERLINK("https://drive.google.com/open?id=' + r.hvId + '","' + r.hv.replace(/"/g, "'") + '")',
+    r.pdfId ? '=HYPERLINK("https://drive.google.com/open?id=' + r.pdfId + '","PDF")' : '',
+    r.mensaje]));
   sheet.getRange(1, 1, values.length, header.length).setValues(values);
   sheet.getRange(1, 1, 1, header.length).setFontWeight('bold');
   sheet.setFrozenRows(1);
-  console.log('Por enviar: ' + rows.length + ' HV en ' + CONFIG.PENDING_FOLDER_NAME);
+  console.log('Por enviar: ' + rows.length + ' HV en ' + CONFIG.PENDING_FOLDER_NAME + (exported ? ' (' + exported + ' PDF nuevos)' : ''));
+}
+
+/** Mensaje de la corrida anterior por id de carpeta (sale de la fórmula de la columna Carpeta). */
+function previousPendingMessages_(sheet, header) {
+  const out = {};
+  const col = header.indexOf('Mensaje');
+  if (col < 0 || sheet.getLastRow() < 2 || sheet.getLastColumn() < col + 1) return out;
+  const n = sheet.getLastRow() - 1;
+  const folders = sheet.getRange(2, header.indexOf('Carpeta') + 1, n, 1).getFormulas();
+  const messages = sheet.getRange(2, col + 1, n, 1).getValues();
+  folders.forEach((row, i) => {
+    const id = (String(row[0]).match(/folders\/([\w-]+)/) || [])[1];
+    if (id) out[id] = String(messages[i][0] || '');
+  });
+  return out;
+}
+
+/** Crea o renueva el PDF de la HV: el anterior va a la papelera (el Sheet se reescribe con el enlace nuevo). */
+function refreshPendingPdf_(folderId, cv) {
+  const blob = DriveApp.getFileById(cv.doc.id).getAs(MimeType.PDF).setName(cv.doc.name + '.pdf');
+  const file = DriveApp.getFolderById(folderId).createFile(blob);
+  if (cv.pdf) DriveApp.getFileById(cv.pdf.id).setTrashed(true);
+  return { id: file.getId(), name: file.getName() };
+}
+
+/**
+ * La HV de una carpeta: el Google Doc manda (Oscar lo retoca) y el PDF es su copia para enviar. stale = hay Doc y el PDF
+ * falta o es anterior a la última edición del Doc (modifiedTime en ISO, comparable como texto).
+ */
+function pendingCvFiles(files) {
+  const cvs = files.filter(isCvFile_);
+  const doc = cvs.find(f => f.mimeType === 'application/vnd.google-apps.document') || null;
+  const pdf = cvs.find(f => f.mimeType === 'application/pdf') || null;
+  return { doc: doc, pdf: pdf, stale: !!doc && (!pdf || String(pdf.modifiedTime || '') < String(doc.modifiedTime || '')) };
+}
+
+/** Texto para copiar al postular: _correo_cuerpo de CV_IA.json ('' si no hay JSON o no lo trae). */
+function pendingMessage(jsonText) {
+  if (!String(jsonText || '').trim()) return '';
+  const body = parseCvJson(jsonText)._correo_cuerpo;
+  return typeof body === 'string' ? body.trim() : '';
 }
 
 /** Una HV generada: Google Doc o PDF cuyo nombre empieza por HV_ o CV_ (no CV_IA.json ni CV_IA_ERRORES.txt). */
@@ -177,7 +251,7 @@ function listChildFiles_(parentId) {
   do {
     const res = Drive.Files.list({
       q: "'" + parentId + "' in parents and mimeType != 'application/vnd.google-apps.folder' and trashed = false",
-      fields: 'nextPageToken, files(id, name, mimeType)', pageSize: 1000, pageToken: pageToken,
+      fields: 'nextPageToken, files(id, name, mimeType, modifiedTime)', pageSize: 1000, pageToken: pageToken,
     });
     (res.files || []).forEach(f => out.push(f));
     pageToken = res.nextPageToken;

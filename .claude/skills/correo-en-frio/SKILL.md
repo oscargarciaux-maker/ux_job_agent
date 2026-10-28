@@ -28,6 +28,11 @@ mensaje de LinkedIn, ni formulario): solo borradores. Trabajo a pedido y por lot
   aprobó); cualquier otra que no venga de esas dos fuentes la aprueba él antes.
 - **"Crea los correos"** (modo tandas, decisión del usuario, 24 oct 2026): todas las empresas con Estado `Nueva` de
   `Empresas objetivo` (o las que nombre), en ese orden, **de 3 en 3**. Ver "Modo tandas" más abajo.
+- **Tope de borradores (decisión del usuario, 28 oct 2026: producir menos, el cuello de botella es enviar).** Antes de
+  un lote nuevo, cuenta en la pestaña `Correos en frío` las direcciones con Estado `Borrador preparado, no enviado`. Si
+  son **más de 10**, no prepares un lote nuevo («siguiente lote» y «crea los correos» quedan en pausa): dile al candidato
+  cuántos borradores esperan y que los envíe primero desde la tarjeta «Tu tanda de hoy» de la oficina. Solo sigue si él
+  lo pide explícitamente para una empresa concreta («escríbele a X»).
 - **Antes de empezar, lee el Sheet** `Vacantes UX - Registro` (siempre, aunque la empresa venga de `Empresas objetivo`:
   pudo recibir correo después) y descarta: empresas ya contactadas (pestaña `Correos en frío`, también las que tienen
   solo el borrador preparado), empresas con postulación en curso

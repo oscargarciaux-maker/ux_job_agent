@@ -477,6 +477,81 @@ assert.ok(context.isCvFile_({ name: 'CV_Oscar.pdf', mimeType: 'application/pdf' 
 assert.ok(!context.isCvFile_({ name: 'CV_IA.json', mimeType: 'application/vnd.google-apps.document' }));
 assert.ok(!context.isCvFile_({ name: 'HV_notas.txt', mimeType: 'text/plain' }));
 
+// Paquete de envío (2026-10-28): el Doc manda; el PDF se renueva si el Doc cambió después
+{
+  const doc = { id: 'd1', name: 'HV_Oscar_UX', mimeType: 'application/vnd.google-apps.document', modifiedTime: '2026-10-28T12:00:00.000Z' };
+  const oldPdf = { id: 'p1', name: 'HV_Oscar_UX.pdf', mimeType: 'application/pdf', modifiedTime: '2026-10-28T10:00:00.000Z' };
+  const newPdf = Object.assign({}, oldPdf, { modifiedTime: '2026-10-28T13:00:00.000Z' });
+  const files = list => JSON.parse(JSON.stringify(context.pendingCvFiles(list)));
+  assert.strictEqual(files([oldPdf, doc]).doc.id, 'd1', 'la HV es el Doc aunque el PDF salga primero');
+  assert.strictEqual(files([oldPdf, doc]).stale, true, 'el Doc se retocó después del PDF');
+  assert.strictEqual(files([newPdf, doc]).stale, false);
+  assert.strictEqual(files([doc]).stale, true, 'sin PDF hay que exportarlo');
+  assert.strictEqual(files([oldPdf]).stale, false, 'un PDF suelto (sin Doc) se deja como está');
+  assert.strictEqual(files([{ name: 'CV_IA.json', mimeType: 'application/vnd.google-apps.document' }]).doc, null);
+  assert.strictEqual(context.pendingMessage(JSON.stringify({ _correo_cuerpo: '  Hola, adjunto mi HV.  ' })), 'Hola, adjunto mi HV.');
+  assert.strictEqual(context.pendingMessage(''), '');
+  assert.strictEqual(context.pendingMessage('{"_idioma":"es"}'), '');
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(run("CONFIG.PENDING_CV_SHEET_HEADERS").slice(-2))), ['PDF', 'Mensaje']);
+  assert.strictEqual(context.docPdfExportUrl('https://drive.google.com/open?id=1AbCdEfGhIjK', 'HV_Oscar'),
+    'https://docs.google.com/document/d/1AbCdEfGhIjK/export?format=pdf');
+  assert.strictEqual(context.docPdfExportUrl('https://drive.google.com/open?id=1AbCdEfGhIjK', 'HV_Oscar.pdf'), '');
+  assert.strictEqual(context.docPdfExportUrl('', 'HV_Oscar'), '');
+}
+
+// Seguimiento de correos en frío (2026-10-28): uno por empresa, 8 a 30 días, sin respuesta ni rebote
+{
+  const r = (empresa, para, fecha, estado, respuesta, notas) => [empresa, para, fecha, 'Asunto ' + empresa, 'HV.pdf', estado, respuesta || '', notas || ''];
+  const rows = [
+    r('LinkTic', 'lider@linktic.com', '2026-10-20 12:59', 'Enviado, sin rebote', 'Sin respuesta', 'msg 1a15a784599c7f4a'),
+    r('Ludus', 'contacto@ludus.com; info@ludus.com; talent@ludus.com (BCC)', '2026-10-20 17:12', 'Rebotado parcialmente',
+      'Rebotes 20-oct: info@ y talent@ (550)', 'msg 1a15b5f28090ca88'),
+    r('Ceiba', 'a@ceiba.com.co', '2026-10-20 17:36', 'Respondió', 'vacante no activa', ''),
+    r('Dazzle', 'vlad@blue.co.uk', '2026-10-15 18:57', 'Rebotado', '550 5.1.1', ''),
+    r('OLSoftware', 'francia@ol.com', '2026-10-20 10:51', 'Enviado, sin rebote', 'Sin respuesta', 'msg 1a15f291ae3f73b7'),
+    r('OLSoftware', 'jobs@ol.com', '2026-10-20 10:51', 'Enviado, sin rebote', 'Sin respuesta', 'msg 1a15f291e6baff2f'),
+    r('Leanware', 'info@leanware.co', '2026-10-25 10:51', 'Enviado, sin rebote', '', ''),
+    r('Movii', 'jobs@movii.com.co', '—', 'Borrador preparado, no enviado', '', ''),
+    r('Globant', 'hi@globant.com', '2026-10-01 10:51', 'Enviado, sin rebote', '', ''),
+    r('Koombea', 'recruiting@koombea.com', '2026-10-19 09:00', 'Enviado (registrado desde el juego)', '', 'Correo en inglés.'),
+    r('Zemoga', 'jobs@zemoga.com', '2026-10-18 09:00', 'Enviado, sin rebote', '', 'msg 1a | Seguimiento: borrador 2026-10-27'),
+  ];
+  const c = JSON.parse(JSON.stringify(context.followupCandidates(rows, '2026-10-28')));
+  assert.deepStrictEqual(c.map(x => x.empresa), ['LinkTic', 'Ludus', 'OLSoftware', 'Globant', 'Koombea'], 'en el orden del Sheet');
+  assert.ok(!c.some(x => x.empresa === 'Ceiba'), 'respondió');
+  assert.ok(!c.some(x => x.empresa === 'Dazzle'), 'rebotó');
+  assert.ok(!c.some(x => x.empresa === 'Leanware'), 'solo 3 días');
+  assert.ok(!c.some(x => x.empresa === 'Movii'), 'nunca se envió');
+  assert.ok(!c.some(x => x.empresa === 'Zemoga'), 'ya tiene seguimiento');
+  assert.ok(c.some(x => x.empresa === 'Globant'), '27 días: todavía cabe');
+  assert.strictEqual(c.filter(x => x.empresa === 'OLSoftware').length, 1, 'uno por empresa');
+  assert.strictEqual(c.find(x => x.empresa === 'Ludus').para, 'contacto@ludus.com', 'la dirección que no rebotó');
+  assert.strictEqual(c.find(x => x.empresa === 'LinkTic').mensajeId, '1a15a784599c7f4a');
+  assert.strictEqual(c.find(x => x.empresa === 'LinkTic').fila, 0);
+  assert.strictEqual(c.find(x => x.empresa === 'Koombea').ingles, true);
+  assert.strictEqual(context.followupCandidates(rows, '2026-11-25').length, 0, 'pasados 30 días ya no se insiste');
+  const es = context.followupBody(c.find(x => x.empresa === 'LinkTic'), 'Oscar Garcia');
+  assert.ok(/20 de octubre/.test(es) && /LinkTic/.test(es) && /Oscar Garcia$/.test(es));
+  assert.ok(context.countEmailWords(es.split('\n\n')[0]) <= run('CONFIG.COLD_EMAIL_MAX_WORDS'), 'corto, como pide la guía');
+  const en = context.followupBody(c.find(x => x.empresa === 'Koombea'), '');
+  assert.ok(/^Hi,/.test(en) && /October 19/.test(en) && /Thank you,$/.test(en));
+  assert.ok(context.countEmailWords(en.split('\n\n')[0]) <= run('CONFIG.COLD_EMAIL_MAX_WORDS'));
+  assert.strictEqual(context.senderName('"Oscar Garcia" <x@y.co>'), 'Oscar Garcia');
+  assert.strictEqual(context.senderName('x@y.co'), '');
+  assert.strictEqual(context.daysBetweenDays_('2026-10-20', '2026-10-28'), 8);
+  assert.strictEqual(context.daysBetweenDays_('2026-10-28', '2026-11-02'), 5);
+  // Notas: estado del seguimiento y la acción «Ya lo envié»
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(context.followupNoteState('msg 1 | Seguimiento: borrador 2026-10-28'))), { estado: 'borrador', dia: '2026-10-28' });
+  assert.strictEqual(context.followupNoteState('msg 1'), null);
+  assert.strictEqual(context.followupNoteSent('msg 1 | Seguimiento: borrador 2026-10-28', '2026-10-29'), 'msg 1 | Seguimiento: enviado 2026-10-29');
+  assert.strictEqual(context.followupNoteSent('msg 1', '2026-10-29'), 'msg 1');
+  assert.ok(run('GAME_ACTIONS_').includes('seguimiento'));
+  // Las cabeceras del hilo van antes del cuerpo y el borrador sigue siendo solo un borrador
+  const mime = context.buildMimeMessage('a@b.co', 'Re: Hola', 'Texto', null, ['In-Reply-To: <x@y>', 'References: <x@y>']);
+  assert.ok(mime.indexOf('In-Reply-To: <x@y>') > mime.indexOf('Subject:') && mime.indexOf('In-Reply-To') < mime.indexOf('MIME-Version'));
+  assert.ok(!/In-Reply-To/.test(context.buildMimeMessage('a@b.co', 'Hola', 'Texto', null)));
+}
+
 // Mañana compacta (2026-10-25): generarCVsDesdeIA corre cada 10 min, solo trabaja dentro de su ventana
 assert.ok(!context.isWithinCvWindow(4) && context.isWithinCvWindow(5) && context.isWithinCvWindow(22) &&
   !context.isWithinCvWindow(23));
@@ -964,6 +1039,12 @@ assert.ok(fs.readFileSync(path.join(__dirname, '..', 'instalador', 'Cargador.gs'
   assert.strictEqual(dia.o.jefe.estado, 'trabajando');
   assert.ok(/1 pedido abierto/.test(dia.o.jefe.resumen));
   assert.strictEqual(dia.m.mensajes[0].de, 'inspector', 'el mensaje más nuevo primero');
+  // Producir menos (2026-10-28): con más de 10 borradores el cartero no prepara lotes nuevos; cuenta los seguimientos
+  const muchos = Array.from({ length: 11 }, (x, i) => ({ empresa: 'E' + i, clave: 'borrador', fecha: '—' }))
+    .concat([{ empresa: 'Krill', clave: 'enviado', fecha: '2026-10-18 09:00', seguimiento: { estado: 'borrador', dia: '2026-10-28' } }]);
+  const cart = equipo({ correos: muchos }, '2026-10-28 09:00').o.cartero;
+  assert.ok(/11 borradores listos/.test(cart.resumen) && /1 seguimiento/.test(cart.resumen) && /sin lotes nuevos hasta que queden 10/.test(cart.resumen), cart.resumen);
+  assert.ok(!/sin lotes/.test(equipo({ correos: muchos.slice(1) }, '2026-10-28 09:00').o.cartero.resumen), 'con 10 sigue preparando');
   // Una fila «en curso» de hace más de 3 horas ya no cuenta como trabajando
   const tarde = equipo({ agentes: bitacora }, '2026-10-28 11:00');
   assert.notStrictEqual(tarde.o.inspector.estado, 'trabajando');

@@ -17,6 +17,7 @@ La carpeta `Vacantes con IA/Correos en frío/<Empresa>/` con su HV (`HV_…` rev
 - Máximo 35 palabras, gancho verificado + métrica de `CONTEXTO_CV` + CTA de 10 minutos + adjuntos. Al menos 3 direcciones publicadas, cada una con su fuente.
 - La HV la pides al jefe para que la haga el escriba y la revise el editor; no la escribes tú.
 - Nunca envías: solo borradores, que Oscar revisa y envía.
+- Con más de 10 borradores sin enviar en `Correos en frío` no preparas un lote nuevo: lo dices y esperas a que Oscar los envíe (solo una empresa que él nombre explícitamente pasa; decisión de Oscar, 28 oct 2026).
 
 ## Bitácora (pestaña `Agentes`)
 Al empezar y al terminar, agrega una fila a la pestaña `Agentes` del Sheet «Vacantes UX - Registro» (búscalo por nombre en Drive; conector de Google Sheets, `append_values` en `Agentes!A:I`): `Fecha y hora` (yyyy-MM-dd HH:mm, Bogotá), `De` = `cartero`, `Para` = quien te encargó (`jefe` u `oscar`), `Tipo` (`avance` al empezar, `resultado` o `pregunta` al terminar), `Asunto` (≤ 80 caracteres), `Estado` (`en curso` / `hecho` / `bloqueado`), `Detalle` (≤ 300), `Enlace` y el `Id` del pedido que te dieron (`DIARIO-<yyyyMMdd>` si vienes de una tarea programada). Si la pestaña no existe o la escritura falla, sigue con tu trabajo: la bitácora nunca lo detiene. Protocolo completo: `docs/MULTIAGENTE.md` §3.

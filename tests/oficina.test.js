@@ -127,4 +127,105 @@ const sw = fs.readFileSync(path.join(dir, 'oficina-sw.js'), 'utf8');
 assert.ok(/url\.origin !== self\.location\.origin/.test(sw), 'el service worker no toca los datos de script.google.com');
 assert.ok(/scope: '\.\/oficina\.html'/.test(html), 'el service worker solo controla la oficina (no el juego ni el tablero)');
 
+// Tanda de hoy (2026-10-28): lo que Oscar envía hoy, con el PDF, el mensaje y los borradores a mano
+{
+  const pe = (empresa, fecha, revision, verificacion, extra) => Object.assign({ empresa, fecha, revision, verificacion, cargo: 'UX',
+    carpeta: 'https://drive.google.com/drive/folders/1' + empresa.replace(/\W/g, '') + 'xxxxxxxxxx', hv: 'https://drive.google.com/open?id=1abcdefghijk' }, extra || {});
+  const d = {
+    hoy: '2026-10-28', cuenta: 'oscar@laboral.example',
+    porEnviar: [
+      pe('Vieja Revisar', '2026-10-20', 'Revisar', 'Lista'),
+      pe('Nueva Lista', '2026-10-27', 'Lista para enviar', 'Lista', { mensaje: 'Hola', pdfDescarga: 'https://docs.google.com/document/d/x/export?format=pdf', pdf: 'https://drive.google.com/open?id=p' }),
+      pe('Vieja Lista', '2026-10-22', 'Lista para enviar', 'Menor prioridad'),
+      pe('Otra Lista', '2026-10-21', 'Lista para enviar', 'Lista'),
+      pe('Sin revisión', '2026-10-26', 'Sin revisión', 'Lista'),
+      pe('Sexta', '2026-10-26', 'Sin revisión', 'Menor prioridad'),
+    ],
+    postulaciones: { lista: [{ empresa: 'X', clave: 'aplicada', creada: '2026-10-28' }, { empresa: 'Y', clave: 'aplicada', creada: '2026-10-27' },
+                             { empresa: 'Z', clave: 'preparada', creada: '2026-10-28' }] },
+    correos: { borradores: 12, tope: 10, lista: [
+      { empresa: 'Hoy SA', clave: 'enviado', dia: '2026-10-28', para: 'a@hoy.co' },
+      { empresa: 'Riesgo', clave: 'borrador', para: 'soporte@r.co', notas: 'ADVERTENCIA: ruta de soporte' },
+      { empresa: 'Buena', clave: 'borrador', para: 'talento@b.co', notas: '' },
+      { empresa: 'Buena', clave: 'borrador', para: 'hola@b.co', notas: '' },
+      { empresa: 'Tercera', clave: 'borrador', para: 't@t.co' },
+      { empresa: 'Cuarta', clave: 'borrador', para: 'c@c.co' },
+      { empresa: 'Krill', clave: 'enviado', dia: '2026-10-18', para: 'k@k.co', seguimiento: { estado: 'borrador', dia: '2026-10-28' } },
+      { empresa: 'Krill', clave: 'enviado', dia: '2026-10-18', para: 'k2@k.co', seguimiento: { estado: 'borrador', dia: '2026-10-28' } },
+      { empresa: 'Hecho', clave: 'enviado', dia: '2026-10-10', para: 'h@h.co', seguimiento: { estado: 'enviado', dia: '2026-10-20' } },
+    ] },
+  };
+  const t = J(F('tandaDeHoy')(d));
+  assert.strictEqual(t.enviadasHoy, 1, 'solo cuentan las enviadas hoy (las preparadas no)');
+  assert.strictEqual(t.postulaciones.length, 4, 'tanda de 5 menos la que ya envió hoy');
+  assert.deepStrictEqual(t.postulaciones.map(p => p.empresa), ['Otra Lista', 'Nueva Lista', 'Vieja Lista', 'Vieja Revisar'],
+    'primero las que el editor dejó listas y verificadas como lista, y entre iguales la más vieja');
+  const nl = t.postulaciones.find(p => p.empresa === 'Nueva Lista');
+  assert.strictEqual(nl.pdf, 'https://docs.google.com/document/d/x/export?format=pdf', 'el PDF al día desde el Doc manda');
+  assert.strictEqual(nl.mensaje, 'Hola');
+  assert.ok(nl.id && nl.lista);
+  assert.strictEqual(t.porEnviar, 6);
+  assert.deepStrictEqual(t.correos.map(g => g.empresa), ['Buena', 'Tercera'], 'tanda de 3 menos la de hoy; las de riesgo al final');
+  assert.strictEqual(t.correos[0].filas.length, 2);
+  assert.strictEqual(t.empresasConBorrador, 4);
+  assert.strictEqual(t.correosHoy, 1);
+  assert.deepStrictEqual(t.seguimientos.map(s => s.empresa), ['Krill'], 'un seguimiento por empresa y solo los borradores');
+  assert.strictEqual(t.sobreTope, true);
+  assert.strictEqual(t.minutos, Math.round(4 * 3 + 2 * 1.5 + 1));
+  assert.strictEqual(t.hechas, 2);
+  assert.strictEqual(t.meta, 2 + 4 + 2);
+  assert.strictEqual(F('resumenTanda')(t), '4 postulaciones, 2 empresas con correos y 1 seguimiento · unos 20 min');
+  const vacia = J(F('tandaDeHoy')({ hoy: '2026-10-28' }));
+  assert.strictEqual(F('resumenTanda')(vacia), 'Nada por enviar hoy. Mañana a las 5:00 llega más.');
+  assert.strictEqual(vacia.sobreTope, false);
+  assert.strictEqual(F('resumenTanda')(J(F('tandaDeHoy')({ hoy: '2026-10-28', postulaciones: { lista: [{ clave: 'aplicada', creada: '2026-10-28' }] } }))),
+    '¡Tanda de hoy completa! Mañana a las 5:00 llega más.');
+  assert.strictEqual(F('enlaceGmail')('oscar@laboral.example', 'in:drafts "Buena"'), 'https://mail.google.com/mail/u/oscar@laboral.example/#search/in%3Adrafts%20%22Buena%22');
+  assert.strictEqual(F('enlaceGmail')('<x>', 'a'), 'https://mail.google.com/mail/u/x/#search/a', 'la cuenta no inyecta nada en el enlace');
+  assert.strictEqual(F('idCarpeta')('https://drive.google.com/drive/folders/1AbCdEfGhIjK'), '1AbCdEfGhIjK');
+  // La demostración trae una tanda para ver la tarjeta sin datos reales
+  const demo = J(F('tandaDeHoy')(F('modeloDemo')('2026-10-28 09:00')));
+  assert.ok(demo.postulaciones.length >= 2 && demo.correos.length >= 1 && demo.seguimientos.length === 1 && demo.sobreTope);
+}
+
+// Rutinas y tiempos reales (2026-10-28): cada especialista tiene un puesto de trabajo y el guion intercala su trabajo
+{
+  const PT = F('PUESTOS_TRABAJO_3D'), EST = F('ESTACIONES_3D');
+  ['jefe'].concat(J(F('ORDEN'))).forEach(id => {
+    const q = PT[id];
+    assert.ok(q && q.que, 'puesto de trabajo para ' + id);
+    assert.ok(Math.hypot(q.x, q.z) < 13, id + ': dentro de la base');
+    Object.keys(EST).forEach(otro => assert.ok(Math.hypot(q.x - EST[otro][0], q.z - EST[otro][1]) > 1.2, id + ': su puesto no pisa el de ' + otro));
+  });
+  assert.strictEqual(F('segundosDeEscena')(0), 4);
+  assert.strictEqual(F('segundosDeEscena')(30), 16, '30 min reales = 16 s');
+  assert.strictEqual(F('segundosDeEscena')(600), 20, 'con tope');
+  assert.strictEqual(F('duracionTexto')(30), '30 min');
+  assert.strictEqual(F('duracionTexto')(95), '1 h 35 min');
+  assert.strictEqual(F('duracionTexto')(120), '2 h');
+  const pasos = J(F('guionInteracciones')([
+    { hora: '2026-10-28 06:50', de: 'escriba', para: 'jefe', tipo: 'resultado', asunto: 'HV lista', id: 'P-1' },
+    { hora: '2026-10-28 06:30', de: 'escriba', para: 'jefe', tipo: 'avance', asunto: 'Voy', id: 'P-2' },
+    { hora: '2026-10-28 06:20', de: 'jefe', para: 'escriba', tipo: 'encargo', asunto: 'Escribe la HV', id: 'P-1' },
+    { hora: '2026-10-28 06:15', de: 'jefe', para: 'radio', tipo: 'encargo', asunto: 'Seguimiento', id: 'P-3' },
+    { hora: '2026-10-28 06:10', de: 'oscar', para: 'jefe', tipo: 'pedido', asunto: 'HV', id: 'P-1' },
+  ], '2026-10-28 07:00', 8));
+  assert.strictEqual(pasos[0].id, 'P-1', 'el guion lleva el Id del pedido');
+  const g = J(F('conTrabajo')(pasos, '2026-10-28 07:00'));
+  assert.deepStrictEqual(g.map(p => p.de + ':' + p.tipo), ['oscar:pedido', 'jefe:trabajo', 'jefe:encargo', 'radio:trabajo', 'jefe:encargo',
+    'escriba:trabajo', 'escriba:avance', 'escriba:resultado']);
+  const tJefe = g[1], tRadio = g[3], tEscriba = g[5];
+  assert.strictEqual(tJefe.minutos, 10, 'el jefe tardó 10 min: hasta su siguiente mensaje del mismo pedido (el encargo de otro pedido no cuenta)');
+  assert.strictEqual(tEscriba.minutos, 30, 'el escriba: del encargo a su resultado del mismo pedido (no el avance de otro)');
+  assert.strictEqual(tEscriba.segundos, 16);
+  assert.ok(/⏱ 30 min · Busca en tus documentos/.test(tEscriba.globo));
+  assert.strictEqual(tRadio.enCurso, true, 'la radio aún no responde: sigue trabajando');
+  assert.ok(/lleva 45 min/.test(tRadio.globo));
+  assert.strictEqual(tEscriba.para, null);
+  assert.strictEqual(F('quienCamina')(tEscriba), null, 'el trabajo no es una visita');
+  assert.strictEqual(J(F('conTrabajo')(pasos, '2026-10-28 23:00')).filter(p => p.de === 'radio' && p.tipo === 'trabajo').length, 0,
+    'sin respuesta en más de 3 h ya no se dibuja como trabajo en curso');
+  assert.deepStrictEqual(J(F('conTrabajo')([], '2026-10-28 07:00')), []);
+}
+
 console.log('OK: todas las pruebas de la oficina pasaron');

@@ -236,7 +236,7 @@ function emailHtml(bodyText) {
     bodyText.split('\n\n').map(p => '<p>' + linkify(p) + '</p>').join('') + '</div>';
 }
 
-function buildMimeMessage(to, subject, bodyText, pdfBlob) {
+function buildMimeMessage(to, subject, bodyText, pdfBlob, extraHeaders) {
   const mixed = 'mixed_' + Utilities.getUuid();
   const alt = 'alt_' + Utilities.getUuid();
   const html = emailHtml(bodyText);
@@ -244,6 +244,7 @@ function buildMimeMessage(to, subject, bodyText, pdfBlob) {
   const lines = [
     'To: ' + to,
     'Subject: ' + encodeHeader_(subject),
+  ].concat(extraHeaders || [], [  // In-Reply-To/References: el seguimiento va en el mismo hilo (2026-10-28)
     'MIME-Version: 1.0',
     'Content-Type: multipart/mixed; boundary="' + mixed + '"',
     '',
@@ -261,7 +262,7 @@ function buildMimeMessage(to, subject, bodyText, pdfBlob) {
     '',
     wrapBase64_(Utilities.base64Encode(html, Utilities.Charset.UTF_8)),
     '--' + alt + '--',
-  ];
+  ]);
 
   if (pdfBlob) {
     const filename = encodeHeader_(pdfBlob.getName());
