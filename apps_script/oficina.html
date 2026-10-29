@@ -351,6 +351,7 @@ dialog::backdrop { background: rgba(5, 20, 40, .45); }
       <div class="avance" id="hoy-avance" role="progressbar" aria-label="Avance de la tanda de hoy" aria-valuemin="0" aria-valuemax="1" aria-valuenow="0"><span></span></div>
       <p class="ayuda" id="hoy-avance-txt"></p>
       <p class="tope" id="hoy-tope" hidden></p>
+      <div id="hoy-dudosas"></div>
       <div id="hoy-post"></div>
       <div id="hoy-correos"></div>
       <div id="hoy-seg"></div>
@@ -670,7 +671,7 @@ function puntoDeVisita(desde, hasta, dist) {
 /* ---------- Tanda de hoy (2026-10-28): lo que Oscar envía hoy, con todo a mano ---------- */
 var TANDA_POSTULACIONES = 5, TANDA_CORREOS = 3;
 // Minutos estimados por tarea (portal con PDF y mensaje; empresa con sus borradores ya escritos; un seguimiento)
-var MINUTOS_TAREA = { postulacion: 3, correo: 1.5, seguimiento: 1 };
+var MINUTOS_TAREA = { postulacion: 3, correo: 1.5, seguimiento: 1, dudosa: 1 };
 // Mismas notas de riesgo que el juego (juego.html, tandaCorreos): esas direcciones van al final y sin marcar
 var AVISO_CORREO = /advertencia|no enviar|no verificable|oscar decide|fuente antigua|no es (?:contacto de )?talento|no especializada|no lo pude confirmar|no lo encontr|puede rebotar/i;
 function claveEmpresa(x) { return String(x || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim(); }
@@ -720,7 +721,13 @@ function tandaDeHoy(d) {
   var borradores = Number((d.correos || {}).borradores) || 0, tope = Number((d.correos || {}).tope) || 10;
   var minutos = Math.round(postulaciones.length * MINUTOS_TAREA.postulacion + correos.length * MINUTOS_TAREA.correo +
     seguimientos.length * MINUTOS_TAREA.seguimiento);
-  return { postulaciones: postulaciones, porEnviar: todas.length, enviadasHoy: enviadasHoy,
+  // Dudosas (2026-10-29, Oscar: «hay unas que son dudosas, pero no me has preguntado»): van de primeras, con Sí / No
+  var dudosas = (d.dudosas || []).map(function (x) {
+    return { empresa: x.empresa || '', cargo: x.cargo || '', motivo: x.motivo || '', fecha: diaDe(x.fecha), vacante: x.vacante || '',
+      carpeta: x.carpeta || '', id: idCarpeta(x.carpeta) };
+  });
+  minutos += dudosas.length * MINUTOS_TAREA.dudosa;
+  return { dudosas: dudosas, postulaciones: postulaciones, porEnviar: todas.length, enviadasHoy: enviadasHoy,
     correos: correos, empresasConBorrador: grupos.length, correosHoy: correosHoy, seguimientos: seguimientos,
     minutos: minutos, borradores: borradores, tope: tope, sobreTope: borradores > tope,
     hechas: enviadasHoy + correosHoy, meta: enviadasHoy + correosHoy + postulaciones.length + correos.length };
@@ -729,6 +736,7 @@ function tandaDeHoy(d) {
 function resumenTanda(t) {
   var partes = [];
   var n = function (k, uno, varios) { return k + ' ' + (k === 1 ? uno : varios); };
+  if (t.dudosas && t.dudosas.length) partes.push(n(t.dudosas.length, 'dudosa por decidir', 'dudosas por decidir'));
   if (t.postulaciones.length) partes.push(n(t.postulaciones.length, 'postulación', 'postulaciones'));
   if (t.correos.length) partes.push(n(t.correos.length, 'empresa con correos', 'empresas con correos'));
   if (t.seguimientos.length) partes.push(n(t.seguimientos.length, 'seguimiento', 'seguimientos'));
@@ -804,6 +812,8 @@ function modeloDemo(ahora) {
       { fecha: dia, empresa: 'Iceberg Labs', cargo: 'UI Designer', verificacion: 'Lista', revision: 'Lista para enviar', carpeta: carpeta(3),
         hv: '', pdf: '', pdfDescarga: '', vacante: '', mensaje: 'Hola, adjunto mi HV para el cargo de UI Designer.' },
     ],
+    dudosas: [{ fecha: dia, empresa: 'Aurora Labs', cargo: 'Product Designer', motivo: 'El aviso dice «remoto», pero no aclara si acepta Colombia.',
+      vacante: 'https://example.com/vacante-aurora', carpeta: carpeta(9) }],
     postulaciones: { lista: [{ empresa: 'Témpano Seguros', clave: 'aplicada', creada: dia }] },
     correos: { borradores: 12, tope: 10, lista: [
       { empresa: 'Aurora Bank', para: 'talento@aurora.example', clave: 'borrador', asunto: 'Diseñador UX/UI - Banca digital', notas: '' },
@@ -1090,6 +1100,12 @@ function modeloDemo(ahora) {
     confirmar('¿Ya enviaste la HV a ' + p.empresa + '?', 'La carpeta pasa a la semana actual de CV/ con la fecha de hoy y Hoja 1 la marca como aplicada.',
       'Sí, ya la envié', function () { accion({ accion: 'enviada', id: p.id }, p.empresa + ': enviada. ¡Una menos!'); });
   }
+  function decidirDudosa(x, si) {
+    if (si) confirmar('¿Le hacemos HV a ' + x.empresa + '?', 'La vacante vuelve a la carpeta de su día como lista. Su HV se escribe en la siguiente tanda de la IA (6:03 o 7:03).',
+      'Sí, hazle HV', function () { accion({ accion: 'dudosa', id: x.id, decision: 'si' }, x.empresa + ': aprobada. Su HV sale en la siguiente tanda.'); });
+    else confirmar('¿Descartamos ' + x.empresa + '?', 'La carpeta va a la papelera de Drive (se puede recuperar) y el registro la marca como descartada por ti.',
+      'Sí, descártala', function () { accion({ accion: 'dudosa', id: x.id, decision: 'no' }, x.empresa + ': descartada.'); });
+  }
   function yaLosEnvie(g) {
     var marcadas = g.filas.map(function (f) { return !f.aviso; });
     var caja = el('div', { class: 'direcciones', role: 'group', 'aria-label': 'Direcciones que enviaste' });
@@ -1128,7 +1144,20 @@ function modeloDemo(ahora) {
     var tope = $('hoy-tope');
     tope.hidden = !(t && t.sobreTope);
     if (t && t.sobreTope) tope.textContent = 'Tienes ' + t.borradores + ' borradores de correos en frío sin enviar. El cartero no prepara más hasta que queden ' + t.tope + ' o menos: envía primero estos.';
-    if (!t) { ['hoy-post', 'hoy-correos', 'hoy-seg'].forEach(function (id) { $(id).textContent = ''; }); $('cuenta-hoy').hidden = true; return; }
+    if (!t) { ['hoy-dudosas', 'hoy-post', 'hoy-correos', 'hoy-seg'].forEach(function (id) { $(id).textContent = ''; }); $('cuenta-hoy').hidden = true; return; }
+    grupoHoy($('hoy-dudosas'), 'Decide primero', t.dudosas.length === 1 ? 'una dudosa' : t.dudosas.length + ' dudosas', t.dudosas.map(function (x) {
+      return el('li', { class: 'tarea' }, [
+        el('div', { class: 'tarea-cab' }, [el('b', { text: x.empresa }), el('span', { class: 'chip chip--atencion', text: '? Dudosa' })]),
+        el('p', { text: (x.cargo || 'Sin cargo') + (x.fecha ? ' · del ' + fechaCorta(x.fecha) : '') }),
+        x.motivo ? el('p', { class: 'msj', text: x.motivo }) : null,
+        el('div', { class: 'botones' }, [
+          enlaceBtn(x.vacante, 'Vacante', 'Abrir el aviso de ' + x.empresa),
+          enlaceBtn(x.carpeta, 'Carpeta', 'Abrir la carpeta de ' + x.empresa + ' con el reporte del inspector'),
+          (ESCRIBE || demo) && x.id ? boton('Sí, hazle HV', 'Aprobar la vacante de ' + x.empresa, function () { decidirDudosa(x, true); }, 'btn--primario') : null,
+          (ESCRIBE || demo) && x.id ? boton('No', 'Descartar la vacante de ' + x.empresa, function () { decidirDudosa(x, false); }) : null,
+        ]),
+      ]);
+    }));
     grupoHoy($('hoy-post'), 'Postulaciones', t.porEnviar > t.postulaciones.length ? t.postulaciones.length + ' de ' + t.porEnviar + ' por enviar' : '', t.postulaciones.map(function (p) {
       var li = el('li', { class: 'tarea' }, [
         el('div', { class: 'tarea-cab' }, [el('b', { text: p.empresa }), el('span', { class: 'chip chip--' + (p.lista ? 'listo' : 'atencion'), text: p.lista ? '✓ Lista' : '! Revísala antes' })]),
@@ -1169,7 +1198,7 @@ function modeloDemo(ahora) {
         ]),
       ]);
     }));
-    var n = t.postulaciones.length + t.correos.length + t.seguimientos.length, c = $('cuenta-hoy');
+    var n = t.dudosas.length + t.postulaciones.length + t.correos.length + t.seguimientos.length, c = $('cuenta-hoy');
     c.hidden = !n; c.textContent = String(n);
   }
   function pintarTodo() { pintarHoy(); pintarPlaza(); pintarNecesitan(); pintarPedidos(); pintarRadio(); if (vista3d) { pintarEquipo3d(); actualizar3d(); } }

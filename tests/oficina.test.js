@@ -186,6 +186,15 @@ assert.ok(/scope: '\.\/oficina\.html'/.test(html), 'el service worker solo contr
   // La demostración trae una tanda para ver la tarjeta sin datos reales
   const demo = J(F('tandaDeHoy')(F('modeloDemo')('2026-10-28 09:00')));
   assert.ok(demo.postulaciones.length >= 2 && demo.correos.length >= 1 && demo.seguimientos.length === 1 && demo.sobreTope);
+  assert.strictEqual(demo.dudosas.length, 1, 'la demostración muestra una dudosa por decidir');
+  // Dudosas (2026-10-29): van de primeras en la tanda y en el resumen, con el id de su carpeta para el Sí / No
+  const conDudosas = J(F('tandaDeHoy')(Object.assign({}, d, { dudosas: [
+    { fecha: '2026-10-29', empresa: 'Autopilot', cargo: 'Product Designer', motivo: 'Copias contradictorias', vacante: 'https://x.co/v',
+      carpeta: 'https://drive.google.com/drive/folders/1DudosaCarpeta1' }] })));
+  assert.deepStrictEqual(conDudosas.dudosas.map(x => [x.empresa, x.id, x.motivo]), [['Autopilot', '1DudosaCarpeta1', 'Copias contradictorias']]);
+  assert.strictEqual(conDudosas.minutos, t.minutos + 1);
+  assert.strictEqual(F('resumenTanda')(conDudosas), '1 dudosa por decidir, 4 postulaciones, 2 empresas con correos y 1 seguimiento · unos 20 min');
+  assert.deepStrictEqual(t.dudosas, [], 'sin dudosas en el JSON, la tanda no inventa ninguna');
 }
 
 // Rutinas y tiempos reales (2026-10-28): cada especialista tiene un puesto de trabajo y el guion intercala su trabajo

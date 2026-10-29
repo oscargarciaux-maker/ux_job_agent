@@ -1007,6 +1007,43 @@ assert.strictEqual(run('safeCell')('Rechazada (rojo)'), 'Rechazada (rojo)');
   }, new Date('2026-10-27T15:00:00Z'), 'America/Bogota');
   assert.strictEqual(conPorEnviar.porEnviar[0].vacante, 'https://jobicy.com/1');
   assert.strictEqual(conPorEnviar.porEnviar[0].carpeta, 'https://drive.google.com/drive/folders/abc');
+  assert.deepStrictEqual(Array.from(conPorEnviar.dudosas), [], 'sin pestaña Dudosas el tablero sigue igual');
+  // Dudosas por decidir (2026-10-29): la oficina las muestra con Sí / No
+  const conDudosas = run('buildDashboardModel')({
+    registro: [], aplicadas: { values: [], links: [] }, porEnviar: { values: [], links: [] }, correos: [], seguimiento: [], objetivo: [],
+    dudosas: { values: [['Fecha', 'Empresa', 'Cargo', 'Motivo', 'Vacante', 'Carpeta'], ['2026-10-29', 'Autopilot', 'Product Designer', 'Copias contradictorias', 'https://x.co/v', 'Abrir']],
+      links: [[], [, , , , , 'https://drive.google.com/drive/folders/1DudosaCarpeta1']] },
+  }, new Date('2026-10-29T15:00:00Z'), 'America/Bogota');
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(conDudosas.dudosas)), [{ fecha: '2026-10-29', empresa: 'Autopilot', cargo: 'Product Designer',
+    motivo: 'Copias contradictorias', vacante: 'https://x.co/v', carpeta: 'https://drive.google.com/drive/folders/1DudosaCarpeta1' }]);
+}
+// Dudosas (2026-10-29): fila de la pestaña, decisión de Oscar y acción del juego/oficina
+{
+  const rec = (...a) => JSON.parse(JSON.stringify(context.doubtfulRecord(...a)));
+  assert.deepStrictEqual(rec('2026-10-29', 'Autopilot', 'VEREDICTO: DUDOSA\nMOTIVO: Copias contradictorias.\nLink: https://himalayas.app/companies/autopilot-is/jobs/product-designer.\nOtro https://x.co'),
+    { fecha: '2026-10-29', empresa: 'Autopilot', cargo: '', motivo: 'Copias contradictorias.', vacante: 'https://himalayas.app/companies/autopilot-is/jobs/product-designer' });
+  assert.strictEqual(context.doubtfulRecord('2026-10-29', 'Babel', 'VEREDICTO: DESCARTAR\nMOTIVO: descartada por el candidato'), null,
+    'una dudosa que Oscar ya decidió no vuelve a la lista');
+  assert.strictEqual(context.doubtfulRecord('2026-10-29', 'Sin archivo', ''), null);
+  const si = context.doubtfulDecisionText(true, 'VEREDICTO: DUDOSA\nMOTIVO: x', '2026-10-29');
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(context.parseVerdict(si))), { verdict: 'LISTA', reason: 'aprobada por el candidato (2026-10-29, desde la oficina)' });
+  assert.ok(si.includes('--- Reporte anterior (DUDOSA) ---\nVEREDICTO: DUDOSA'), 'el reporte del inspector queda debajo');
+  assert.strictEqual(context.parseVerdict(context.doubtfulDecisionText(false, '', '2026-10-29')).verdict, 'DESCARTAR');
+  assert.ok(run('GAME_ACTIONS_').includes('dudosa'));
+}
+// Borradores de vacantes con el PDF (2026-10-29, TK Designs): se lee la parte de texto del borrador para rehacerlo con el adjunto
+{
+  const payload = { mimeType: 'multipart/mixed', parts: [
+    { mimeType: 'multipart/alternative', parts: [
+      { mimeType: 'text/plain', body: { data: 'cGxhbm8' } },
+      { mimeType: 'text/html', body: { data: 'aHRtbA' } }] },
+    { mimeType: 'application/pdf', filename: 'CV.pdf', body: { attachmentId: 'x' } }] };
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(context.draftTextPart(payload))), { data: 'cGxhbm8', html: false }, 'el texto plano manda');
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(context.draftTextPart({ mimeType: 'text/html', body: { data: 'aHRtbA' } }))), { data: 'aHRtbA', html: true });
+  assert.strictEqual(context.draftTextPart({ mimeType: 'multipart/mixed', parts: [] }), null);
+  assert.strictEqual(context.htmlToPlainText('<div><p>Hi TK Designs team,</p><p>Portfolio: <a href="https://o.app">https://o.app</a><br>LinkedIn: <a href="https://l.in/o">perfil</a></p></div>'),
+    'Hi TK Designs team,\n\nPortfolio: https://o.app\nLinkedIn: perfil https://l.in/o');
+  assert.strictEqual(context.htmlToPlainText('A &amp; B&nbsp;&lt;3'), 'A & B <3');
 }
 // Acciones pendientes: por empresa manda la fila más reciente; esperar respuesta no es una acción (2026-10-25)
 {

@@ -139,11 +139,25 @@ function writePendingCvs_(ss, root, children, exportPdf) {
   const header = CONFIG.PENDING_CV_SHEET_HEADERS;
   const previous = previousPendingMessages_(sheet, header);
   const rows = [];
+  const doubtful = [];
+  const recent = recentDays(Utilities.formatDate(new Date(), tz_(), 'yyyy-MM-dd'), CONFIG.CV_CATCHUP_DAYS);
+  const drafts = { pending: 0, map: null };  // borradores sin enviar por destinatario: se leen solo si hace falta
   let exported = 0;
   const pending = root.getFoldersByName(CONFIG.PENDING_FOLDER_NAME);
   if (pending.hasNext()) {
     children(pending.next().getId()).forEach(day => {
       children(day.id).forEach(f => {
+        if (f.name === CONFIG.DOUBTFUL_FOLDER_NAME && recent.indexOf(day.name) !== -1) {
+          children(f.id).forEach(d => {
+            try {
+              const file = listChildFiles_(d.id).find(x => x.name === CONFIG.VERIFICATION_FILE_NAME);
+              const record = doubtfulRecord(day.name, d.name, file ? readTextFile_(DriveApp.getFileById(file.id)) : '');
+              if (record) doubtful.push(Object.assign(record, { id: d.id }));
+            } catch (e) {
+              console.warn('Dudosa ' + d.name + ' -> ' + e.message);
+            }
+          });
+        }
         if (f.name === CONFIG.POSTS_FOLDER_NAME || f.name === CONFIG.DOUBTFUL_FOLDER_NAME) return;
         const files = listChildFiles_(f.id);
         const cv = pendingCvFiles(files);
@@ -163,6 +177,13 @@ function writePendingCvs_(ss, root, children, exportPdf) {
             exported++;
           } catch (e) {
             console.warn(f.name + ' -> no se pudo exportar el PDF: ' + e.message);
+          }
+        }
+        if (exportPdf && pdf && drafts.pending < CONFIG.DRAFT_PDF_PER_RUN) {
+          try {
+            if (attachPdfToVacancyDraft_(f.id, pdf, drafts)) drafts.pending++;
+          } catch (e) {
+            console.warn(f.name + ' -> no se pudo adjuntar el PDF al borrador: ' + e.message);
           }
         }
         let message = previous[f.id];
@@ -188,6 +209,100 @@ function writePendingCvs_(ss, root, children, exportPdf) {
   sheet.getRange(1, 1, 1, header.length).setFontWeight('bold');
   sheet.setFrozenRows(1);
   console.log('Por enviar: ' + rows.length + ' HV en ' + CONFIG.PENDING_FOLDER_NAME + (exported ? ' (' + exported + ' PDF nuevos)' : ''));
+  writeDoubtfulSheet_(ss, doubtful);
+}
+
+/** Reescribe la pestaña "Dudosas": las que esperan el sí o no de Oscar (la oficina las muestra con botones). */
+function writeDoubtfulSheet_(ss, rows) {
+  const header = CONFIG.DOUBTFUL_SHEET_HEADERS;
+  const sheet = ss.getSheetByName(CONFIG.DOUBTFUL_SHEET_NAME) || ss.insertSheet(CONFIG.DOUBTFUL_SHEET_NAME, ss.getNumSheets());
+  rows.sort((a, b) => (a.fecha < b.fecha ? 1 : a.fecha > b.fecha ? -1 : 0));
+  sheet.clear();
+  const values = [header].concat(rows.map(r => [r.fecha, r.empresa, r.cargo, r.motivo, r.vacante,
+    '=HYPERLINK("https://drive.google.com/drive/folders/' + r.id + '","Abrir")']));
+  sheet.getRange(1, 1, values.length, header.length).setValues(values);
+  sheet.getRange(1, 1, 1, header.length).setFontWeight('bold');
+  sheet.setFrozenRows(1);
+  if (rows.length) console.log('Dudosas por decidir: ' + rows.map(r => r.empresa).join(', '));
+}
+
+/**
+ * Pone el PDF de la HV en el borrador sin enviar de la vacante (2026-10-29: el borrador se crea al armar la HV, antes de
+ * que exista el PDF, y quedaba sin adjunto). La propiedad DRAFT_PDF_<carpeta> guarda el PDF ya puesto (o «sin-correo»)
+ * para no volver a abrir Detalle_Vacante ni el borrador cada hora. Conserva el asunto, el destinatario, el hilo y el texto
+ * que Oscar haya editado. true si actualizó un borrador.
+ */
+function attachPdfToVacancyDraft_(folderId, pdf, drafts) {
+  const props = PropertiesService.getScriptProperties();
+  const key = 'DRAFT_PDF_' + folderId;
+  const done = props.getProperty(key);
+  if (done === pdf.id || done === 'sin-correo') return false;
+  const folder = DriveApp.getFolderById(folderId);
+  const detail = firstFileByName_(folder, 'Detalle_Vacante');
+  const vacancy = parseVacancyDetail(detail ? DocumentApp.openById(detail.getId()).getBody().getText() : '');
+  if (!vacancy.email) {
+    props.setProperty(key, 'sin-correo');
+    return false;
+  }
+  if (!drafts.map) drafts.map = draftIdsByRecipient_();
+  const draftId = drafts.map[vacancy.email.toLowerCase()];
+  if (!draftId) {  // sin borrador (ya enviado o borrado): no se vuelve a intentar con este PDF
+    props.setProperty(key, pdf.id);
+    return false;
+  }
+  const message = Gmail.Users.Drafts.get('me', draftId, { format: 'full' }).message;
+  const header = name => (((message.payload && message.payload.headers) || []).find(h => h.name.toLowerCase() === name) || {}).value || '';
+  const part = draftTextPart(message.payload);
+  if (!part) return false;
+  const text = part.html ? htmlToPlainText(gmailBodyText_(part.data)) : gmailBodyText_(part.data);
+  const extra = ['in-reply-to', 'references'].map(h => header(h) ? (h === 'in-reply-to' ? 'In-Reply-To: ' : 'References: ') + header(h) : '').filter(Boolean);
+  const blob = DriveApp.getFileById(pdf.id).getBlob().setName(pdf.name.replace(/\.pdf$/i, '') + '.pdf');
+  const raw = Utilities.base64EncodeWebSafe(buildMimeMessage(header('to'), header('subject'), text.trim(), blob, extra));
+  Gmail.Users.Drafts.update({ id: draftId, message: { raw: raw, threadId: message.threadId } }, 'me', draftId);
+  props.setProperty(key, pdf.id);
+  console.log(folder.getName() + ' -> PDF adjunto al borrador para ' + vacancy.email);
+  return true;
+}
+
+/** La parte de texto de un mensaje de Gmail: { data, html }, prefiriendo text/plain; null si no hay. */
+function draftTextPart(payload) {
+  const all = [];
+  const walk = p => {
+    if (!p) return;
+    if (/^text\/(plain|html)/i.test(p.mimeType || '') && p.body && p.body.data && !(p.filename)) all.push(p);
+    (p.parts || []).forEach(walk);
+  };
+  walk(payload);
+  const plain = all.find(p => /^text\/plain/i.test(p.mimeType));
+  const html = all.find(p => /^text\/html/i.test(p.mimeType));
+  return plain ? { data: plain.body.data, html: false } : html ? { data: html.body.data, html: true } : null;
+}
+
+/** Texto de un HTML de correo: los párrafos y saltos se vuelven líneas y los enlaces quedan como su dirección. */
+function htmlToPlainText(html) {
+  return String(html || '')
+    .replace(/<a\b[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi, (m, href, txt) => {
+      const t = txt.replace(/<[^>]+>/g, '').trim();
+      return t === href || !t ? href : t + ' ' + href;
+    })
+    .replace(/<br\s*\/?>/gi, '\n').replace(/<\/(p|div)>/gi, '\n\n').replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+    .replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+/** Fila de "Dudosas" para una carpeta de Sin revisar/<fecha>/Dudosas; null si su veredicto ya no es DUDOSA. */
+function doubtfulRecord(dayName, folderName, verificationText) {
+  const verdict = parseVerdict(verificationText);
+  if (verdict.verdict !== 'DUDOSA') return null;
+  const parsed = parseAppliedFolderName(folderName);
+  const link = (String(verificationText || '').match(/https?:\/\/[^\s)\]>"']+/) || [''])[0].replace(/[.,;]+$/, '');
+  return { fecha: dayName, empresa: parsed.company, cargo: parsed.title, motivo: verdict.reason, vacante: link };
+}
+
+/** Nuevo Verificacion.txt de una dudosa que Oscar decidió: el veredicto arriba y el reporte anterior debajo. */
+function doubtfulDecisionText(approved, previousText, today) {
+  return (approved ? 'VEREDICTO: LISTA\nMOTIVO: aprobada por el candidato (' : 'VEREDICTO: DESCARTAR\nMOTIVO: descartada por el candidato (') +
+    today + ', desde la oficina)\n\n--- Reporte anterior (DUDOSA) ---\n' + String(previousText || '').trim() + '\n';
 }
 
 /** Mensaje de la corrida anterior por id de carpeta (sale de la fórmula de la columna Carpeta). */

@@ -19,3 +19,4 @@ Bitácora del equipo (Base Antártica, docs/MULTIAGENTE.md): agrega filas a la p
    - "Revisadas: <n> — listas para enviar: <n> — revisar: <n> — aún sin armar: <n>".
    - REVISAR primero: empresa, cargo, enlace a la HV, lo que debe decidir en una frase y la propuesta corta. Termina con "Dime cuáles propuestas aplico". Si el candidato responde en esta conversación, aplícalas en el Doc, repite la revisión visual y reemplaza su Revision.txt.
    - Listas: empresa, cargo, enlace, puntaje de personalización, páginas y las 2 o 3 correcciones más importantes.
+   - Si revisaste al menos una HV, envía UNA notificación al candidato (herramienta PushNotification, status "proactive"), de menos de 200 caracteres: «N HV listas para enviar y M por revisar: <empresas>. Están en la oficina, en Tu tanda de hoy.» Si también dejaste el aviso de vacantes sin verificar, dilo primero.

@@ -8,6 +8,8 @@
  *                «Enviado (registrado desde el juego)» con la fecha y hora (2026-10-27, correos en frío como misión).
  *   seguimiento -> el borrador de seguimiento de esa empresa (crearBorradoresDeSeguimiento_) pasa a «Seguimiento: enviado
  *                <fecha>» en Notas de Correos en frío (2026-10-28).
+ *   dudosa    -> la decisión de Oscar sobre una vacante dudosa (2026-10-29): decision=si la vuelve LISTA y la regresa a la
+ *                carpeta del día (su HV se escribe en la siguiente tanda de la IA); decision=no la descarta (papelera).
  *   pedido    -> el buzón de la oficina de agentes: una fila «pedido» «pendiente» para el jefe en la pestaña Agentes
  *                (Agentes.gs, docs/MULTIAGENTE.md). No mueve nada en Drive.
  * Nunca envía nada (HITL): solo registra lo que Oscar hizo. Exige la clave del enlace (k) y además la clave de escritura
@@ -16,7 +18,7 @@
  * Llega por doGet (&accion=...) porque el Cargador solo tiene doGet; así no hay que volver a pegarlo.
  */
 
-const GAME_ACTIONS_ = ['enviada', 'descartar', 'rechazada', 'proceso', 'hecho', 'correos', 'seguimiento', 'pedido'];
+const GAME_ACTIONS_ = ['enviada', 'descartar', 'rechazada', 'proceso', 'hecho', 'correos', 'seguimiento', 'pedido', 'dudosa'];
 const COLD_SENT_STATUS_ = 'Enviado (registrado desde el juego)';
 const GAME_FOLDER_COLORS_ = { rechazada: '#f83a22', proceso: '#16a765' };  // los mismos de la skill seguimiento
 
@@ -57,6 +59,27 @@ function runGameAction_(p) {
     return it.next();
   };
   const ss = SpreadsheetApp.openById(getProp_(PROPS.SHEET_ID));
+
+  if (action === 'dudosa') {
+    if (['si', 'no'].indexOf(String(p.decision)) === -1) throw new Error('Falta la decisión (sí o no)');
+    const approved = String(p.decision) === 'si';
+    const folder = folderInside_(p.id, [topFolder(CONFIG.PENDING_FOLDER_NAME).getId()], 3);
+    const parent = folder.getParents().next();
+    if (parent.getName() !== CONFIG.DOUBTFUL_FOLDER_NAME) throw new Error('Esa vacante ya no está entre las dudosas');
+    replaceFile_(folder, CONFIG.VERIFICATION_FILE_NAME,
+                 doubtfulDecisionText(approved, readOptionalText_(folder, CONFIG.VERIFICATION_FILE_NAME), today));
+    const detail = firstFileByName_(folder, 'Detalle_Vacante');
+    const vacancy = parseVacancyDetail(detail ? DocumentApp.openById(detail.getId()).getBody().getText() : '');
+    const registry = ss.getSheets()[0];
+    if (approved) {
+      folder.moveTo(parent.getParents().next());  // de vuelta a Sin revisar/<fecha>: la siguiente tanda le escribe la HV
+      updateVacancyStatus_(registry, vacancy.link, 'Esperando CV (IA)');
+      return folder.getName() + ' -> dudosa aprobada por Oscar, vuelve al día';
+    }
+    updateVacancyStatus_(registry, vacancy.link, 'Descartada: dudosa descartada por Oscar (desde la oficina)');
+    folder.setTrashed(true);
+    return folder.getName() + ' -> dudosa descartada por Oscar, a la papelera';
+  }
 
   if (action === 'enviada' || action === 'descartar') {
     const folder = folderInside_(p.id, [topFolder(CONFIG.PENDING_FOLDER_NAME).getId()], 3);
