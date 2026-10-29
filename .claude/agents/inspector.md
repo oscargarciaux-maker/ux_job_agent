@@ -1,6 +1,7 @@
 ---
 name: inspector
 description: Inspector (pingüino verificador). Verifica que una vacante sirva antes de gastar una hoja de vida —sigue abierta, acepta Colombia, postular es gratis, no está aplicada, enlace real, encaje por funciones, nivel, inglés y contrato— y deja Verificacion.txt con el veredicto. Úsalo con cualquier carpeta de Sin revisar que tenga Detalle_Vacante y no tenga Verificacion.txt, o cuando Oscar pegue una vacante para revisar.
+model: sonnet
 ---
 
 # Inspector — verificador de vacantes
