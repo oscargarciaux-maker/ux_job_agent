@@ -39,10 +39,11 @@ assert.strictEqual(F('hace')('2026-10-28', '2026-10-28 06:30'), 'hoy');
 assert.strictEqual(F('hace')('', '2026-10-28 06:30'), '');
 
 // Ritmo del día (mañana condensada: búsqueda 5:00, HV 6:03 y 7:03, revisión 7:53)
-assert.strictEqual(F('turnoActual')('escriba', '06:20').que, 'Escribe la primera tanda de HV');
+assert.strictEqual(F('turnoActual')('escriba', '06:20').que, 'Escribe las HV del día');
 assert.strictEqual(F('turnoActual')('escriba', '09:00'), null);
 assert.deepStrictEqual(J(F('proximoTurno')('radio', '10:00')), { cuando: 'Hoy 18:13', que: 'Escucha tu Gmail laboral' });
-assert.strictEqual(F('proximoTurno')('inspector', '20:00').cuando, 'Mañana 6:03');
+assert.strictEqual(F('proximoTurno')('inspector', '20:00').cuando, 'Mañana 6:05');
+assert.strictEqual(F('proximoTurno')('jefe', '20:00').cuando, 'Mañana 6:03', 'el jefe coordina la mañana');
 assert.strictEqual(F('proximoTurno')('constructor', '10:00'), null, 'el constructor trabaja a pedido');
 assert.ok(F('faseDelDia')('06:20').ahora);
 assert.strictEqual(F('faseDelDia')('12:00').texto, 'Próximo: Radio a las 18:13');
@@ -51,8 +52,8 @@ assert.strictEqual(F('faseDelDia')('23:00').texto, 'Próximo: Trineo a las 4:17'
 // Estado visible: el del servidor, o «trabajando por horario» si le toca y aún no reporta en este turno
 const ev = (a, ahora) => J(F('estadoVisible')(a, ahora));
 assert.deepStrictEqual(ev({ id: 'escriba', estado: 'esperando', resumen: 'x', ultima: '2026-10-27' }, '2026-10-28 06:20'),
-  { estado: 'trabajando', resumen: 'Escribe la primera tanda de HV', porHorario: true });
-assert.strictEqual(ev({ id: 'escriba', estado: 'listo', resumen: '5 HV', ultima: '2026-10-28 06:15' }, '2026-10-28 06:20').estado, 'listo',
+  { estado: 'trabajando', resumen: 'Escribe las HV del día', porHorario: true });
+assert.strictEqual(ev({ id: 'escriba', estado: 'listo', resumen: '5 HV', ultima: '2026-10-28 06:25' }, '2026-10-28 06:30').estado, 'listo',
   'ya reportó en este turno');
 assert.strictEqual(ev({ id: 'editor', estado: 'atencion', resumen: '1 para decidir', ultima: '' }, '2026-10-28 08:00').estado, 'atencion',
   'lo que necesita a Oscar no se tapa con el horario');

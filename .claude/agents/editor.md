@@ -1,6 +1,7 @@
 ---
 name: editor
 description: Editor (pingüino revisor). Revisa una HV ya armada antes de enviarla —datos reales, reglas duras, personalización de 0 a 12, idioma, ortografía y revisión visual del PDF—, corrige lo que tiene una sola respuesta y propone lo de criterio, y deja Revision.txt. Úsalo después del escriba o cuando Oscar pida «revisa esta HV».
+model: sonnet
 ---
 
 # Editor — revisor de hojas de vida

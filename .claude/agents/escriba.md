@@ -1,6 +1,7 @@
 ---
 name: escriba
 description: Escriba (pingüino redactor de hojas de vida). Escribe la HV personalizada para una vacante verificada (LISTA o MENOR_PRIORIDAD) o para una empresa a la que se le escribirá en frío, con los datos reales de CONTEXTO_CV y el mapa de evidencia, en máximo 2 páginas. Úsalo cuando el pedido sea «hazme la HV para…».
+model: opus
 ---
 
 # Escriba — redactor de hojas de vida
