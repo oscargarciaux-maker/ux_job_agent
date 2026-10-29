@@ -133,3 +133,6 @@ Estados: ✅ hecho y probado · 🟡 parcial · ⏳ pendiente · ❓ falta una d
 | Prefiltro por país antes de la IA (solo otro país, sin Colombia ni LATAM) | ✅ | `foreignOnlyLocation`, `FOREIGN_LOCATION_PATTERN`, `OPEN_TO_COLOMBIA_PATTERN` (pruebas) |
 | Mismo aviso = misma descripción completa (no solo el inicio, que repite la presentación de la empresa) | ✅ | `distinctPostings` (pruebas con Clara) |
 | Fuente Himalayas (remotas abiertas a Colombia, 0 créditos) | ✅ | `searchHimalayas_`, `parseHimalayasJob` (pruebas) |
+| Dudosas: preguntar a Oscar con sí / no (decisión del usuario 2026-10-29) | ✅ | pestaña `Dudosas` (`doubtfulRecord`, `writeDoubtfulSheet_`), `dudosas` en el tablero, tarjeta «Decide primero» de la oficina, acción `dudosa` (`doubtfulDecisionText`), notificación `PushNotification` en `ia/prompt_cv_diario.md` |
+| Borrador de la vacante con la HV en PDF adjunta (2026-10-29, TK Designs) | ✅ | `attachPdfToVacancyDraft_` en `writePendingCvs_` (`draftTextPart`, `htmlToPlainText`, `DRAFT_PDF_PER_RUN`) |
+| Verificar todas las vacantes del día, aunque lleguen 20+ (2026-10-29) | ✅ | `ia/prompt_cv_diario.md`: listar todas las páginas, cruzar con Hoja 1 y repartir entre subagentes inspectores; aviso de la revisión si quedan sin verificar |

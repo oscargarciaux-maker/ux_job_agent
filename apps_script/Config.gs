@@ -208,6 +208,14 @@ const CONFIG = {
   // el _correo_cuerpo de CV_IA.json, para copiarlo al postular
   PENDING_CV_SHEET_HEADERS: ['Fecha', 'Empresa', 'Cargo', 'Verificación', 'Revisión', 'Carpeta', 'HV', 'PDF', 'Mensaje'],
   PENDING_PDF_PER_RUN: 8,
+  // Dudosas por decidir (2026-10-29, decisión del usuario: «no me has preguntado»): la corrida de cada hora lista las
+  // carpetas de Sin revisar/<fecha>/Dudosas de los últimos CV_CATCHUP_DAYS días con veredicto DUDOSA; la oficina las
+  // muestra con Sí / No (acción `dudosa` de Acciones.gs).
+  DOUBTFUL_SHEET_NAME: 'Dudosas',
+  DOUBTFUL_SHEET_HEADERS: ['Fecha', 'Empresa', 'Cargo', 'Motivo', 'Vacante', 'Carpeta'],
+  // Borradores de vacantes con el PDF (2026-10-29: el de TK Designs salió sin HV adjunta): cuando la corrida de cada hora
+  // crea o renueva el PDF, actualiza el borrador sin enviar a ese correo. Máximo por corrida (cada uno lee el borrador).
+  DRAFT_PDF_PER_RUN: 5,
   DASHBOARD_MESSAGE_MAX_CHARS: 900,   // El mensaje de cada HV por enviar en el JSON del tablero (la caché tiene tope)
   APPLIED_OLD_FOLDER_PATTERN: /^antigu[ao]s?$/i,   // Carpeta de postulaciones antiguas junto a CV/ (2026-10-25)
   COLD_EMAIL_SHEET_NAME: 'Correos en frío',   // Empresas ya contactadas (columna A): no se proponen de nuevo

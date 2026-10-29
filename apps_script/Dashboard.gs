@@ -143,6 +143,7 @@ function readDashboardTabs_(children) {
     registro: ss.getSheets()[0].getDataRange().getDisplayValues(),
     aplicadas: tab(CONFIG.APPLIED_SHEET_NAME, true),
     porEnviar: tab(CONFIG.PENDING_CV_SHEET_NAME, true),
+    dudosas: tab(CONFIG.DOUBTFUL_SHEET_NAME, true),
     correos: tab(CONFIG.COLD_EMAIL_SHEET_NAME).values,
     seguimiento: tab(CONFIG.FOLLOWUP_SHEET_NAME).values,
     objetivo: tab(CONFIG.TARGET_COMPANIES_SHEET_NAME).values,
@@ -421,6 +422,10 @@ function buildDashboardModel(tabs, now, timeZone) {
     },
     vacantes: { ultimos14: recent.length, porDia: Object.keys(perDay).map(d => ({ dia: d, n: perDay[d] })) },
     porEnviar: pending,
+    // Dudosas que esperan el sí o no de Oscar (2026-10-29): la oficina las muestra de primeras con botones
+    dudosas: dashboardRows(tabs.dudosas && tabs.dudosas.values, tabs.dudosas && tabs.dudosas.links)
+      .map(r => ({ fecha: r['Fecha'], empresa: r['Empresa'], cargo: r['Cargo'], motivo: r['Motivo'], vacante: r['Vacante'],
+                   carpeta: r._links['Carpeta'] || '' })),
     seguimiento: followup.slice(0, 40),
     historial: history,
     // Una acción de una empresa que ya no está en ningún lado (2026-10-26: BruntWork, cuya HV el usuario mandó a la

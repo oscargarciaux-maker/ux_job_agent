@@ -110,6 +110,16 @@ Es una bitácora en la que solo se agregan filas; nadie edita la fila de otro.
   - Esa tarea se creó **apagada**. Para encenderla, Oscar le agrega los conectores (Drive, Docs, Sheets y Gmail) desde la app y la activa.
   - Su prompt está en `ia/prompt_jefe_buzon.md`.
 - **Las tareas diarias** («CV con IA diario», «Revisión HV diaria», «Seguimiento diario») escriben su fila de inicio y de fin en `Agentes`. Así la oficina muestra al inspector, al escriba, al editor y a la radio trabajando de verdad.
+- **Inspectores en paralelo (29 oct 2026, decisión de Oscar):** hasta ese día cada tarea diaria era una sola IA que hacía los papeles en orden. Ese día la tanda vio 5 de 23 vacantes. Desde entonces, en «CV con IA diario», si hay más de 4 vacantes por verificar, la sesión hace de jefe:
+  - las reparte en grupos de hasta 4;
+  - lanza un subagente inspector por grupo, todos a la vez, con el texto de `.claude/agents/inspector.md` y de la skill;
+  - comprueba que cada carpeta quede con su `Verificacion.txt`.
+
+  El escriba sigue siendo uno solo, porque escribe como máximo 4 HV por tanda.
+- **Dudosas con sí o no (29 oct 2026):**
+  - La corrida de cada hora lista las dudosas de los últimos días en la pestaña `Dudosas`, y la oficina las pone de primeras en «Tu tanda de hoy» con los botones «Sí, hazle HV» y «No».
+  - Al terminar la tanda, si quedan dudosas, la sesión le manda a Oscar una notificación (`PushNotification`); la revisión hace lo mismo con las HV listas.
+  - La acción `dudosa` de `Acciones.gs` reescribe el `Verificacion.txt`. Con «sí», la vacante vuelve a su día y la siguiente tanda le escribe la HV; con «no», se va a la papelera.
 
 ## 6. La oficina (`apps_script/oficina.html`)
 
