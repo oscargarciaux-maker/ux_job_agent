@@ -112,10 +112,12 @@ Es una bitácora en la que solo se agregan filas; nadie edita la fila de otro.
 - **Las tareas diarias** («CV con IA diario», «Revisión HV diaria», «Seguimiento diario») escriben su fila de inicio y de fin en `Agentes`. Así la oficina muestra al inspector, al escriba, al editor y a la radio trabajando de verdad.
 - **Jefe de la mañana (29 oct 2026, decisión de Oscar: «lo más barato, efectivo y autónomo posible»):** hasta ese día cada tarea diaria era una sola IA que hacía los papeles en orden, y ese día la tanda vio 5 de 23 vacantes. Desde entonces «CV con IA diario» (6:03, `ia/prompt_cv_diario.md`) es una sola sesión que hace de jefe y reparte el trabajo entre subagentes en paralelo:
   1. **Lo que falta:** lista las carpetas de hoy y de los 2 días anteriores (todas las páginas, cruzadas con `Hoja 1`). Si no falta nada, termina sin notificar. Por eso puede correr varias veces sin repetir trabajo.
-  2. **Verificar:** un inspector (Sonnet) por cada grupo de hasta 4 vacantes.
-  3. **Escribir:** un escriba (Opus) por vacante, con tope de 8 HV nuevas al día (4 y solo LISTA si quedan 10 o más HV sin enviar de días anteriores). Las aprobadas desde «Dudosas» van primero.
+  2. **Verificar:** un solo inspector (Sonnet) para todas las vacantes (2 si son más de 15).
+  3. **Escribir:** un solo escriba (Opus) para todas las HV del día, una tras otra (2 si son más de 8), hasta 15 HV nuevas al día. Las aprobadas desde «Dudosas» van primero.
   4. **Esperar y corregir:** espera a que Apps Script arme las HV (máximo 35 min) y relanza al escriba con los errores de `CV_IA_ERRORES.txt` (máximo 2 vueltas).
-  5. **Revisar:** un editor (Sonnet) por HV, con los pasos 2 a 4 de `ia/prompt_revision_diaria.md`.
+  5. **Revisar:** un solo editor (Sonnet) para todas las HV, por texto; solo descarga el PDF si el largo está al límite.
+
+  **Por qué uno por papel (1 nov 2026):** el 29 oct, con un agente por vacante, la corrida agotó el límite semanal del plan en 11 minutos: cada agente gastaba unos 280 mil tokens, casi todo en volver a leer los mismos documentos. Un agente que trabaja todas las vacantes seguidas los lee una sola vez.
   6. **Cierre:** bitácora de cada agente y **una sola** notificación: «N HV listas para enviar, M por revisar, D dudosas».
 
   La corrida de las 7:03 usa el mismo prompt y solo retoma lo que faltó; «Revisión HV diaria» (7:53 y 8:53) queda de respaldo de la revisión.
