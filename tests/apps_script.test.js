@@ -77,6 +77,11 @@ const plain = { title: 'Diseñador UX/UI', company: 'Acme', description: 'Bogot�
 const fin = { title: 'Diseñador UX/UI', company: 'Nequi', description: 'Fintech en Bogotá', sourceBonus: 9 };
 assert.ok(context.computePriority(fin, 80) > context.computePriority(plain, 80));
 assert.strictEqual(context.computePriority(plain, 80), 80);
+// Español primero y Himalayas abajo (decisión del usuario 2026-11-02)
+assert.strictEqual(context.computePriority({ title: 'Diseñador UX/UI', description: 'Buscamos una persona para el equipo de producto en Bogotá con experiencia en Figma' }, 80), 92);
+assert.strictEqual(context.computePriority({ title: 'UX Designer', description: 'We are looking for a designer to join the team and work with our users' }, 80), 80);
+assert.strictEqual(context.computePriority({ title: 'UX Designer', description: 'Remote', link: 'https://himalayas.app/companies/x/jobs/ux' }, 80), 70);
+assert.strictEqual(context.isSpanishVacancy({ title: 'Diseñador UX/UI', description: 'Bogotá' }), false, 'un título suelto no decide');
 assert.strictEqual(context.vacancyKey({ company: 'Lite Thinking', title: 'Diseñador UX/UI Junior' }),
   context.vacancyKey({ company: 'lite thinking', title: 'Disenador UX UI junior' }));
 const byPriority = context.selectDailyVacancies([{ seniority: 'mid', score: 80, priority: 99 }, { seniority: 'mid', score: 90, priority: 90 }], 1, 0);

@@ -73,7 +73,22 @@ function computePriority(vacancy, score) {
   const verify = vacancy.roleToVerify ? CONFIG.ROLE_VERIFY_PENALTY : 0;
   const english = englishFluent(vacancy) ? CONFIG.ENGLISH_FLUENT_PENALTY
                 : englishAdvanced(vacancy) ? CONFIG.ENGLISH_ADVANCED_PENALTY : 0;
-  return score + (vacancy.sourceBonus || 0) + fintech - tooMuch - verify - english;
+  // Decisión del usuario 2026-11-02: casi no llegaban vacantes en español (3 de 7 HV) y Himalayas trajo 5 de 6 dudosas
+  // y 2 avisos expirados: el español sube y Himalayas baja al elegir las candidatas del día.
+  const spanish = isSpanishVacancy(vacancy) ? CONFIG.SPANISH_BONUS : 0;
+  const himalayas = CONFIG.LOW_TRUST_SOURCE_PATTERN.test(String(vacancy.link || '')) ? CONFIG.LOW_TRUST_SOURCE_PENALTY : 0;
+  return score + (vacancy.sourceBonus || 0) + fintech + spanish - tooMuch - verify - english - himalayas;
+}
+
+/** Aviso escrito en español: más palabras funcionales en español que en inglés, y al menos 3 (un título suelto no decide). */
+function isSpanishVacancy(vacancy) {
+  const words = (String(vacancy.title || '') + ' ' + String(vacancy.description || '')).toLowerCase().match(/[a-záéíóúñü]+/g) || [];
+  let es = 0, en = 0;
+  words.forEach(w => {
+    if (ES_WORDS_.indexOf(w) !== -1) es++;
+    if (EN_WORDS_.indexOf(w) !== -1) en++;
+  });
+  return es >= 3 && es > en;
 }
 
 /** Pide inglés "fluido", "fluent" o "bilingüe" (2026-10-28: menor prioridad, ya no descarte). */

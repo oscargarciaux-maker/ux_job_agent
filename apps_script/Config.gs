@@ -126,6 +126,10 @@ const CONFIG = {
   // Sector preferido (no excluyente): suma puntos al elegir las 10 del día.
   FINTECH_PATTERN: /fintech|banc[oa]|bancari|financier|pagos|payments|cr[eé]dito|neobanco|seguros|insurtech|wallet|billetera|nequi|daviplata|nubank|rappipay/i,
   FINTECH_BONUS: 10,
+  // Decisión del usuario 2026-11-02: español primero; Himalayas trae copias sin original, expiradas y dudosas.
+  SPANISH_BONUS: 12,
+  LOW_TRUST_SOURCE_PATTERN: /himalayas\.app/i,
+  LOW_TRUST_SOURCE_PENALTY: 10,
   SEARCH_LOCATION: 'Colombia',
   // Publicaciones de reclutadores en LinkedIn (contratan sin publicar vacante formal). 1 crédito más por día.
   // Solo trae el fragmento visible del post (LinkedIn no permite leer el post completo sin sesión).
