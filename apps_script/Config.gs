@@ -6,8 +6,9 @@
 const CONFIG = {
   // Candidatas por día (sobre-reserva, decisión del usuario 2026-10-24): la IA las verifica y escribe HV solo a las
   // mejores que pasan; las demás que pasan quedan de reserva. Producir menos (2026-10-28): 4 HV por tanda (6 a 8 al día),
-  // así que 14 candidatas alcanzan (cerca de la mitad se descarta al verificar); antes 20 con 10 HV por tanda.
-  DAILY_LIMIT: 14,
+  // así que 14 candidatas alcanzaban (cerca de la mitad se descarta al verificar); antes 20 con 10 HV por tanda.
+  // Meta de 15 HV al día (decisión del usuario 2026-11-01, con el jefe que lee todo una sola vez): 30 candidatas.
+  DAILY_LIMIT: 30,
   MIN_JUNIOR: 5,             // Al menos 5 de las 10 vacantes diarias serán Junior (si existen)
   // Rotación diaria (decisiones del usuario 2026-10-19). Cada día: 1 búsqueda de SEARCH_QUERY_POOL en Colombia y 1 de
   // REMOTE_QUERY_POOL (remoto para LATAM, sin limitar a Colombia), 1 crédito de SerpAPI cada una.
