@@ -118,7 +118,11 @@ para confirmar que quedó.
    una carpeta con el nombre de la agencia para una postulación que ya tenía carpeta con el nombre del reclutador del
    post). Busca en
    `Vacantes con IA/CV` y `Sin revisar` el destinatario (correo o dominio), el nombre del archivo de HV adjunto y el
-   cargo en los Docs `Vacante`/`Detalle_Vacante`; si aparece, es esa carpeta. Si no existe, crea la carpeta
+   cargo en los Docs `Vacante`/`Detalle_Vacante`; si aparece, es esa carpeta. **Si la carpeta está en `Sin revisar`**
+   (la vacante se envió y la carpeta no se movió; 1 nov 2026: Generis Tek y Heivcorp), no crees otra ni la muevas tú:
+   deja su fila en `Seguimiento` con `Empresa` igual al nombre de la carpeta, `Fecha del mensaje` del acuse y
+   `Estado nuevo` «Aplicada». La corrida de cada hora de Apps Script (`sentSignal`) la mueve a la semana actual con su
+   fecha de envío. Si no existe, crea la carpeta
    `<Empresa>_<Cargo corto>` (o solo `<Empresa>`) dentro de la carpeta semanal **más reciente** de `Vacantes con IA/CV`
    (no crees carpetas semanales nuevas: las organiza el candidato). Dentro, **siempre** un Google Doc `Vacante` (nunca
    dejes la carpeta solo con la HV) con lo que se sepa: cargo, empresa, enlace del aviso si aparece, fecha de envío, a

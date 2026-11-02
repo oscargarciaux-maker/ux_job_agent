@@ -938,6 +938,27 @@ assert.strictEqual(dashModel.meta, 50);
 assert.strictEqual(dashModel.submeta, 30, 'submeta semanal (2026-10-27): con 30 se gana la semana');
 // Acciones del juego (2026-10-27): fecha de envío real, semana actual, filas de Seguimiento sin fórmulas y enlace de la vacante
 assert.strictEqual(run('sentDayFromDescription')(run('sentDescription')('2026-10-27')), '2026-10-27');
+// Vacantes de Sin revisar ya enviadas sin el botón (2026-11-01: Generis Tek y Heivcorp, HV hecha a mano)
+{
+  const J = x => JSON.parse(JSON.stringify(x));
+  const sig = run('sentSignal');
+  const reg = [['Fecha', 'Empresa', 'Cargo', 'Link', 'Match', 'Estado'],
+    ['2026-10-31', 'Generis Tek Inc', 'UX Designer', 'https://x/1', 90, 'Aplicada (2026-11-01, otra sesión)'],
+    ['31/10/2026', 'Heivcorp', 'UI Designer', 'https://x/2', 80, 'Postulada'],
+    ['2026-10-31', 'Acme', 'UX', 'https://x/3', 80, 'Esperando CV (IA)'],
+    ['2026-10-20', 'Viejo SA', 'UX', 'https://x/4', 80, 'Aplicada']];
+  const seg = [['Fecha revisión', 'Empresa', 'Cargo', 'Carpeta', 'Hecho', 'Fecha del mensaje', 'Fuente', 'Estado anterior', 'Estado nuevo'],
+    ['2026-11-01', 'Acme Corp', 'UX', '', 'Postulación recibida', '2026-11-01', 'gmail', '—', 'Aplicada'],
+    ['2026-10-25', 'Viejo SA', 'UX', '', 'Postulación recibida', '2026-10-19', 'gmail', '—', 'Aplicada']];
+  assert.deepStrictEqual(J(sig('Generis Tek Inc', '2026-10-31', reg, seg)), { dia: '2026-11-01', motivo: 'Hoja 1: Aplicada (2026-11-01, otra sesión)' });
+  assert.strictEqual(sig('Heivcorp', '2026-10-31', reg, seg).dia, '2026-10-31', 'fecha mostrada como dd/mm/yyyy');
+  assert.strictEqual(sig('Acme_UX Designer', '2026-10-31', reg, seg).motivo, 'Seguimiento: Aplicada', 'el correo de confirmación');
+  assert.strictEqual(sig('Viejo SA', '2026-10-31', reg, seg), null, 'una postulación anterior a la carpeta no cuenta');
+  assert.strictEqual(sig('Empresa Confidencial', '2026-10-31', reg, seg), null);
+  assert.strictEqual(sig('Otra', '2026-10-31', reg, []), null);
+  assert.strictEqual(run('sentDayFromDescription')('Enviada el 2026-11-01 (detectado: Hoja 1: Aplicada)'), '2026-11-01');
+}
+
 assert.strictEqual(run('sentDayFromDescription')('Notas del usuario'), '');
 assert.strictEqual(run('sentDayFromDescription')(undefined), '');
 assert.strictEqual(run('pickCurrentWeek')([{ name: '0. Antiguas' }, { name: '4. Cuarta semana' }, { name: '3. Tercera semana' }]).name, '4. Cuarta semana');
