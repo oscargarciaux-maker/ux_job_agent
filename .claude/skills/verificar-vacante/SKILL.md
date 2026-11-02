@@ -103,6 +103,12 @@ Primero lo barato y sin red (paso 4, repetidas; paso 3 con el texto de `Detalle_
 2. **Acepta candidatos desde Colombia.** Ubicación explícita: Colombia (presencial, híbrido o remoto) o remoto LATAM /
    mundial / UTC-3 a UTC-6. Se descarta: solo EE. UU., Norteamérica, Europa, India, un solo país distinto de Colombia
    (p. ej. "solo Uruguay") o presencial fuera de Colombia (p. ej. Sídney, Copenhague, México).
+   **Lo que diga un tablero agregador no cuenta** (Himalayas, Remotive, Jobicy, Get on Board, LinkedIn "remoto"):
+   el 1 nov 2026 Oscar encontró que Deed y Growe Talents, que Himalayas marcaba como abiertas a todos los países, no
+   permitían trabajo remoto desde Colombia. La ubicación se comprueba en el aviso original de la empresa (su portal o
+   su sistema de postulación: Greenhouse, Lever, Ashby, Workable, careers-page…). Sin el original, o si el original
+   dice presencial, híbrido o un país sin Colombia, no es LISTA ni MENOR_PRIORIDAD: DESCARTAR si el original lo
+   excluye; DUDOSA si no se encontró el original.
 3. **Postular es gratis.** Sin pagos, tarjeta, cursos, exámenes ni "kits" para postular.
 4. **No la ha aplicado antes** (ver paso 4).
 5. **El enlace abre la vacante real:** mismo cargo y empresa, no otra vacante, un listado genérico ni una página de error.
