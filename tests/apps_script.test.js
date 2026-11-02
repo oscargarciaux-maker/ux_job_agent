@@ -663,6 +663,7 @@ assert.ok(!context.isHiddenCompanyRepeat({ company: 'Acme', title: 'UX Designer'
 assert.strictEqual(ex('We encourage people with disabilities to apply'), null);
 assert.strictEqual(ex('Vacante exclusiva para personas con discapacidad'), 'exclusiva para personas con discapacidad');
 assert.ok(vm.runInContext("CONFIG.BLOCKED_SOURCES.test('https://www.vacantes.com/oferta/1')", context));
+assert.ok(vm.runInContext("CONFIG.BLOCKED_SOURCES.test('https://www.jobilize.com/job/us-all-cities-senior-ux-ui-designer')", context), 'jobilize copia avisos viejos con fecha nueva');
 assert.ok(context.isClosedPosting('<span>No longer accepting applications</span>'));
 assert.ok(context.isClosedPosting('Esta oferta ha caducado'));
 assert.ok(!context.isClosedPosting('Apply now'));

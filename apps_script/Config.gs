@@ -32,7 +32,9 @@ const CONFIG = {
   // Agregadores que llevan a páginas de pago: nunca se usa su enlace. Si una vacante solo está en ellos, se descarta.
   // También plataformas de trabajo por proyecto (decisión del usuario 2026-10-19: no quiere vacantes por proyecto).
   // vacantes.com: no permite aplicar fácil (guía 2026-10-22)
-  BLOCKED_SOURCES: /trabajo\.org|jooble\.|jobleads\.|bebee\.|upwork\.|freelancer\.|workana\.|fiverr\.|vacantes\.com/i,
+  // jobilize.com (2026-11-02): copia avisos ajenos con su propia fecha; trajo como «hace 11 días» y con otra empresa
+  // (Logoslabs) un aviso de Bluelight Consulting de agosto.
+  BLOCKED_SOURCES: /trabajo\.org|jooble\.|jobleads\.|bebee\.|upwork\.|freelancer\.|workana\.|fiverr\.|vacantes\.com|jobilize\./i,
   // Vacantes que se descartan por su texto (decisiones del usuario 2026-10-19).
   EXCLUDED_VACANCY_RULES: [
     { reason: 'copia de JobLeads', pattern: /J-18808-Ljbffr/ },
