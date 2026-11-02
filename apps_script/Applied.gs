@@ -143,6 +143,14 @@ function writePendingCvs_(ss, root, children, exportPdf) {
   const recent = recentDays(Utilities.formatDate(new Date(), tz_(), 'yyyy-MM-dd'), CONFIG.CV_CATCHUP_DAYS);
   const drafts = { pending: 0, map: null };  // borradores sin enviar por destinatario: se leen solo si hace falta
   let exported = 0;
+  let cache = null;  // Hoja 1 y Seguimiento, leídas una sola vez y solo si hay carpetas que revisar
+  const signals = () => cache || (cache = {
+    registry: ss.getSheets()[0].getDataRange().getDisplayValues(),
+    followups: (() => {
+      const sheet = ss.getSheetByName(CONFIG.FOLLOWUP_SHEET_NAME);
+      return sheet ? sheet.getDataRange().getDisplayValues() : [];
+    })()
+  });
   const pending = root.getFoldersByName(CONFIG.PENDING_FOLDER_NAME);
   if (pending.hasNext()) {
     children(pending.next().getId()).forEach(day => {
@@ -159,6 +167,15 @@ function writePendingCvs_(ss, root, children, exportPdf) {
           });
         }
         if (f.name === CONFIG.POSTS_FOLDER_NAME || f.name === CONFIG.DOUBTFUL_FOLDER_NAME) return;
+        const sent = sentSignal(f.name, day.name, signals().registry, signals().followups);
+        if (sent) {
+          try {
+            moveSentVacancy_(f.id, sent);
+            return;  // ya está en CV/<semana>: no va en Por enviar
+          } catch (e) {
+            console.warn(f.name + ' -> no se pudo mover como enviada: ' + e.message);
+          }
+        }
         const files = listChildFiles_(f.id);
         const cv = pendingCvFiles(files);
         const hv = cv.doc || cv.pdf;
@@ -210,6 +227,18 @@ function writePendingCvs_(ss, root, children, exportPdf) {
   sheet.setFrozenRows(1);
   console.log('Por enviar: ' + rows.length + ' HV en ' + CONFIG.PENDING_FOLDER_NAME + (exported ? ' (' + exported + ' PDF nuevos)' : ''));
   writeDoubtfulSheet_(ss, doubtful);
+}
+
+/** Mueve a CV/<semana actual> una vacante de Sin revisar que ya se envió, como el botón «Ya la envié» del juego. */
+function moveSentVacancy_(folderId, sent) {
+  const cv = topFolder(CONFIG.APPLIED_FOLDER_NAME);
+  const weeks = listChildFolders_(cv.getId()).filter(f => !CONFIG.APPLIED_OLD_FOLDER_PATTERN.test(String(f.name).replace(/^\d+\.\s*/, '').trim()));
+  const week = pickCurrentWeek(weeks);
+  if (!week) throw new Error('No hay una carpeta de semana en ' + CONFIG.APPLIED_FOLDER_NAME);
+  const folder = DriveApp.getFolderById(folderId);
+  folder.setDescription('Enviada el ' + sent.dia + ' (detectado: ' + sent.motivo + ')');
+  folder.moveTo(DriveApp.getFolderById(week.id));
+  console.log(folder.getName() + ' -> ya enviada (' + sent.motivo + '), movida a ' + week.name);
 }
 
 /** Reescribe la pestaña "Dudosas": las que esperan el sí o no de Oscar (la oficina las muestra con botones). */
@@ -579,6 +608,53 @@ function parseAppliedFolderName(name) {
   const text = String(name || '').trim();
   const i = text.indexOf('_');
   return i === -1 ? { company: text, title: '' } : { company: text.slice(0, i).trim(), title: text.slice(i + 1).replace(/_/g, '/').trim() };
+}
+
+/** Fecha de una celda como yyyy-MM-dd: Sheets puede mostrar "2026-10-31" o, si la volvió fecha, "31/10/2026". */
+function isoDay(cell) {
+  const text = String(cell || '').trim();
+  let m = /^(\d{4})-(\d{2})-(\d{2})/.exec(text);
+  if (m) return m[1] + '-' + m[2] + '-' + m[3];
+  m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(text);
+  return m ? m[3] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[1]).slice(-2) : '';
+}
+
+/**
+ * ¿Ya se envió esta vacante de Sin revisar? (2026-11-01: Oscar envió Generis Tek y Heivcorp con una HV hecha a mano, sin
+ * el botón «Ya la envié» —que solo sale con HV del agente—, y las carpetas no se movieron). Señales, de la más segura a la
+ * menos: el Estado de su fila en Hoja 1 empieza por Aplicada/Postulada/Enviada (lo marca el juego, otra sesión o Oscar),
+ * o Seguimiento trae para esa empresa un «Estado nuevo» Aplicada con fecha del mensaje desde el día de la carpeta (el
+ * correo de confirmación que lee la radio). registry: filas de Hoja 1 [Fecha, Empresa, Cargo, Link, Match, Estado, …];
+ * followups: filas de Seguimiento con su encabezado en la primera. Devuelve { dia, motivo } o null.
+ */
+function sentSignal(folderName, dayName, registry, followups) {
+  const company = parseAppliedFolderName(folderName).company;
+  const key = companyKey_(company);
+  if (key.length < 4 || /^confidential|^confidencial|^empresa/.test(key)) return null;  // no identifica a la empresa
+  const same = other => {
+    const k = companyKey_(other);
+    return k.length >= 4 && (k.indexOf(key) === 0 || key.indexOf(k) === 0);
+  };
+  const SENT = /^\s*(aplicad|postulad|enviad)/i;
+  const dayOf = text => {
+    const m = /(\d{4}-\d{2}-\d{2})/.exec(String(text || ''));
+    return m ? m[1] : '';
+  };
+  for (let i = (registry || []).length - 1; i >= 0; i--) {
+    const r = registry[i] || [];
+    if (isoDay(r[0]) !== dayName || !same(r[1])) continue;
+    if (SENT.test(String(r[5] || ''))) return { dia: dayOf(r[5]) || dayName, motivo: 'Hoja 1: ' + String(r[5]).slice(0, 60) };
+  }
+  const header = ((followups || [])[0] || []).map(String);
+  const cCompany = header.indexOf('Empresa'), cNew = header.indexOf('Estado nuevo'), cDate = header.indexOf('Fecha del mensaje');
+  if (cCompany === -1 || cNew === -1) return null;
+  for (let i = followups.length - 1; i >= 1; i--) {
+    const r = followups[i] || [];
+    if (!same(r[cCompany]) || !SENT.test(String(r[cNew] || ''))) continue;
+    const day = dayOf(cDate === -1 ? '' : r[cDate]);
+    if (day && day >= dayName) return { dia: day, motivo: 'Seguimiento: ' + String(r[cNew]).slice(0, 60) };
+  }
+  return null;
 }
 
 function companyKey_(name) {
