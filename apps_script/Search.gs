@@ -233,9 +233,11 @@ function roleTitleClass(title) {
   if (/copywrit|writer|redactor|\bseo\b|developer|desarrollador|programador|engineer|ingenier/i.test(t)) return 'excluded';
   // 2026-10-28 (decisión del usuario: «acepta más cargos»): también diseño de servicios, de interacción y
   // conversacional, investigación con usuarios y arquitectura de información
-  const design = /\bux\b|\bui\b|user experience|experiencia de usuario|product design|dise[nñ]ador(a)? de producto|interaction|interfaz|interfaces|dise[nñ]o de (producto|experiencia|interacci|servicio)|dise[nñ]ador(a)? (digital|web)|web designer|visual designer|service design|design system|dise[nñ]ador(\(a\)|a)? de (servicio|interacci|experiencia(?! (del |de )?cliente))|(?<!customer )experience designer|user research|design research|investigador(\(a\)|a)? (ux|de usuario|de experiencia)|investigaci[oó]n (con|de) usuario|conversation(al)? design|dise[nñ](o|ador(a)?) conversacional|information architect|arquitect(o|a|ura) de (la )?informaci[oó]n/i.test(t);
+  const design = /\bux\b|\bui\b|user experience|experiencia de usuario|product design|dise[nñ]ador(a)? de producto|interaction|interfaz|interfaces|dise[nñ]o de (producto|experiencia|interacci|servicio)|dise[nñ]ador(a)? (digital|web)|web designer|visual designer|service design|design system|dise[nñ]ador(\(a\)|a)? de (servicio|interacci|experiencia(?! (del |de )?cliente))|(?<!customer )experience designer|user research|design research|investigador(\(a\)|a)? (ux|de usuario|de experiencia)|investigaci[oó]n (con|de) usuario|conversation(al)? design|dise[nñ](o|ador(a)?) conversacional|information architect|arquitect(o|a|ura) de (la )?informaci[oó]n|growth designer|app designer|mobile designer|dise[nñ]ador(a|\/a|\(a\))? de (aplicaciones|apps)|usabilidad|usability/i.test(t);
   if (design && !/content|contenido/i.test(t)) return 'design';
-  if (design || /\bcx\b|customer experience|experiencia (del |de )?cliente|content design|producto digital|digital product|product (owner|analyst|specialist)|analista de producto/i.test(t)) return 'verify';
+  // 2026-11-03 (decisión del usuario: «muy pocas vacantes»): cargos cercanos que se deciden por sus funciones —e-commerce,
+  // diseñador digital en inglés, webmaster y accesibilidad—; entran marcados para que la IA revise que sean de diseño UX/UI
+  if (design || /\bcx\b|customer experience|experiencia (del |de )?cliente|content design|producto digital|digital product|product (owner|analyst|specialist)|analista de producto|e-?commerce designer|dise[nñ]ador(a|\/a|\(a\))? (de )?(comercio electr[oó]nico|e-?commerce)|digital designer|web ?master|accesibilidad|accessibility/i.test(t)) return 'verify';
   return 'other';
 }
 

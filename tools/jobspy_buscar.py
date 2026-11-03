@@ -42,7 +42,10 @@ NO_DISENO = re.compile(r"graphic|gr[aá]fico|developer|desarrollador|engineer|in
 TERMINOS_EXTRA = ["diseñador digital", "diseñador web", "diseñador de interfaces", "diseñador de experiencia de usuario",
                   "diseñador ux junior", "diseñador ui junior", "diseñador de producto digital", "diseñador ux semi senior",
                   "investigador ux", "arquitectura de información", "interaction designer", "web designer",
-                  "visual designer", "product designer junior", "ui ux junior", "diseñador figma"]
+                  "visual designer", "product designer junior", "ui ux junior", "diseñador figma",
+                  # 2026-11-03 (decisión del usuario: «muy pocas vacantes»): cargos cercanos que se verifican por funciones
+                  "diseñador e-commerce", "ecommerce designer", "digital designer", "app designer", "growth designer",
+                  "analista ux", "customer experience designer", "webmaster ux"]
 EXTRAS_POR_CORRIDA = 6
 HORAS = 336           # Ventana de cada búsqueda (14 días; antes 7 y Indeed traía 4 avisos): lo ya visto lo descarta Apps Script
 DIAS_GUARDADOS = 7

@@ -11,7 +11,7 @@ Estados: ✅ hecho y probado · 🟡 parcial · ⏳ pendiente · ❓ falta una d
 
 | Regla | Estado | Dónde / cómo se comprueba |
 |---|---|---|
-| Roles: UX/UI, producto, design systems, research (también user/design researcher e investigador UX), web/visual, diseño de servicios, de interacción y conversacional, arquitectura de información (ampliado por decisión del usuario 2026-10-28; términos nuevos en Himalayas, JobSpy, LinkedIn, elempleo y publicaciones); fuera copywriter, SEO, developer, gráfico puro, design engineer | ✅ | `isDesignRole` (`Search.gs`); pruebas en `tests/apps_script.test.js` |
+| Roles: UX/UI, producto, design systems, research (también user/design researcher e investigador UX), web/visual, diseño de servicios, de interacción y conversacional, arquitectura de información, growth/app designer y usabilidad; e-commerce, diseñador digital (en inglés), webmaster y accesibilidad entran a revisar funciones (2026-11-03, «muy pocas vacantes»; ampliado antes por decisión del usuario 2026-10-28; términos nuevos en Himalayas, JobSpy, LinkedIn, elempleo y publicaciones); fuera copywriter, SEO, developer, gráfico puro, design engineer | ✅ | `isDesignRole` (`Search.gs`); pruebas en `tests/apps_script.test.js` |
 | Nunca staff, principal, head, director, manager | ✅ | `CONFIG.EXCLUDED_TITLE_PATTERN`, `exclusionReason` |
 | Junior primero; < 5 años sirve; ≥ 5 años baja prioridad | ✅ | `MIN_JUNIOR`, `requiredYears`, `EXPERIENCE_PENALTY` |
 | Ubicación: Colombia o remoto LATAM/mundo/UTC-3 a -6; nunca solo EE. UU., Europa, India | ✅ | `REACHABLE_REMOTE_LOCATION`, `isReachableRemoteJob` |
