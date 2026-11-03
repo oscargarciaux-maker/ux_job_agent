@@ -254,9 +254,8 @@ function validateCvJson(cv, contextText, placeholders, vacancy) {
   cargoErrors(cv, vacancy).forEach(e => errors.push(e));
   targetCompanyErrors(cv, vacancy).forEach(e => errors.push(e));
   personalizationErrors(cv, contextText).forEach(e => errors.push(e));
-  // Guía Maestra de Cover Letters (2026-10-24): el correo de postulación también va en máximo 35 palabras
-  const mailWords = countEmailWords(cv._correo_cuerpo);
-  if (mailWords > CONFIG.COLD_EMAIL_MAX_WORDS) warnings.push('_correo_cuerpo tiene ' + mailWords + ' palabras (la guía de cover letters pide máximo ' + CONFIG.COLD_EMAIL_MAX_WORDS + ')');
+  // Guía Maestra de Cover Letters: el correo de postulación tiene la misma forma que los correos en frío (2026-11-03)
+  emailShapeErrors(cv._correo_cuerpo).forEach(e => warnings.push('_correo_cuerpo ' + e));
   return { errors: errors.filter((e, i, all) => all.indexOf(e) === i), warnings: warnings };
 }
 

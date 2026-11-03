@@ -797,6 +797,18 @@ cold = run('validateColdEmails')(coldData([mail({})]), coldCtx, contacted);
 assert.ok(cold.errors.some(e => /cifra 10/.test(e)), 'el "10 minutos" debe estar respaldado por CONTEXTO_CV');
 cold = run('validateColdEmails')(coldData([mail({ cuerpo: Array(36).fill('palabra').join(' ') })]), coldCtx, contacted);
 assert.ok(cold.errors.some(e => /36 palabras/.test(e)));
+// Forma más humana (decisión del usuario 2026-11-03): saludo + hasta 3 párrafos de máximo 35 palabras cada uno
+const p35 = Array(35).fill('palabra').join(' ');
+assert.deepStrictEqual(Array.from(run('emailShapeErrors')('Hola Ana,\n\n' + [p35, p35, p35].join('\n\n'))), [], '3 párrafos de 35 + saludo suelto pasan');
+assert.ok(run('emailShapeErrors')([p35, p35, p35, 'Gracias'].join('\n\n'))[0].includes('4 párrafos'));
+assert.ok(/párrafo 2 tiene 36/.test(run('emailShapeErrors')([p35, p35 + ' más'].join('\n\n'))[0]));
+assert.strictEqual(run('emailParagraphs')('Hi Imaginary Space team,\n\nI saw that you shipped.\n\nCould we talk?').length, 2, 'el saludo no es párrafo');
+assert.strictEqual(run('emailParagraphs')('Hola Ana, vi que lanzaron pagos QR.').length, 1, 'saludo y gancho en la misma línea: un párrafo');
+cold = run('validateColdEmails')(coldData([mail({ cuerpo: 'Hola,\n\n' + [p35, p35, p35].join('\n\n') })]), coldCtx + ' 10', contacted);
+assert.ok(!cold.errors.some(e => /palabras|párrafos/.test(e)), 'un correo de 3 párrafos de 35 ya no se rechaza');
+assert.ok(cold.warnings.some(w => /lo ideal son 2/.test(w)), 'con 3 párrafos avisa: lo ideal son 2');
+cold = run('validateColdEmails')(coldData([mail({ cuerpo: 'Hola,\n\n' + [p35, p35].join('\n\n') })]), coldCtx + ' 10', contacted);
+assert.ok(!cold.warnings.some(w => /lo ideal/.test(w)), '2 párrafos: sin aviso');
 cold = run('validateColdEmails')(coldData([mail({ fuente: '' })]), coldCtx + ' 10', contacted);
 assert.ok(cold.errors.some(e => /fuente/.test(e)));
 cold = run('validateColdEmails')(coldData([mail({ para: 'info@ludussf.com' }), mail({ para: 'jobs@movii.com.co' }), mail({})]), coldCtx + ' 10', contacted);
@@ -826,7 +838,7 @@ assert.ok(run('validateColdEmails')({ empresa: 'X', idioma: 'fr', correos: [] },
 // Decisiones del usuario (2026-10-24): el nombre de la empresa no cuenta en las 35 palabras, el asunto que se envía no
 // lo lleva (el borrador lo muestra como prefijo) y si la dirección es de una persona se la saluda por su nombre
 assert.strictEqual(run('countEmailWords')('Hola Ana, en Banco de Bogotá vi su app.', 'Banco de Bogotá'), 6);
-assert.strictEqual(run('coldDraftSubject')('Bold', 'Diseñador UX/UI - Pagos'), '[Bold] Diseñador UX/UI - Pagos');
+assert.strictEqual(run('coldDraftSubject')('Bold', 'Diseñador UX/UI - Pagos'), '[BORRAR ANTES DE ENVIAR: Bold] Diseñador UX/UI - Pagos');
 cold = run('validateColdEmails')(coldData([mail({ asunto: 'Diseñador UX/UI - Empresa' })]), coldCtx + ' 10', contacted);
 assert.ok(cold.errors.some(e => /asunto no puede llevar/.test(e)));
 cold = run('validateColdEmails')(coldData([mail({ nombre: 'Ana Pérez' })]), coldCtx + ' 10', contacted);

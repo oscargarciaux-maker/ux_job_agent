@@ -249,19 +249,52 @@ function countEmailWords(text, company) {
   return t.split(/\s+/).filter(w => /[\p{L}\p{N}]/u.test(w)).length;
 }
 
+/**
+ * Párrafos del cuerpo de un correo (puro): bloques separados por una línea en blanco, sin el saludo suelto ("Hola Ana,",
+ * "Hi team,": un primer bloque de hasta 6 palabras que termina en coma o dos puntos). La firma la agrega Apps Script.
+ */
+function emailParagraphs(text) {
+  const blocks = String(text || '').split(/\n\s*\n/).map(b => b.trim()).filter(Boolean);
+  if (blocks.length > 1 && countEmailWords(blocks[0]) <= 6 && /[,:]$/.test(blocks[0])) blocks.shift();
+  return blocks;
+}
+
+/**
+ * Errores de forma de un correo (puro, decisión del usuario 2026-11-03): máximo CONFIG.COLD_EMAIL_MAX_PARAGRAPHS
+ * párrafos de máximo CONFIG.COLD_EMAIL_MAX_WORDS palabras cada uno (el nombre de la empresa no cuenta).
+ */
+function emailShapeErrors(text, company) {
+  const paragraphs = emailParagraphs(text);
+  const errors = [];
+  if (paragraphs.length > CONFIG.COLD_EMAIL_MAX_PARAGRAPHS) {
+    errors.push('tiene ' + paragraphs.length + ' párrafos (máximo ' + CONFIG.COLD_EMAIL_MAX_PARAGRAPHS + ', sin contar el saludo)');
+  }
+  paragraphs.forEach((p, i) => {
+    const words = countEmailWords(p, company);
+    if (words > CONFIG.COLD_EMAIL_MAX_WORDS) {
+      errors.push('el párrafo ' + (i + 1) + ' tiene ' + words + ' palabras (máximo ' + CONFIG.COLD_EMAIL_MAX_WORDS + ' por párrafo, Guía Maestra de Cover Letters)');
+    }
+  });
+  return errors;
+}
+
 /** El nombre de la empresa como palabra completa, sin importar mayúsculas. */
 function companyPattern_(company, flags) {
   return new RegExp('(^|[^\\p{L}\\p{N}])' + escapeRegex_(String(company).trim()) + '(?=$|[^\\p{L}\\p{N}])', flags || 'iu');
 }
 
-/** Asunto del borrador: "[Empresa] asunto" para identificarlo; el usuario quita el prefijo al enviar. */
+/**
+ * Asunto del borrador: "[BORRAR ANTES DE ENVIAR: Empresa] asunto". El prefijo solo sirve para identificar el borrador; el
+ * candidato lo borra antes de enviar (el asunto que se envía nunca lleva la empresa). Desde 2026-11-03 el prefijo lo dice
+ * en el propio asunto, para que no se olvide (antes era "[Empresa] ").
+ */
 function coldDraftSubject(company, subject) {
-  return '[' + String(company).trim() + '] ' + String(subject).trim();
+  return '[BORRAR ANTES DE ENVIAR: ' + String(company).trim() + '] ' + String(subject).trim();
 }
 
 /**
  * Valida Correos.json: { empresa, idioma, firma, hv?, correos: [{ para, nombre?, asunto, cuerpo, fuente, fecha_fuente?,
- * nota? }] }. Reglas: cuerpo de máximo CONFIG.COLD_EMAIL_MAX_WORDS palabras (Guía Maestra de Cover Letters), cada
+ * nota? }] }. Reglas: cuerpo de hasta 3 párrafos de máximo 35 palabras (emailShapeErrors), cada
  * dirección con su fuente, cifras que existan en CONTEXTO_CV, sin palabras prohibidas, y nunca una dirección que ya
  * rebotó o ya se usó (esas se omiten con aviso). Con "reemplazar": true, una dirección que solo tiene un borrador sin
  * enviar sale con reemplaza: true (se reescribe ese borrador). Devuelve { errors, warnings, recipients }.
@@ -294,8 +327,8 @@ function validateColdEmails(data, contextText, contacted) {
     });
     const body = String(c.cuerpo || '');
     const company = String(data.empresa || '').trim();
-    const words = countEmailWords(body, company);
-    if (words > CONFIG.COLD_EMAIL_MAX_WORDS) errors.push(who + ': el cuerpo tiene ' + words + ' palabras (máximo ' + CONFIG.COLD_EMAIL_MAX_WORDS + ', Guía Maestra de Cover Letters)');
+    emailShapeErrors(body, company).forEach(e => errors.push(who + ': el cuerpo ' + e));
+    if (emailParagraphs(body).length === CONFIG.COLD_EMAIL_MAX_PARAGRAPHS) warnings.push(who + ': tiene ' + CONFIG.COLD_EMAIL_MAX_PARAGRAPHS + ' párrafos; lo ideal son ' + CONFIG.COLD_EMAIL_IDEAL_PARAGRAPHS);
     const plain = body.replace(/\([^)]*https?:\/\/[^)]*\)/g, ' ').replace(/https?:\/\/\S+/g, ' ').replace(/\S+@\S+/g, ' ');
     extractNumbers_(plain + ' ' + String(c.asunto || '')).forEach(n => {
       if (!knownNumbers[n]) errors.push(who + ': la cifra ' + n + ' no está en ' + CONFIG.CONTEXT_DOC_NAME);
@@ -305,7 +338,7 @@ function validateColdEmails(data, contextText, contacted) {
     if (/^\s*postulaci[oó]n\b/i.test(String(c.asunto || ''))) warnings.push(who + ': el asunto empieza por "Postulación" (la guía pide nombrar la especialidad)');
     // Decisiones del usuario (2026-10-24): el asunto que se envía no lleva el nombre de la empresa (Apps Script le pone
     // "[Empresa] " solo en el borrador); si la dirección es de una persona, se la saluda por su nombre.
-    if (company && companyPattern_(company).test(String(c.asunto || ''))) errors.push(who + ': el asunto no puede llevar el nombre de la empresa (el borrador lo muestra como prefijo [' + company + '] que se quita al enviar)');
+    if (company && companyPattern_(company).test(String(c.asunto || ''))) errors.push(who + ': el asunto no puede llevar el nombre de la empresa (el borrador lo muestra como prefijo [BORRAR ANTES DE ENVIAR: ' + company + '] que se quita al enviar)');
     const firstName = String(c.nombre || '').trim().split(/\s+/)[0];
     if (firstName && !new RegExp('^[^\\n]{0,40}' + escapeRegex_(firstName), 'iu').test(body.trim())) errors.push(who + ': el saludo debe ir a ' + firstName + ' (la dirección es de esa persona)');
     if (company && !companyPattern_(company).test(body)) warnings.push(who + ': el cuerpo no menciona a ' + company);
