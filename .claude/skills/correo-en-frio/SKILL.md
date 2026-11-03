@@ -1,6 +1,6 @@
 ---
 name: correo-en-frio
-description: Prepara correos en frío para empresas sin vacante publicada (investiga la empresa, crea su HV con crear-hv, busca direcciones reales con fuente y escribe un mensaje de máximo 35 palabras según la Guía Maestra de Cover Letters) y deja todo listo para que Apps Script cree un borrador de Gmail por destinatario con la HV en PDF adjunta. Nunca envía nada. Úsala cuando el usuario pida "escríbele a <empresa>", "correo en frío para…", "siguiente lote" o "prepara correos para estas empresas".
+description: Prepara correos en frío para empresas sin vacante publicada (investiga la empresa, crea su HV con crear-hv, busca direcciones reales con fuente y escribe un mensaje humano de saludo + hasta 3 párrafos de máximo 35 palabras según la Guía Maestra de Cover Letters) y deja todo listo para que Apps Script cree un borrador de Gmail por destinatario con la HV en PDF adjunta. Nunca envía nada. Úsala cuando el usuario pida "escríbele a <empresa>", "correo en frío para…", "siguiente lote" o "prepara correos para estas empresas".
 ---
 
 # Correo en frío
@@ -47,7 +47,7 @@ baja ni un poco** por hacer muchas.
 1. Toma las 3 primeras empresas `Nueva` (Bogotá primero) y cambia su Estado a `En lote`.
 2. Haz con cada una los Pasos 1 a 5 completos, sin saltar ninguno: investigación con gancho verificado, HV con
    `crear-hv` (modo B) y **`revisar-hv` con la revisión visual del PDF**, direcciones con fuente y `Correos.json`
-   revisado contra el control de calidad de la guía (≤35 palabras sin contar la empresa, gancho específico, métrica de
+   revisado contra el control de calidad de la guía (hasta 3 párrafos de ≤35 palabras sin contar el saludo ni la empresa, gancho específico, métrica de
    `CONTEXTO_CV`, saludo por el nombre, asunto sin la empresa). Si hay una herramienta de subagentes, puedes darle a cada
    empresa de la tanda su propio subagente (contexto limpio = misma calidad para la tercera que para la primera); tú
    revisas cada resultado con esta misma lista antes de aceptarlo.
@@ -95,11 +95,17 @@ Si la empresa viene de `Empresas objetivo`, sus correos ya están verificados en
 
 ## Paso 4. El correo (Guía Maestra de Cover Letters, Prompt 1)
 
-Estructura: **[Gancho con dato real investigado] + [Métrica del CV que responde a ese hecho] + [CTA: llamada de 10
-minutos] + [Adjuntos: HV, LinkedIn y Portafolio]**.
+Estructura (decisión del usuario 2026-11-03: «más humano»; el gancho, la métrica y la invitación siguen siendo los de
+la guía): **saludo + hasta 3 párrafos de máximo 35 palabras cada uno**, separados por una línea en blanco:
+1. **Hito y felicitación:** el dato real y reciente de la empresa contado como lo contaría una persona ("vi que…"), qué
+   de ese hito le llamó la atención y una felicitación corta. Nunca abrir con el dato como afirmación seca ("Shipping
+   over 50 systems… is the pace I want").
+2. **Por qué le interesa:** la conexión con lo que hace el candidato y su métrica de `CONTEXTO_CV` que responde a ese
+   reto. Si es para una vacante concreta, aquí va el interés en esa vacante.
+3. **Invitación breve a charlar** (llamada corta) y los adjuntos: HV, LinkedIn y Portafolio.
 
-- **Máximo 35 palabras** contando saludo y cierre (los enlaces cuentan como su palabra; la firma y **el nombre de la
-  empresa no cuentan**). Apps Script rechaza un cuerpo más largo.
+- El saludo suelto ("Hola Ana,") y la firma no cuentan; los enlaces cuentan como su palabra y **el nombre de la empresa
+  no cuenta**. Apps Script rechaza más de 3 párrafos o un párrafo de más de 35 palabras (`emailShapeErrors`).
 - **Prohibidos los clichés:** "admiro su innovación", "me encanta su cultura", "espero que estés bien", saludos formales
   largos, autobiografía.
 - **La métrica** sale de `CONTEXTO_CV` (o de las cifras aclaradas por el usuario: Trezo, cerca de 90 personas = 50
@@ -110,7 +116,7 @@ minutos] + [Adjuntos: HV, LinkedIn y Portafolio]**.
   (`nombre` en `Correos.json`), el correo la saluda directamente ("Hola Ana,"; Apps Script lo exige). Si es un buzón
   general, "Hola," o "Hola, equipo de <área>,".
 - **El nombre de la empresa va en el texto, con discreción** (una vez, como parte del gancho: "vi que en Bold lanzaron…"),
-  nunca en el asunto. No cuenta en las 35 palabras.
+  nunca en el asunto. No cuenta en las palabras.
 - **Tono por tipo de empresa** ("Empresas Tech en Bogotá"): fábrica de software → sistemas de diseño, documentación y
   handoff sin fricción, metodologías ágiles; agencia → conversión y criterio visual (puede incluir una observación breve
   sobre una página de un cliente); incubadora o aceleradora → ofrecer valor a las startups de su portafolio y pedir que
@@ -123,12 +129,19 @@ minutos] + [Adjuntos: HV, LinkedIn y Portafolio]**.
   aparece como "[Bold] Diseñador UX/UI - Pagos y comercios" solo para identificarlo: **el candidato borra "[Bold] " antes
   de enviar** (decisión del usuario, 24 oct 2026).
 - Palabras prohibidas también aquí (aprendiz, practicante, voluntario, intern, volunteer, junior).
-- **Control de calidad de la guía** antes de guardar: ¿≤35 palabras?, ¿el dato es específico de esta empresa?, ¿hay una
+- **Control de calidad de la guía** antes de guardar: ¿3 párrafos o menos y cada uno de ≤35 palabras?, ¿suena como lo diría una persona?, ¿el dato es específico de esta empresa?, ¿hay una
   métrica?, ¿enlaces correctos?
 
-Ejemplo de forma (no de contenido; cada empresa lleva su propio gancho y su propia métrica): "Hola Ana, vi que en
-<Empresa> lanzaron <hecho verificado>. En <experiencia> logré <métrica de CONTEXTO_CV>. ¿Conversamos diez minutos esta semana? Adjunto mi
-HV, [LinkedIn](...) y [Portafolio](...)."
+Ejemplo de forma (no de contenido; cada empresa lleva su propio gancho y su propia métrica):
+
+"Hola Ana,
+
+Vi que en <Empresa> lanzaron <hecho verificado>. Me llamó la atención <qué de ese hecho>; felicitaciones al equipo.
+
+Por eso me interesa <la vacante o el área>: en <experiencia> logré <métrica de CONTEXTO_CV>, justo el tipo de reto que
+tienen ahora.
+
+¿Conversamos en una llamada corta esta semana? Adjunto mi HV, [LinkedIn](...) y [Portafolio](...)."
 
 ## Paso 5. Salida: `Correos.json`
 
@@ -161,7 +174,7 @@ contenido). Si ya hay `Borradores.txt`, esos borradores ya existen: para agregar
   `ANTERIOR - HV_...`; no la borres).
 
 **Qué hace Apps Script** (`crearBorradoresEnFrio`, cada hora dentro de `sincronizarAplicadas`; el candidato también
-puede ejecutarlo a mano): valida `Correos.json` (≤35 palabras, fuente en cada dirección, cifras de `CONTEXTO_CV`,
+puede ejecutarlo a mano): valida `Correos.json` (hasta 3 párrafos de ≤35 palabras, fuente en cada dirección, cifras de `CONTEXTO_CV`,
 palabras prohibidas, asunto sin la empresa, saludo por el nombre; direcciones ya usadas o rebotadas se omiten), exporta
 la HV a PDF, crea un borrador por destinatario con el PDF adjunto y el asunto "[Empresa] …", agrega una fila por
 destinatario a `Correos en frío` (Estado "Borrador preparado, no enviado", Notas con la fuente), marca la empresa como

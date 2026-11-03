@@ -249,6 +249,35 @@ function countEmailWords(text, company) {
   return t.split(/\s+/).filter(w => /[\p{L}\p{N}]/u.test(w)).length;
 }
 
+/**
+ * Párrafos del cuerpo de un correo (puro): bloques separados por una línea en blanco, sin el saludo suelto ("Hola Ana,",
+ * "Hi team,": un primer bloque de hasta 6 palabras que termina en coma o dos puntos). La firma la agrega Apps Script.
+ */
+function emailParagraphs(text) {
+  const blocks = String(text || '').split(/\n\s*\n/).map(b => b.trim()).filter(Boolean);
+  if (blocks.length > 1 && countEmailWords(blocks[0]) <= 6 && /[,:]$/.test(blocks[0])) blocks.shift();
+  return blocks;
+}
+
+/**
+ * Errores de forma de un correo (puro, decisión del usuario 2026-11-03): máximo CONFIG.COLD_EMAIL_MAX_PARAGRAPHS
+ * párrafos de máximo CONFIG.COLD_EMAIL_MAX_WORDS palabras cada uno (el nombre de la empresa no cuenta).
+ */
+function emailShapeErrors(text, company) {
+  const paragraphs = emailParagraphs(text);
+  const errors = [];
+  if (paragraphs.length > CONFIG.COLD_EMAIL_MAX_PARAGRAPHS) {
+    errors.push('tiene ' + paragraphs.length + ' párrafos (máximo ' + CONFIG.COLD_EMAIL_MAX_PARAGRAPHS + ', sin contar el saludo)');
+  }
+  paragraphs.forEach((p, i) => {
+    const words = countEmailWords(p, company);
+    if (words > CONFIG.COLD_EMAIL_MAX_WORDS) {
+      errors.push('el párrafo ' + (i + 1) + ' tiene ' + words + ' palabras (máximo ' + CONFIG.COLD_EMAIL_MAX_WORDS + ' por párrafo, Guía Maestra de Cover Letters)');
+    }
+  });
+  return errors;
+}
+
 /** El nombre de la empresa como palabra completa, sin importar mayúsculas. */
 function companyPattern_(company, flags) {
   return new RegExp('(^|[^\\p{L}\\p{N}])' + escapeRegex_(String(company).trim()) + '(?=$|[^\\p{L}\\p{N}])', flags || 'iu');
@@ -261,7 +290,7 @@ function coldDraftSubject(company, subject) {
 
 /**
  * Valida Correos.json: { empresa, idioma, firma, hv?, correos: [{ para, nombre?, asunto, cuerpo, fuente, fecha_fuente?,
- * nota? }] }. Reglas: cuerpo de máximo CONFIG.COLD_EMAIL_MAX_WORDS palabras (Guía Maestra de Cover Letters), cada
+ * nota? }] }. Reglas: cuerpo de hasta 3 párrafos de máximo 35 palabras (emailShapeErrors), cada
  * dirección con su fuente, cifras que existan en CONTEXTO_CV, sin palabras prohibidas, y nunca una dirección que ya
  * rebotó o ya se usó (esas se omiten con aviso). Con "reemplazar": true, una dirección que solo tiene un borrador sin
  * enviar sale con reemplaza: true (se reescribe ese borrador). Devuelve { errors, warnings, recipients }.
@@ -294,8 +323,7 @@ function validateColdEmails(data, contextText, contacted) {
     });
     const body = String(c.cuerpo || '');
     const company = String(data.empresa || '').trim();
-    const words = countEmailWords(body, company);
-    if (words > CONFIG.COLD_EMAIL_MAX_WORDS) errors.push(who + ': el cuerpo tiene ' + words + ' palabras (máximo ' + CONFIG.COLD_EMAIL_MAX_WORDS + ', Guía Maestra de Cover Letters)');
+    emailShapeErrors(body, company).forEach(e => errors.push(who + ': el cuerpo ' + e));
     const plain = body.replace(/\([^)]*https?:\/\/[^)]*\)/g, ' ').replace(/https?:\/\/\S+/g, ' ').replace(/\S+@\S+/g, ' ');
     extractNumbers_(plain + ' ' + String(c.asunto || '')).forEach(n => {
       if (!knownNumbers[n]) errors.push(who + ': la cifra ' + n + ' no está en ' + CONFIG.CONTEXT_DOC_NAME);
