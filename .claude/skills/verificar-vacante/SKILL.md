@@ -108,7 +108,9 @@ Primero lo barato y sin red (paso 4, repetidas; paso 3 con el texto de `Detalle_
    permitían trabajo remoto desde Colombia. La ubicación se comprueba en el aviso original de la empresa (su portal o
    su sistema de postulación: Greenhouse, Lever, Ashby, Workable, careers-page…). Sin el original, o si el original
    dice presencial, híbrido o un país sin Colombia, no es LISTA ni MENOR_PRIORIDAD: DESCARTAR si el original lo
-   excluye; DUDOSA si no se encontró el original.
+   excluye; DUDOSA si no se encontró el original. **Himalayas, sin el original, es DESCARTAR, no DUDOSA** (3 nov 2026:
+   Pontoonglobal, «Remote worldwide» en Himalayas y aprobada como dudosa, era solo para EE. UU. al ir a postular; de 42
+   vacantes de Himalayas en 14 días, 28 se descartaron).
 3. **Postular es gratis.** Sin pagos, tarjeta, cursos, exámenes ni "kits" para postular.
 4. **No la ha aplicado antes** (ver paso 4).
 5. **El enlace abre la vacante real:** mismo cargo y empresa, no otra vacante, un listado genérico ni una página de error.
