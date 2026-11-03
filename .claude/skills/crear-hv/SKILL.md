@@ -113,6 +113,10 @@ descripción o una categoría de habilidades sale igual, reescríbela.
 
 **Redacción** (`GUIA_CV`, regla 6: "tono profesional, estratégico y orientado a resultados"; 26 oct 2026, el usuario
 dijo que los logros de Qentaz sonaban "muy conversacionales"):
+- **Perfil estratégico (3 nov 2026: «no está redactado de forma estratégica; habla de una aseguradora en vez de Seguros
+  Bolívar»):** abre con el problema de negocio que resuelve el candidato y sigue con sus decisiones y su resultado
+  medible, nombrando la empresa real (Seguros Bolívar, Meevent, Central Xpress), nunca «una aseguradora» ni «un
+  e-commerce». No abre con cómo queda el producto para el usuario («Hago que un sitio sea claro…») ni con técnicas.
 - **Logro = verbo de impacto en pasado + qué (con la keyword) + cómo (método o herramienta) + resultado medible o efecto
   en el negocio.** Si hay cifra, el logro abre con ella: "Reduje en 66% el tiempo de creación por pantalla (de 3 horas
   a 1) con un sistema de diseño tokenizado en tres niveles en Figma, bajo criterios WCAG 2.1."
