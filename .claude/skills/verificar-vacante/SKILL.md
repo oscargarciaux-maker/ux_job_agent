@@ -118,7 +118,11 @@ Primero lo barato y sin red (paso 4, repetidas; paso 3 con el texto de `Detalle_
 ## Paso 3. ¿El cargo encaja? Por funciones, no por título
 
 Si `Detalle_Vacante` dice `Rol: VERIFICAR FUNCIONES`, el agente la dejó pasar por un título dudoso (CX, contenido,
-producto digital…): esta revisión decide.
+producto digital, e-commerce, diseñador digital, webmaster, accesibilidad…): esta revisión decide. Desde el 3 nov 2026
+(«muy pocas vacantes») entran más de estos títulos cercanos: un diseñador e-commerce o digital sirve si su función
+principal es diseñar páginas, flujos o interfaces (en Figma, con pruebas o métricas de uso), y no sirve si es sobre todo
+banners, piezas de marketing, fotos de producto o redes; un webmaster sirve si diseña la experiencia del sitio y no si
+programa o administra servidores.
 
 Regla del usuario (24 oct): si el nombre es distinto (p. ej. CX o gestión de producto) pero la **función principal** es
 la de sus roles, entra; si el título suena a diseño pero la función principal es de otro oficio, no entra.

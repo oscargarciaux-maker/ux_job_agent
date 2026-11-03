@@ -747,6 +747,17 @@ assert.strictEqual(context.roleTitleClass('Product & Content UX/UI Designer'), '
 assert.strictEqual(context.roleTitleClass('CX Designer'), 'verify');
 assert.strictEqual(context.roleTitleClass('Analista de Producto Digital'), 'verify');
 assert.strictEqual(context.roleTitleClass('SEO Copywriter'), 'excluded');
+// 2026-11-03 (decisión del usuario: «muy pocas vacantes»): cargos cercanos
+assert.strictEqual(context.roleTitleClass('Growth Designer'), 'design');
+assert.strictEqual(context.roleTitleClass('Mobile App Designer'), 'design');
+assert.strictEqual(context.roleTitleClass('Analista de Usabilidad'), 'design');
+assert.strictEqual(context.roleTitleClass('Diseñador/a de comercio electrónico'), 'verify', 'e-commerce: se revisan funciones');
+assert.strictEqual(context.roleTitleClass('E-commerce Designer'), 'verify');
+assert.strictEqual(context.roleTitleClass('Digital Designer'), 'verify');
+assert.strictEqual(context.roleTitleClass('Web Master'), 'verify');
+assert.strictEqual(context.roleTitleClass('Especialista en Accesibilidad Digital'), 'verify');
+assert.strictEqual(context.roleTitleClass('Diseñador Gráfico'), 'other', 'diseño gráfico sigue fuera');
+assert.strictEqual(context.roleTitleClass('Frontend Developer'), 'excluded');
 // Más cargos (decisión del usuario 2026-10-28): servicios, interacción, research, conversacional, arquitectura de información
 ['Service Designer', 'Diseñador de Servicios', 'Diseñador(a) de servicios', 'Diseñadora de Interacción', 'Interaction Designer', 'User Researcher',
  'Investigador UX Junior', 'Investigador(a) de usuarios', 'Design Researcher', 'Conversational Designer',
