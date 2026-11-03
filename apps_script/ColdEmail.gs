@@ -283,9 +283,13 @@ function companyPattern_(company, flags) {
   return new RegExp('(^|[^\\p{L}\\p{N}])' + escapeRegex_(String(company).trim()) + '(?=$|[^\\p{L}\\p{N}])', flags || 'iu');
 }
 
-/** Asunto del borrador: "[Empresa] asunto" para identificarlo; el usuario quita el prefijo al enviar. */
+/**
+ * Asunto del borrador: "[BORRAR ANTES DE ENVIAR: Empresa] asunto". El prefijo solo sirve para identificar el borrador; el
+ * candidato lo borra antes de enviar (el asunto que se envía nunca lleva la empresa). Desde 2026-11-03 el prefijo lo dice
+ * en el propio asunto, para que no se olvide (antes era "[Empresa] ").
+ */
 function coldDraftSubject(company, subject) {
-  return '[' + String(company).trim() + '] ' + String(subject).trim();
+  return '[BORRAR ANTES DE ENVIAR: ' + String(company).trim() + '] ' + String(subject).trim();
 }
 
 /**
@@ -334,7 +338,7 @@ function validateColdEmails(data, contextText, contacted) {
     if (/^\s*postulaci[oó]n\b/i.test(String(c.asunto || ''))) warnings.push(who + ': el asunto empieza por "Postulación" (la guía pide nombrar la especialidad)');
     // Decisiones del usuario (2026-10-24): el asunto que se envía no lleva el nombre de la empresa (Apps Script le pone
     // "[Empresa] " solo en el borrador); si la dirección es de una persona, se la saluda por su nombre.
-    if (company && companyPattern_(company).test(String(c.asunto || ''))) errors.push(who + ': el asunto no puede llevar el nombre de la empresa (el borrador lo muestra como prefijo [' + company + '] que se quita al enviar)');
+    if (company && companyPattern_(company).test(String(c.asunto || ''))) errors.push(who + ': el asunto no puede llevar el nombre de la empresa (el borrador lo muestra como prefijo [BORRAR ANTES DE ENVIAR: ' + company + '] que se quita al enviar)');
     const firstName = String(c.nombre || '').trim().split(/\s+/)[0];
     if (firstName && !new RegExp('^[^\\n]{0,40}' + escapeRegex_(firstName), 'iu').test(body.trim())) errors.push(who + ': el saludo debe ir a ' + firstName + ' (la dirección es de esa persona)');
     if (company && !companyPattern_(company).test(body)) warnings.push(who + ': el cuerpo no menciona a ' + company);

@@ -128,8 +128,9 @@ línea en blanco (decisión del usuario: «lo mejor es que no pase de 2 párrafo
   encabezado de `MASTER_TEMPLATE`, https y sin espacios. Apps Script los convierte en enlaces clicables.
 - **Asunto:** la especialidad y el foco para esa empresa, **sin el nombre de la empresa** y sin "Postulación" (ej.
   "Diseñador UX/UI - Pagos y comercios"). Apps Script rechaza un asunto con el nombre de la empresa. En el borrador
-  aparece como "[Bold] Diseñador UX/UI - Pagos y comercios" solo para identificarlo: **el candidato borra "[Bold] " antes
-  de enviar** (decisión del usuario, 24 oct 2026).
+  aparece como "[BORRAR ANTES DE ENVIAR: Bold] Diseñador UX/UI - Pagos y comercios" solo para identificarlo: **el
+  candidato borra ese prefijo antes de enviar; el asunto enviado nunca lleva la empresa** (decisiones del usuario, 24 oct
+  y 3 nov 2026). Recuérdaselo siempre que le entregues borradores.
 - Palabras prohibidas también aquí (aprendiz, practicante, voluntario, intern, volunteer, junior).
 - **Control de calidad de la guía** antes de guardar: ¿2 párrafos (3 solo si no cabe) y cada uno de ≤35 palabras?, ¿suena como lo diría una persona?, ¿el dato es específico de esta empresa?, ¿hay una
   métrica?, ¿enlaces correctos?
