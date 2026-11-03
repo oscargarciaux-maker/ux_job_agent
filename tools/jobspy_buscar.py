@@ -33,11 +33,27 @@ TERMINOS = ["diseñador ux", "diseñador ui ux", "diseñador ux ui", "ux designe
             "product designer", "diseñador de producto", "ux researcher", "design system",
             "diseñador de servicios", "diseñador de interacción"]  # 2026-10-28: más cargos (decisión del usuario)
 DISENO = re.compile(r"\bux\b|\bui\b|dise[ñn]ador|designer|design system|experiencia de usuario|ux research|user research|"
-                    r"design research|investigador(\(a\)|a)? (ux|de usuario)|information architect", re.I)
+                    r"design research|investigador(\(a\)|a)? (ux|de usuario)|information architect|"
+                    r"arquitect[oa](\(a\))? de (la )?informaci[oó]n", re.I)
 NO_DISENO = re.compile(r"graphic|gr[aá]fico|developer|desarrollador|engineer|ingenier|copywriter|redactor", re.I)
-HORAS = 168           # Ventana de cada búsqueda (7 días): lo ya visto lo descarta la deduplicación de Apps Script
+# 2026-11-03 (decisión del usuario: «al menos unas 10 vacantes diarias»): los mismos términos fijos traían casi siempre los
+# mismos avisos (86 traídos, 3 nuevos). Cada corrida suma EXTRAS_POR_CORRIDA términos de TERMINOS_EXTRA, que rotan por día y
+# por corrida (mañana/noche), así en una semana se recorren todos sin alargar cada corrida.
+TERMINOS_EXTRA = ["diseñador digital", "diseñador web", "diseñador de interfaces", "diseñador de experiencia de usuario",
+                  "diseñador ux junior", "diseñador ui junior", "diseñador de producto digital", "diseñador ux semi senior",
+                  "investigador ux", "arquitectura de información", "interaction designer", "web designer",
+                  "visual designer", "product designer junior", "ui ux junior", "diseñador figma"]
+EXTRAS_POR_CORRIDA = 6
+HORAS = 336           # Ventana de cada búsqueda (14 días; antes 7 y Indeed traía 4 avisos): lo ya visto lo descarta Apps Script
 DIAS_GUARDADOS = 7
 POR_BUSQUEDA = 30
+
+
+def terminos_extra(ahora):
+    """Los EXTRAS_POR_CORRIDA términos de TERMINOS_EXTRA de esta corrida: rotan por día y por corrida (mañana o noche)."""
+    turno = ahora.toordinal() * 2 + (1 if ahora.hour >= 12 else 0)
+    inicio = (turno * EXTRAS_POR_CORRIDA) % len(TERMINOS_EXTRA)
+    return [TERMINOS_EXTRA[(inicio + i) % len(TERMINOS_EXTRA)] for i in range(EXTRAS_POR_CORRIDA)]
 
 
 def limpio(valor):
@@ -138,10 +154,10 @@ def ficha_elempleo(pagina):
     return fecha_jsonld(pagina, "datePosted"), fecha_jsonld(pagina, "validThrough"), descripcion
 
 
-def buscar_elempleo(hoy):
+def buscar_elempleo(hoy, extra=()):
     import requests
     avisos = {}
-    for termino in ELEMPLEO_TERMINOS:
+    for termino in list(ELEMPLEO_TERMINOS) + [t for t in extra if t not in ELEMPLEO_TERMINOS]:
         try:
             r = requests.get(ELEMPLEO + "/co/ofertas-empleo/", params={"trabajo": termino}, headers=NAVEGADOR, timeout=30)
         except requests.RequestException as e:
@@ -184,8 +200,11 @@ LINKEDIN_TERMINOS = ["diseñador ux", "diseñador ui ux", "diseñador ux ui", "u
                      "service designer", "diseñador de servicios", "user researcher"]
 # Colombia (todas las modalidades) y remotas en Colombia; "Latin America" traía sobre todo avisos de Brasil y Argentina
 LINKEDIN_BUSQUEDAS = [{"location": "Colombia"}, {"location": "Colombia", "f_WT": "2"}]
+# 2026-11-03: también remotos en «Latin America» (solo se guardan los que dicen Colombia, LATAM o remoto en la ubicación;
+# Apps Script vuelve a filtrar que acepten Colombia)
+LINKEDIN_BUSQUEDA_LATAM = {"location": "Latin America", "f_WT": "2"}
 LINKEDIN_PAGINAS = 3
-LINKEDIN_MAX_AVISOS = 60
+LINKEDIN_MAX_AVISOS = 90  # 2026-11-03: antes 60; con más términos se abren más fichas
 CERRADO = re.compile(r"No longer accepting applications|Ya no se aceptan solicitudes|closed-job", re.I)
 
 
@@ -233,11 +252,14 @@ def pedir(requests, url, params=None):
     return None
 
 
-def buscar_linkedin(hoy):
+def buscar_linkedin(hoy, extra=()):
     import requests
     avisos, fallidas, seguidas = {}, 0, 0
-    for termino in LINKEDIN_TERMINOS:
-        for filtro in LINKEDIN_BUSQUEDAS:
+    terminos = list(LINKEDIN_TERMINOS) + [t for t in extra if t not in LINKEDIN_TERMINOS]
+    for i, termino in enumerate(terminos):
+        # Remotos LATAM solo con los términos principales (los 6 primeros), para no duplicar el tiempo de la corrida
+        filtros = LINKEDIN_BUSQUEDAS + ([LINKEDIN_BUSQUEDA_LATAM] if i < 6 else [])
+        for filtro in filtros:
             for pagina in range(LINKEDIN_PAGINAS):
                 if seguidas >= 4:  # LinkedIn sigue bloqueando: no insistir en esta corrida
                     break
@@ -258,7 +280,8 @@ def buscar_linkedin(hoy):
     limite = (hoy - timedelta(days=21)).isoformat()
     candidatos = [a for a in avisos.values()
                   if DISENO.search(a["titulo"]) and not NO_DISENO.search(a["titulo"]) and (a["fecha"] or "9") >= limite
-                  and re.search(r"colombia|bogot|medell|cali|barranquilla|remot", a["ubicacion"], re.I)]
+                  and re.search(r"colombia|bogot|medell|cali|barranquilla|bucaramanga|pereira|cartagena|remot|latin|latam|"
+                                r"am[eé]rica latina", a["ubicacion"], re.I)]
     vigentes = []
     for a in candidatos[:LINKEDIN_MAX_AVISOS]:
         texto = pedir(requests, LINKEDIN_AVISO + a.pop("id"))
@@ -294,8 +317,10 @@ def main(ruta):
         resumen[sitio] = resumen.get(sitio, 0) + nuevos
         return nuevos
 
+    extra = terminos_extra(ahora)
+    print(f"Términos extra de esta corrida: {extra}")
     # Indeed con JobSpy; si responde con bloqueo, no se insiste en esta corrida
-    for termino in TERMINOS:
+    for termino in TERMINOS + [t for t in extra if t not in TERMINOS]:
         try:
             filas = buscar("indeed", termino)
         except Exception as e:  # noqa: BLE001 — un portal que falla no detiene a los demás
@@ -308,7 +333,7 @@ def main(ruta):
 
     for sitio, buscador in (("linkedin", buscar_linkedin), ("elempleo", buscar_elempleo)):
         try:
-            guardar(sitio, buscador(ahora.date()))
+            guardar(sitio, buscador(ahora.date(), extra))
         except Exception as e:  # noqa: BLE001 — si un portal falla, se guarda lo de los demás
             print(f"{sitio} falló: {e}")
 
