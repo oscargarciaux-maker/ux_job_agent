@@ -324,6 +324,7 @@ function validateColdEmails(data, contextText, contacted) {
     const body = String(c.cuerpo || '');
     const company = String(data.empresa || '').trim();
     emailShapeErrors(body, company).forEach(e => errors.push(who + ': el cuerpo ' + e));
+    if (emailParagraphs(body).length === CONFIG.COLD_EMAIL_MAX_PARAGRAPHS) warnings.push(who + ': tiene ' + CONFIG.COLD_EMAIL_MAX_PARAGRAPHS + ' párrafos; lo ideal son ' + CONFIG.COLD_EMAIL_IDEAL_PARAGRAPHS);
     const plain = body.replace(/\([^)]*https?:\/\/[^)]*\)/g, ' ').replace(/https?:\/\/\S+/g, ' ').replace(/\S+@\S+/g, ' ');
     extractNumbers_(plain + ' ' + String(c.asunto || '')).forEach(n => {
       if (!knownNumbers[n]) errors.push(who + ': la cifra ' + n + ' no está en ' + CONFIG.CONTEXT_DOC_NAME);

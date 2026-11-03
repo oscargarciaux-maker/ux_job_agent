@@ -234,11 +234,12 @@ const CONFIG = {
   COLD_DRAFTS_DONE_FILE: 'Borradores.txt',   // Ya se crearon sus borradores: no se repiten
   COLD_ERRORS_FILE: 'Correos_ERRORES.txt',
   CV_KEYWORDS_CHECKED: 5,                    // keywords principales que la HV debe probar fuera de las habilidades (personalizationErrors)
-  // Forma de los correos (decisión del usuario 2026-11-03: «más humano»): saludo + hasta 3 párrafos (hito y felicitación,
-  // por qué le interesa con su métrica, invitación breve a charlar con los adjuntos) de máximo 35 palabras cada uno, sin
+  // Forma de los correos (decisión del usuario 2026-11-03: «más humano»): saludo + idealmente 2 párrafos (hito y
+  // felicitación; por qué le interesa con su métrica, invitación breve y adjuntos), máximo 3, de máximo 35 palabras cada uno, sin
   // contar el saludo ni la firma. Antes era un solo bloque de 35 palabras y los correos sonaban secos.
   COLD_EMAIL_MAX_WORDS: 35,                  // por párrafo (Guía Maestra de Cover Letters)
   COLD_EMAIL_MAX_PARAGRAPHS: 3,
+  COLD_EMAIL_IDEAL_PARAGRAPHS: 2,             // «lo mejor es que no pase de 2 párrafos» (2026-11-03): con 3, aviso
   // Seguimiento de correos en frío sin respuesta (2026-10-28): un borrador corto en el mismo hilo entre 8 y 30 días después
   // del envío, uno por empresa, como máximo 5 al día (crearBorradoresDeSeguimiento_). Nunca se envía: Oscar decide.
   FOLLOWUP_DRAFT_MIN_DAYS: 8,

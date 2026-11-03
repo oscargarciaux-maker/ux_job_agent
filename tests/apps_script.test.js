@@ -806,6 +806,9 @@ assert.strictEqual(run('emailParagraphs')('Hi Imaginary Space team,\n\nI saw tha
 assert.strictEqual(run('emailParagraphs')('Hola Ana, vi que lanzaron pagos QR.').length, 1, 'saludo y gancho en la misma línea: un párrafo');
 cold = run('validateColdEmails')(coldData([mail({ cuerpo: 'Hola,\n\n' + [p35, p35, p35].join('\n\n') })]), coldCtx + ' 10', contacted);
 assert.ok(!cold.errors.some(e => /palabras|párrafos/.test(e)), 'un correo de 3 párrafos de 35 ya no se rechaza');
+assert.ok(cold.warnings.some(w => /lo ideal son 2/.test(w)), 'con 3 párrafos avisa: lo ideal son 2');
+cold = run('validateColdEmails')(coldData([mail({ cuerpo: 'Hola,\n\n' + [p35, p35].join('\n\n') })]), coldCtx + ' 10', contacted);
+assert.ok(!cold.warnings.some(w => /lo ideal/.test(w)), '2 párrafos: sin aviso');
 cold = run('validateColdEmails')(coldData([mail({ fuente: '' })]), coldCtx + ' 10', contacted);
 assert.ok(cold.errors.some(e => /fuente/.test(e)));
 cold = run('validateColdEmails')(coldData([mail({ para: 'info@ludussf.com' }), mail({ para: 'jobs@movii.com.co' }), mail({})]), coldCtx + ' 10', contacted);

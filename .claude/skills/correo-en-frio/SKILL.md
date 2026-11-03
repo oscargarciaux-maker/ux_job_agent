@@ -1,6 +1,6 @@
 ---
 name: correo-en-frio
-description: Prepara correos en frío para empresas sin vacante publicada (investiga la empresa, crea su HV con crear-hv, busca direcciones reales con fuente y escribe un mensaje humano de saludo + hasta 3 párrafos de máximo 35 palabras según la Guía Maestra de Cover Letters) y deja todo listo para que Apps Script cree un borrador de Gmail por destinatario con la HV en PDF adjunta. Nunca envía nada. Úsala cuando el usuario pida "escríbele a <empresa>", "correo en frío para…", "siguiente lote" o "prepara correos para estas empresas".
+description: Prepara correos en frío para empresas sin vacante publicada (investiga la empresa, crea su HV con crear-hv, busca direcciones reales con fuente y escribe un mensaje humano de saludo + idealmente 2 párrafos (máximo 3) de máximo 35 palabras según la Guía Maestra de Cover Letters) y deja todo listo para que Apps Script cree un borrador de Gmail por destinatario con la HV en PDF adjunta. Nunca envía nada. Úsala cuando el usuario pida "escríbele a <empresa>", "correo en frío para…", "siguiente lote" o "prepara correos para estas empresas".
 ---
 
 # Correo en frío
@@ -96,13 +96,15 @@ Si la empresa viene de `Empresas objetivo`, sus correos ya están verificados en
 ## Paso 4. El correo (Guía Maestra de Cover Letters, Prompt 1)
 
 Estructura (decisión del usuario 2026-11-03: «más humano»; el gancho, la métrica y la invitación siguen siendo los de
-la guía): **saludo + hasta 3 párrafos de máximo 35 palabras cada uno**, separados por una línea en blanco:
+la guía): **saludo + idealmente 2 párrafos, nunca más de 3**, de máximo 35 palabras cada uno y separados por una
+línea en blanco (decisión del usuario: «lo mejor es que no pase de 2 párrafos»; el tercero solo si de verdad no cabe):
 1. **Hito y felicitación:** el dato real y reciente de la empresa contado como lo contaría una persona ("vi que…"), qué
    de ese hito le llamó la atención y una felicitación corta. Nunca abrir con el dato como afirmación seca ("Shipping
    over 50 systems… is the pace I want").
-2. **Por qué le interesa:** la conexión con lo que hace el candidato y su métrica de `CONTEXTO_CV` que responde a ese
-   reto. Si es para una vacante concreta, aquí va el interés en esa vacante.
-3. **Invitación breve a charlar** (llamada corta) y los adjuntos: HV, LinkedIn y Portafolio.
+2. **Por qué le interesa, métrica e invitación:** la conexión con lo que hace el candidato y su métrica de `CONTEXTO_CV`
+   que responde a ese reto (si es para una vacante concreta, aquí va el interés en esa vacante), la invitación breve a
+   una llamada corta y los adjuntos: HV, LinkedIn y Portafolio. Si no cabe en 35 palabras, la invitación y los adjuntos
+   pasan a un tercer párrafo.
 
 - El saludo suelto ("Hola Ana,") y la firma no cuentan; los enlaces cuentan como su palabra y **el nombre de la empresa
   no cuenta**. Apps Script rechaza más de 3 párrafos o un párrafo de más de 35 palabras (`emailShapeErrors`).
@@ -129,7 +131,7 @@ la guía): **saludo + hasta 3 párrafos de máximo 35 palabras cada uno**, separ
   aparece como "[Bold] Diseñador UX/UI - Pagos y comercios" solo para identificarlo: **el candidato borra "[Bold] " antes
   de enviar** (decisión del usuario, 24 oct 2026).
 - Palabras prohibidas también aquí (aprendiz, practicante, voluntario, intern, volunteer, junior).
-- **Control de calidad de la guía** antes de guardar: ¿3 párrafos o menos y cada uno de ≤35 palabras?, ¿suena como lo diría una persona?, ¿el dato es específico de esta empresa?, ¿hay una
+- **Control de calidad de la guía** antes de guardar: ¿2 párrafos (3 solo si no cabe) y cada uno de ≤35 palabras?, ¿suena como lo diría una persona?, ¿el dato es específico de esta empresa?, ¿hay una
   métrica?, ¿enlaces correctos?
 
 Ejemplo de forma (no de contenido; cada empresa lleva su propio gancho y su propia métrica):
@@ -138,10 +140,8 @@ Ejemplo de forma (no de contenido; cada empresa lleva su propio gancho y su prop
 
 Vi que en <Empresa> lanzaron <hecho verificado>. Me llamó la atención <qué de ese hecho>; felicitaciones al equipo.
 
-Por eso me interesa <la vacante o el área>: en <experiencia> logré <métrica de CONTEXTO_CV>, justo el tipo de reto que
-tienen ahora.
-
-¿Conversamos en una llamada corta esta semana? Adjunto mi HV, [LinkedIn](...) y [Portafolio](...)."
+Por eso me interesa <la vacante o el área>: en <experiencia> logré <métrica de CONTEXTO_CV>. ¿Conversamos en una
+llamada corta esta semana? Adjunto mi HV, [LinkedIn](...) y [Portafolio](...)."
 
 ## Paso 5. Salida: `Correos.json`
 
