@@ -52,3 +52,14 @@ descripcion, cerrado = j.ficha_linkedin('<div class="show-more-less-html__markup
 assert "Buscamos" in descripcion and "Figma" in descripcion and not cerrado
 assert j.ficha_linkedin('<figure class="closed-job">No longer accepting applications</figure>')[1]
 print("OK: pruebas de elempleo y LinkedIn (tools/jobspy_buscar.py) pasaron")
+
+# Términos extra que rotan (2026-11-03: los fijos traían casi siempre los mismos avisos)
+vistos = set()
+for dia in range(4):
+    for hora in (9, 21):
+        extra = j.terminos_extra(datetime.datetime(2026, 11, 3 + dia, hora))
+        assert len(extra) == j.EXTRAS_POR_CORRIDA and len(set(extra)) == len(extra)
+        vistos |= set(extra)
+assert vistos == set(j.TERMINOS_EXTRA), "en 4 días se recorren todos los términos extra"
+assert j.DISENO.search("Arquitecto de Información UX") and j.DISENO.search("Web Designer")
+
