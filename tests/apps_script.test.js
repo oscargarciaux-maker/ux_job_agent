@@ -1121,8 +1121,30 @@ assert.ok(fs.readFileSync(path.join(dir, 'dashboard.html'), 'utf8').includes('/*
 }
 
 // HITL: ninguna llamada de envío de correo en el código
-const allCode = textFiles().map(f => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n');
+// Única excepción (decisión del usuario 2026-11-04): EnvioProgramado.gs envía solo los borradores listados por id en
+// ENVIO_PROGRAMADO.json; ningún otro archivo puede enviar, y ese solo con Drafts.send (nunca GmailApp ni Messages.send)
+const allCode = textFiles().filter(f => f !== 'EnvioProgramado.gs').map(f => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n');
 assert.ok(!/\.send\(|Messages\.send|sendEmail|GmailApp/.test(allCode), 'El agente no debe poder enviar correos');
+{
+  const envio = fs.readFileSync(path.join(dir, 'EnvioProgramado.gs'), 'utf8');
+  assert.ok(!/Messages\.send|sendEmail|GmailApp|Drafts\.list/.test(envio), 'el envío programado no lista ni envía otros correos');
+  assert.strictEqual((envio.match(/\.send\(/g) || []).length, 1, 'una sola llamada de envío: Gmail.Users.Drafts.send');
+  assert.ok(/Gmail\.Users\.Drafts\.send\(\{ id: id \}, 'me'\)/.test(envio));
+  const parse = vm.runInContext('parseScheduledSend', context);
+  const ok = parse(JSON.stringify({ enviar_desde: '2026-11-05T08:00:00-05:00', borradores: ['r123', 'r-45'] }));
+  assert.strictEqual(ok.startMs, Date.parse('2026-11-05T13:00:00Z'));
+  assert.deepStrictEqual(Array.from(ok.ids), ['r123', 'r-45']);
+  assert.strictEqual(ok.pauseMs, 3000);
+  assert.throws(() => parse('{"enviar_desde":"2026-11-05T08:00:00","borradores":["r1"]}'), /zona horaria/, 'sin zona horaria no');
+  assert.throws(() => parse('{"enviar_desde":"2026-11-05T08:00:00-05:00","borradores":[]}'), /lista de ids/, 'sin lista no se envía nada');
+  assert.throws(() => parse('{"enviar_desde":"2026-11-05T08:00:00-05:00","borradores":["todos"]}'), /ids de borrador/);
+  assert.throws(() => parse('no json'), /JSON/);
+  assert.deepStrictEqual(Array.from(vm.runInContext('pendingScheduledIds', context)(['r1', 'r2', 'r1', 'r3'], ['r2'])), ['r1', 'r3']);
+  const reply = vm.runInContext('threadHasReply', context);
+  assert.strictEqual(reply([{ labelIds: ['SENT'] }, { labelIds: ['DRAFT'] }]), false, 'solo lo mío: se envía el seguimiento');
+  assert.strictEqual(reply([{ labelIds: ['SENT'] }, { labelIds: ['INBOX', 'UNREAD'] }, { labelIds: ['DRAFT'] }]), true, 'la empresa respondió');
+  assert.ok(/envioProgramado_\(\)/.test(fs.readFileSync(path.join(dir, 'Applied.gs'), 'utf8')), 'corre al inicio de sincronizarAplicadas');
+}
 
 // Cargador: descarga los .gs listados (aquí desde disco) y expone las funciones públicas
 const fromDisk = (url) => {
