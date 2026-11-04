@@ -851,7 +851,9 @@ assert.ok(run('validateColdEmails')({ empresa: 'X', idioma: 'fr', correos: [] },
 // Decisiones del usuario (2026-10-24): el nombre de la empresa no cuenta en las 35 palabras, el asunto que se envía no
 // lo lleva (el borrador lo muestra como prefijo) y si la dirección es de una persona se la saluda por su nombre
 assert.strictEqual(run('countEmailWords')('Hola Ana, en Banco de Bogotá vi su app.', 'Banco de Bogotá'), 6);
-assert.strictEqual(run('coldDraftSubject')('Bold', 'Diseñador UX/UI - Pagos'), '[BORRAR ANTES DE ENVIAR: Bold] Diseñador UX/UI - Pagos');
+assert.strictEqual(run('coldDraftSubject')('Bold', 'Diseñador UX/UI - Pagos'), 'Diseñador UX/UI - Pagos', 'sin prefijo: el asunto del borrador es el que se envía');
+assert.ok(run('emailShapeErrors')('Hola,\n\nMe interesa la IA en producto: mi sistema bajó costos.').some(e => /dos puntos/.test(e)), 'sin «X: Y»');
+assert.deepStrictEqual(Array.from(run('emailShapeErrors')('Hola,\n\nVi su web https://x.co/a:b y el [Portafolio](https://x.app). ¿Hablamos a las 10:30?')), [], 'enlaces y horas no cuentan');
 cold = run('validateColdEmails')(coldData([mail({ asunto: 'Diseñador UX/UI - Empresa' })]), coldCtx + ' 10', contacted);
 assert.ok(cold.errors.some(e => /asunto no puede llevar/.test(e)));
 cold = run('validateColdEmails')(coldData([mail({ nombre: 'Ana Pérez' })]), coldCtx + ' 10', contacted);

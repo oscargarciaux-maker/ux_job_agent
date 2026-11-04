@@ -269,6 +269,9 @@ function emailShapeErrors(text, company) {
   if (paragraphs.length > CONFIG.COLD_EMAIL_MAX_PARAGRAPHS) {
     errors.push('tiene ' + paragraphs.length + ' párrafos (máximo ' + CONFIG.COLD_EMAIL_MAX_PARAGRAPHS + ', sin contar el saludo)');
   }
+  // 2026-11-03 (el candidato: «no me gusta que redactes con :»): sin construcciones "X: Y"; no cuentan los enlaces ni las horas
+  const plain = paragraphs.join(' ').replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/https?:\/\/\S+/g, ' ').replace(/\b\d{1,2}:\d{2}\b/g, ' ');
+  if (/:/.test(plain)) errors.push('usa dos puntos («X: Y»); escríbelo como una frase normal');
   paragraphs.forEach((p, i) => {
     const words = countEmailWords(p, company);
     if (words > CONFIG.COLD_EMAIL_MAX_WORDS) {
@@ -284,12 +287,12 @@ function companyPattern_(company, flags) {
 }
 
 /**
- * Asunto del borrador: "[BORRAR ANTES DE ENVIAR: Empresa] asunto". El prefijo solo sirve para identificar el borrador; el
- * candidato lo borra antes de enviar (el asunto que se envía nunca lleva la empresa). Desde 2026-11-03 el prefijo lo dice
- * en el propio asunto, para que no se olvide (antes era "[Empresa] ").
+ * Asunto del borrador: el mismo que se envía, sin prefijos ni el nombre de la empresa. Desde 2026-11-03 (el candidato:
+ * «me da miedo que se manden con ese asunto») ya no lleva "[BORRAR ANTES DE ENVIAR: Empresa] "; el borrador se encuentra
+ * por la empresa que menciona el cuerpo o por el destinatario.
  */
 function coldDraftSubject(company, subject) {
-  return '[BORRAR ANTES DE ENVIAR: ' + String(company).trim() + '] ' + String(subject).trim();
+  return String(subject).trim();
 }
 
 /**
@@ -336,9 +339,9 @@ function validateColdEmails(data, contextText, contacted) {
     const forbidden = forbiddenCvWords(body + ' ' + String(c.asunto || ''), false);
     if (forbidden.length) errors.push(who + ': palabras prohibidas: ' + forbidden.join(', '));
     if (/^\s*postulaci[oó]n\b/i.test(String(c.asunto || ''))) warnings.push(who + ': el asunto empieza por "Postulación" (la guía pide nombrar la especialidad)');
-    // Decisiones del usuario (2026-10-24): el asunto que se envía no lleva el nombre de la empresa (Apps Script le pone
-    // "[Empresa] " solo en el borrador); si la dirección es de una persona, se la saluda por su nombre.
-    if (company && companyPattern_(company).test(String(c.asunto || ''))) errors.push(who + ': el asunto no puede llevar el nombre de la empresa (el borrador lo muestra como prefijo [BORRAR ANTES DE ENVIAR: ' + company + '] que se quita al enviar)');
+    // Decisiones del usuario (2026-10-24): el asunto que se envía no lleva el nombre de la empresa; si la dirección es de
+    // una persona, se la saluda por su nombre.
+    if (company && companyPattern_(company).test(String(c.asunto || ''))) errors.push(who + ': el asunto no puede llevar el nombre de la empresa (el asunto que se envía nunca lleva la empresa)');
     const firstName = String(c.nombre || '').trim().split(/\s+/)[0];
     if (firstName && !new RegExp('^[^\\n]{0,40}' + escapeRegex_(firstName), 'iu').test(body.trim())) errors.push(who + ': el saludo debe ir a ' + firstName + ' (la dirección es de esa persona)');
     if (company && !companyPattern_(company).test(body)) warnings.push(who + ': el cuerpo no menciona a ' + company);

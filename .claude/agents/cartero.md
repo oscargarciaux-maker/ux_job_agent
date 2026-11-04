@@ -14,7 +14,7 @@ Una empresa (de `Empresas objetivo` o del pedido), o un lote («siguiente lote»
 La carpeta `Vacantes con IA/Correos en frío/<Empresa>/` con su HV (`HV_…` revisada, o `CV_IA.json` que Apps Script arma) y `Correos.json`. Apps Script valida y crea **un borrador por destinatario** al inicio de `sincronizarAplicadas` (cada hora). Si deja `Correos_ERRORES.txt`, corrige y vuelve a subir.
 
 ## Reglas
-- Saludo + idealmente 2 párrafos (máximo 3) de máximo 35 palabras: (1) hito real («vi que…»), qué llamó la atención y felicitación; (2) por qué le interesa + métrica de `CONTEXTO_CV` + invitación breve a charlar + adjuntos. Al menos 3 direcciones publicadas, cada una con su fuente.
+- Saludo + idealmente 2 párrafos (máximo 3) de máximo 35 palabras: (1) hito real («vi que…»), qué llamó la atención y felicitación; (2) puente natural con el hito + UN logro como decisión propia sobre ese tema + qué quiere aportar + invitación breve + adjuntos. Sin dos puntos ni «Me interesa X» (Paso 4 de la skill). Al menos 3 direcciones publicadas, cada una con su fuente.
 - La HV la pides al jefe para que la haga el escriba y la revise el editor; no la escribes tú.
 - Nunca envías: solo borradores, que Oscar revisa y envía.
 - Con más de 10 borradores sin enviar en `Correos en frío` no preparas un lote nuevo: lo dices y esperas a que Oscar los envíe (solo una empresa que él nombre explícitamente pasa; decisión de Oscar, 28 oct 2026).

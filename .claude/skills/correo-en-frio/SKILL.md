@@ -101,10 +101,25 @@ línea en blanco (decisión del usuario: «lo mejor es que no pase de 2 párrafo
 1. **Hito y felicitación:** el dato real y reciente de la empresa contado como lo contaría una persona ("vi que…"), qué
    de ese hito le llamó la atención y una felicitación corta. Nunca abrir con el dato como afirmación seca ("Shipping
    over 50 systems… is the pace I want").
-2. **Por qué le interesa, métrica e invitación:** la conexión con lo que hace el candidato y su métrica de `CONTEXTO_CV`
-   que responde a ese reto (si es para una vacante concreta, aquí va el interés en esa vacante), la invitación breve a
-   una llamada corta y los adjuntos: HV, LinkedIn y Portafolio. Si no cabe en 35 palabras, la invitación y los adjuntos
-   pasan a un tercer párrafo.
+2. **Puente, logro e invitación:** empieza retomando el hito con una frase natural que lo conecta con el candidato
+   ("Conozco esa etapa.", "Lo viví en Central Xpress…", "Ese reto lo trabajé en Seguros Bolívar…"), sigue con UN logro
+   de `CONTEXTO_CV` sobre ese mismo tema contado como decisión propia y su resultado, dice qué le gustaría aportarles y
+   cierra con la invitación breve y los adjuntos (HV, LinkedIn y Portafolio). Si no cabe en 35 palabras, la invitación y
+   los adjuntos pasan a un tercer párrafo.
+
+**Redacción (3 nov 2026, el candidato revisó los borradores: «no suena profesional ni estratégico», «suena forzado»,
+«no me gusta que redactes con :»):**
+- **Sin dos puntos.** Nada de "Me interesa la IA en producto: …" ni "Me interesa trabajar con startups: …". Apps Script
+  lo rechaza.
+- **Nada de fórmulas** como "Me interesa X", "Me interesa porque así trabajo" o "Me interesa su producto". El interés se
+  nota en el puente y en lo que quiere aportar, no se anuncia.
+- **El logro es una decisión del candidato en primera persona** (propuse, impulsé, prioricé, reorienté) con su resultado
+  medible, como en la HV. Nunca "llevamos", "logramos", "así trabajo" ni el logro suelto sin decir qué decidió.
+- **El logro responde al mismo tema del hito.** Si el hito es una mentoría para emprendedores, el logro es de una startup
+  temprana (Meevent pre-semilla); si es pagos, Central Xpress o Seguros Bolívar; si es IA, el flujo con IA de Meevent o
+  Central Xpress (sin atribuirle el 83%). Si ningún logro conecta de verdad, cambia el hito.
+- **La felicitación es concreta** (sobre el hito, no "por su trabajo") y el párrafo 1 no exagera lo que la fuente dice.
+- Antes de guardar, léelo en voz alta: si una frase no la diría una persona en un correo real, reescríbela.
 
 - El saludo suelto ("Hola Ana,") y la firma no cuentan; los enlaces cuentan como su palabra y **el nombre de la empresa
   no cuenta**. Apps Script rechaza más de 3 párrafos o un párrafo de más de 35 palabras (`emailShapeErrors`).
@@ -128,21 +143,29 @@ línea en blanco (decisión del usuario: «lo mejor es que no pase de 2 párrafo
   encabezado de `MASTER_TEMPLATE`, https y sin espacios. Apps Script los convierte en enlaces clicables.
 - **Asunto:** la especialidad y el foco para esa empresa, **sin el nombre de la empresa** y sin "Postulación" (ej.
   "Diseñador UX/UI - Pagos y comercios"). Apps Script rechaza un asunto con el nombre de la empresa. En el borrador
-  aparece como "[BORRAR ANTES DE ENVIAR: Bold] Diseñador UX/UI - Pagos y comercios" solo para identificarlo: **el
-  candidato borra ese prefijo antes de enviar; el asunto enviado nunca lleva la empresa** (decisiones del usuario, 24 oct
-  y 3 nov 2026). Recuérdaselo siempre que le entregues borradores.
+  queda tal cual en el borrador, sin prefijos (desde el 3 nov 2026 ya no lleva "[BORRAR ANTES DE ENVIAR: Empresa] ":
+  el candidato temía que se enviaran así). El borrador se encuentra por la empresa que nombra el cuerpo.
 - Palabras prohibidas también aquí (aprendiz, practicante, voluntario, intern, volunteer, junior).
 - **Control de calidad de la guía** antes de guardar: ¿2 párrafos (3 solo si no cabe) y cada uno de ≤35 palabras?, ¿suena como lo diría una persona?, ¿el dato es específico de esta empresa?, ¿hay una
   métrica?, ¿enlaces correctos?
 
-Ejemplo de forma (no de contenido; cada empresa lleva su propio gancho y su propia métrica):
+Ejemplos de forma aprobados en la revisión del 3 nov (no copies el contenido; cada empresa lleva su propio hito y su logro):
 
-"Hola Ana,
+"Hola René,
 
-Vi que en <Empresa> lanzaron <hecho verificado>. Me llamó la atención <qué de ese hecho>; felicitaciones al equipo.
+Vi que en HubBOG tienen la Mentoría IA LATIA para emprendedores. Me gustó que acompañen a las startups a usar la IA en su
+producto desde temprano; felicitaciones por la iniciativa.
 
-Por eso me interesa <la vacante o el área>: en <experiencia> logré <métrica de CONTEXTO_CV>. ¿Conversamos en una
-llamada corta esta semana? Adjunto mi HV, [LinkedIn](...) y [Portafolio](...)."
+Conozco esa etapa. En Meevent, una startup pre-semilla, impulsé un sistema de diseño que bajó 83% las reuniones de
+corrección visual. Me gustaría aportar eso a sus emprendedores. ¿Conversamos? Adjunto HV, [LinkedIn](...) y [Portafolio](...)."
+
+"Hola,
+
+Vi que en Bold basta el RUT para empezar a cobrar. Lo viví en Central Xpress, donde un emprendedor pudo vender como
+persona natural; felicitaciones por hacerlo tan simple.
+
+En ese proyecto prioricé Shopify sobre plataformas costosas y bajé 51.6% los costos del primer año. Me gustaría aportar
+ese criterio a sus comercios. ¿Conversamos esta semana? Adjunto HV, [LinkedIn](...) y [Portafolio](...)."
 
 ## Paso 5. Salida: `Correos.json`
 
