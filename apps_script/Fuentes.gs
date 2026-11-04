@@ -343,11 +343,28 @@ function apifyPostReachable(post) {
   if (!isReachablePost(post)) return false;
   // Solo publicaciones que contratan (2026-11-04): las búsquedas amplias traen opiniones, portafolios y gente buscando empleo
   if (!APIFY_HIRING_PATTERN_.test(text)) return false;
+  // Listas de vacantes de varias empresas o cargos (2026-11-04: 12 de 19 carpetas de la primera corrida eran listas de
+  // ingeniería, ventas o de otros países) y publicaciones cuyo arranque no habla de un cargo de diseño
+  if (isJobListPost(text)) return false;
+  if (!CONFIG.LINKEDIN_POST_ROLE_PATTERN.test(text.slice(0, 400))) return false;
   if (CONFIG.OPEN_TO_COLOMBIA_PATTERN.test(text)) return true;
   return detectLanguage(text) === 'es' && /remot/i.test(text);
 }
 
 const APIFY_HIRING_PATTERN_ = /hiring|we'?re looking for|join (our|the) team|open (role|position)|apply (now|here)|contratando|buscamos|estamos (en b[uú]squeda|buscando)|vacante|oportunidad laboral|nueva oportunidad|postula/i;
+
+/**
+ * true si la publicación es una lista de vacantes (puro): 4 o más líneas que empiezan con viñeta, número o emoji, o 3 o
+ * más enlaces cortos de LinkedIn. Una vacante concreta trae a lo sumo un par de enlaces y sus viñetas son requisitos,
+ * por eso solo cuentan las viñetas que nombran un cargo con otra área (ingeniería, ventas, datos…).
+ */
+function isJobListPost(text) {
+  const t = String(text || '');
+  if ((t.match(/lnkd\.in\//g) || []).length >= 3) return true;
+  const roleLines = t.split('\n').filter(l => /^\s*(?:[•▸▹►‣◦∙·*\-–]|\d+[.)]|[\u{1F300}-\u{1FAFF}\u2600-\u27BF]\uFE0F?)\s*/u.test(l) &&
+    /\b(engineer|developer|desarrollador|ingenier[oa]|architect|arquitect|account|sales|ventas|marketing|manager|analyst|analista|consultant|consultor|data|qa|devops|support|soporte|executive|recruiter|abogad|contador)\b/i.test(l));
+  return roleLines.length >= 3;
+}
 
 /** Estado guardado de la corrida del día ({day, id, datasetId, read}) o null. */
 function apifyRunState_() {

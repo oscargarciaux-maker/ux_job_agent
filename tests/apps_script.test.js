@@ -1303,6 +1303,13 @@ assert.ok(fs.readFileSync(path.join(__dirname, '..', 'instalador', 'Cargador.gs'
   assert.ok(!context.apifyPostReachable(P('#OpenToWork Diseñador UX/UI en Colombia')));
   assert.ok(!context.apifyPostReachable(P('Diseñador UX/UI en Colombia: 15 leyes de UX explicadas, remoto o presencial')), 'sin señal de contratación');
   assert.ok(context.apifyPostReachable(P('🚨 VACANTE REMOTA | UX DESIGNER para LATAM, envía tu portafolio')));
+  // Listas de vacantes de varias áreas (2026-11-04: 12 de 19 carpetas de la primera corrida) y arranques sin cargo de diseño
+  const lista = '💼 Empleos remotos de tecnología en LATAM\n▸ Data Architect\n▸ Full-stack & AI Engineer\n▸ Senior Product Engineer\n▸ UX Designer\nPostúlate, estamos contratando';
+  assert.ok(context.isJobListPost(lista) && !context.apifyPostReachable(P(lista)), 'lista de vacantes');
+  assert.ok(context.isJobListPost('Hiring UX\nhttps://lnkd.in/a\nhttps://lnkd.in/b\nhttps://lnkd.in/c'), '3 enlaces cortos = lista');
+  const unaVacante = 'We are hiring a Product Designer, remote LATAM\n• Figma expert\n• Design systems\n• 3+ years in UX\nApply: https://lnkd.in/x';
+  assert.ok(!context.isJobListPost(unaVacante) && context.apifyPostReachable(P(unaVacante)), 'las viñetas de requisitos no cuentan');
+  assert.ok(!context.apifyPostReachable(P('🚀 Vaga: Full-stack Engineer, contratando en LATAM. ' + 'x '.repeat(250) + 'También buscamos UX designer')), 'el arranque no habla de diseño');
   assert.ok(!context.apifyPostReachable(P('Buscamos diseñador UX en Bogotá. Vacante cerrada, gracias a todos')));
   // Una corrida por día
   assert.ok(context.apifyRunDue(null, '2026-11-04'));
