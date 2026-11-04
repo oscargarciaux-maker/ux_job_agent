@@ -758,6 +758,8 @@ assert.strictEqual(context.roleTitleClass('Web Master'), 'verify');
 assert.strictEqual(context.roleTitleClass('Especialista en Accesibilidad Digital'), 'verify');
 assert.strictEqual(context.roleTitleClass('Diseñador Gráfico'), 'other', 'diseño gráfico sigue fuera');
 assert.strictEqual(context.roleTitleClass('Frontend Developer'), 'excluded');
+// 2026-11-03 (Satoritech): el borrador de una vacante con correo nace con la HV en PDF aunque CV_EXPORT_PDF esté apagado
+assert.ok(/copy\.getAs\(MimeType\.PDF\)/.test(fs.readFileSync(path.join(dir, 'CV.gs'), 'utf8')), 'el borrador de la vacante lleva la HV en PDF');
 // Más cargos (decisión del usuario 2026-10-28): servicios, interacción, research, conversacional, arquitectura de información
 ['Service Designer', 'Diseñador de Servicios', 'Diseñador(a) de servicios', 'Diseñadora de Interacción', 'Interaction Designer', 'User Researcher',
  'Investigador UX Junior', 'Investigador(a) de usuarios', 'Design Researcher', 'Conversational Designer',
