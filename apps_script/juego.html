@@ -449,7 +449,7 @@ var TAMANO = { hv: 'dialogo', correo: 'dialogo', rebote: 'dialogo', semanaNueva:
 var BUENAS = { proceso: 1, aliado: 1, avalancha: 1, ko: 1, legendaria: 1, nivel: 1, logro: 1, pocion: 1, combo: 1, hv: 1, correo: 1 };
 
 /**
- * El juego empezó en la Tercera semana y su jefe es el primero de la lista, el único con arte: se queda la Tercera y la
+ * El juego empezó en la Tercera semana y su jefe es el primero de la lista (entonces el único con arte): se queda la Tercera y la
  * Cuarta semana para poder verlo (decisión del usuario, 2026-10-25). Desde la Quinta rotan los demás en orden.
  */
 var SEMANA_DEL_PRIMER_JEFE = 3, SEMANAS_DEL_PRIMER_JEFE = 2;
@@ -1588,6 +1588,9 @@ var ARTE = {
     var k1 = [cab('01', 'Munición lista · ' + mun.length, 'h2', 'h-mun')];
     if (!mun.length && !segs.length) k1.push(el('p', { class: 'vacio', text: 'Sin misiones por hoy. La próxima búsqueda llega a las 5:00.' }));
     else if (!mun.length) k1.push(el('p', { class: 'vacio', text: 'No hay HV listas. Mañana a las 5:00 llegan vacantes nuevas.' }));
+    // Sin la clave de escritura los botones no salen (2026-11-04: en el computador no aparecían y parecía una falla)
+    if (!ESCRIBE && !MODO_COACH && (mun.length || segs.length)) k1.push(el('p', { class: 'vacio amb', id: 'solo-lectura',
+      text: 'Este enlace es solo de lectura: le falta la clave de escritura (&e=…). Abre en este dispositivo el enlace del juego que imprime configurarTablero y aparecerán «Ya la envié», «Descartar» y «Ya lo hice».' }));
     var ul = el('ul', { class: 'lista' });
     mun.forEach(function (p) {
       var dias = hoy && p.fecha ? diasEntre(p.fecha.slice(0, 10), hoy) : 0;
