@@ -124,20 +124,25 @@ const CONFIG = {
     apify: {
       api: 'https://api.apify.com/v2',
       actor: 'supreme_coder~linkedin-post',
-      maxTotalChargeUsd: 0.25,   // 6 búsquedas × 20 publicaciones × 0,002 USD ≈ 0,24; nunca más de ≈7,5 USD al mes
-      limitPerSource: 20,
+      maxTotalChargeUsd: 0.25,   // 6 búsquedas × 15 publicaciones × 0,002 USD ≈ 0,18 (con la última semana se llenan); tope ≈7,5 USD al mes
+      limitPerSource: 15,        // con 20 por búsqueda el tope cortaba las últimas búsquedas
       timeoutSecs: 600,
       waitMaxSecs: 30,           // espera máxima en la búsqueda si la corrida aún no termina (sale del presupuesto)
       kickoffHours: [3, 4],      // sincronizarAplicadas (cada hora) la arranca en esta franja si hoy no hay corrida
-      datePosted: 'past-24h',
-      // AND, OR y NOT en mayúscula, frases cortas entre comillas y sin barras («ux/ui» rompió una búsqueda de prueba)
+      // Última semana (2026-11-04): con «past-24h» las búsquedas precisas daban 0; las repetidas no se pagan dos veces
+      // en el pipeline (el registro ya las tiene) y el tope de gasto sigue igual
+      datePosted: 'past-week',
+      // Probadas a mano el 2026-11-04 (corridas JRYhzlYbLezTuqUis, kfUudpBpHpPccgZhD, 5l1rSYAAlAumry0wY, DM5P8zVfD3R3sOuKe):
+      // el actor falla («Unknown error when trying to fetch posts») con 3 o más grupos de AND/OR, y cualquier palabra con
+      // ñ o tilde («diseñador») devuelve 0. Reglas: sin ñ ni tildes, como máximo 2 grupos entre paréntesis, AND, OR y NOT
+      // en mayúscula, frases cortas entre comillas
       searches: [
-        { label: 'español', keywords: '(diseñador OR diseñadora) AND (ux OR ui) AND (contratando OR buscamos OR vacante OR "oportunidad laboral")' },
-        { label: 'product designer Colombia', keywords: '("diseñador de producto" OR "product designer") AND (Colombia OR Bogotá OR Medellín OR remoto) AND (buscamos OR contratando OR vacante) NOT vagas' },
-        { label: 'LATAM', keywords: '("ux designer" OR "product designer" OR "ui designer") AND hiring AND (LATAM OR "Latin America" OR Colombia)' },
-        { label: 'research y servicios', keywords: '("ux researcher" OR "investigador ux" OR "diseñador de servicios" OR "service designer") AND (buscamos OR hiring OR vacante)' },
-        { label: 'junior', keywords: '(junior OR trainee OR practicante) AND (ux OR ui OR "product designer") AND (Colombia OR LATAM OR remoto)' },
-        { label: 'HV por correo', keywords: '(ux OR ui) AND (diseñador OR designer) AND ("hoja de vida" OR "envía tu cv" OR "send your cv")' },
+        { label: 'vacante Colombia', keywords: 'ux AND vacante AND Colombia' },
+        { label: 'buscamos ux', keywords: 'ux AND (buscamos OR contratando)' },
+        { label: 'ux designer LATAM', keywords: '"ux designer" AND (Colombia OR LATAM)' },
+        { label: 'product designer LATAM', keywords: '"product designer" AND (Colombia OR LATAM)' },
+        { label: 'ui designer LATAM', keywords: '"ui designer" AND (Colombia OR LATAM)' },
+        { label: 'research y servicios', keywords: '("ux researcher" OR "service designer") AND (Colombia OR remoto)' },
       ],
     },
     // elempleo.com (2026-10-26): desde el 27 oct 2026 se busca en GitHub Actions (tools/jobspy_buscar.py: desde Google

@@ -1264,15 +1264,18 @@ assert.ok(fs.readFileSync(path.join(__dirname, '..', 'instalador', 'Cargador.gs'
   assert.strictEqual(cfg.searches.length, 6, 'las 6 búsquedas acordadas');
   assert.ok(cfg.searches.every(s => s.label && !/\//.test(s.keywords)), 'sin barras: «ux/ui» rompió una búsqueda de prueba');
   assert.ok(cfg.searches.every(s => !/\b(and|or|not)\b/.test(s.keywords)), 'AND, OR y NOT en mayúscula');
+  assert.ok(cfg.searches.every(s => !/[ñáéíóúÑÁÉÍÓÚ]/.test(s.keywords)), 'sin ñ ni tildes: con «diseñador» el actor devuelve 0');
+  assert.ok(cfg.searches.every(s => (s.keywords.match(/\(/g) || []).length <= 2), 'máximo 2 grupos: con 3 el actor falla');
+  assert.strictEqual(cfg.datePosted, 'past-week', 'con 24 h las búsquedas daban 0');
   assert.ok(cfg.maxTotalChargeUsd > 0 && cfg.maxTotalChargeUsd <= 0.3, 'tope de gasto por corrida');
   const urls = context.buildApifyUrls(cfg.searches, cfg.datePosted);
   assert.strictEqual(urls.length, 6);
   assert.ok(urls.every(u => u.startsWith('https://www.linkedin.com/search/results/content/?keywords=')));
-  assert.ok(urls[0].includes('datePosted=%22past-24h%22') && urls[0].includes('sortBy=%22date_posted%22'), urls[0]);
+  assert.ok(urls[0].includes('datePosted=%22past-week%22') && urls[0].includes('sortBy=%22date_posted%22'), urls[0]);
   // La etiqueta sale de las keywords aunque Apify devuelva la URL con otra codificación
-  assert.strictEqual(context.apifyQueryLabel(urls[5], cfg.searches), 'HV por correo');
+  assert.strictEqual(context.apifyQueryLabel(urls[5], cfg.searches), 'research y servicios');
   const raw = 'https://www.linkedin.com/search/results/content/?keywords=' + cfg.searches[2].keywords.replace(/ /g, '+') + '&datePosted="past-24h"';
-  assert.strictEqual(context.apifyQueryLabel(raw, cfg.searches), 'LATAM');
+  assert.strictEqual(context.apifyQueryLabel(raw, cfg.searches), 'ux designer LATAM');
   assert.strictEqual(context.apifyQueryLabel('https://www.linkedin.com/search/results/content/?keywords=ux', cfg.searches), 'otra');
   // Forma real de un elemento de supreme_coder~linkedin-post (corrida de prueba del 2026-11-04, datos inventados)
   const item = {
@@ -1284,9 +1287,9 @@ assert.ok(fs.readFileSync(path.join(__dirname, '..', 'instalador', 'Cargador.gs'
   assert.strictEqual(post.title, '¡Estamos contratando!');
   assert.strictEqual(post.company, 'Post Ana Pérez');
   assert.strictEqual(post.postedAt, '2026-11-03');
-  assert.strictEqual(post.apifyLabel, 'español');
+  assert.strictEqual(post.apifyLabel, 'vacante Colombia');
   assert.ok(post.fromPost && !post.isPost && post.pageChecked, 'trae el texto completo: carpeta, verificación e HV');
-  assert.ok(/Apify: español/.test(post.source));
+  assert.ok(/Apify: vacante Colombia/.test(post.source));
   assert.ok(context.apifyPostReachable(post));
   assert.strictEqual(context.extractContactEmail(post), 'talento@example.com', 'con correo, borrador de Gmail');
   assert.strictEqual(context.parseApifyPost(Object.assign({}, item, { authorType: 'Company', authorName: 'Acme' }), cfg.searches).company, 'Acme');
@@ -1298,6 +1301,8 @@ assert.ok(fs.readFileSync(path.join(__dirname, '..', 'instalador', 'Cargador.gs'
   assert.ok(context.apifyPostReachable(P('Buscamos diseñador UX/UI senior, 100% remoto, contrato indefinido')), 'remoto en español');
   assert.ok(!context.apifyPostReachable(P('Hiring UI/UX design interns, remote, anywhere. Stipend provided, immediate joiners')));
   assert.ok(!context.apifyPostReachable(P('#OpenToWork Diseñador UX/UI en Colombia')));
+  assert.ok(!context.apifyPostReachable(P('Diseñador UX/UI en Colombia: 15 leyes de UX explicadas, remoto o presencial')), 'sin señal de contratación');
+  assert.ok(context.apifyPostReachable(P('🚨 VACANTE REMOTA | UX DESIGNER para LATAM, envía tu portafolio')));
   assert.ok(!context.apifyPostReachable(P('Buscamos diseñador UX en Bogotá. Vacante cerrada, gracias a todos')));
   // Una corrida por día
   assert.ok(context.apifyRunDue(null, '2026-11-04'));

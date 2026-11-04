@@ -341,9 +341,13 @@ function parseApifyPost(item, searches) {
 function apifyPostReachable(post) {
   const text = post.description || '';
   if (!isReachablePost(post)) return false;
+  // Solo publicaciones que contratan (2026-11-04): las búsquedas amplias traen opiniones, portafolios y gente buscando empleo
+  if (!APIFY_HIRING_PATTERN_.test(text)) return false;
   if (CONFIG.OPEN_TO_COLOMBIA_PATTERN.test(text)) return true;
   return detectLanguage(text) === 'es' && /remot/i.test(text);
 }
+
+const APIFY_HIRING_PATTERN_ = /hiring|we'?re looking for|join (our|the) team|open (role|position)|apply (now|here)|contratando|buscamos|estamos (en b[uú]squeda|buscando)|vacante|oportunidad laboral|nueva oportunidad|postula/i;
 
 /** Estado guardado de la corrida del día ({day, id, datasetId, read}) o null. */
 function apifyRunState_() {
