@@ -315,6 +315,11 @@ assert.ok(efectos.every(f => typeof f.despues.avalancha === 'boolean'));
   J('JEFES').forEach(j => assert.ok(ARTE.jefes[j.nombre], 'el jefe ' + j.nombre + ' necesita su id de carpeta en ARTE.jefes'));
   // Un jefe con carpeta debe traer todas sus poses; el Gerente ya la tiene
   assert.ok(fs.existsSync(path.join(raiz, 'gerente')));
+  // Semanas 5 y 6 (2026-11-04): Señor Silencio y Doctora Filtro ATS ya tienen arte
+  [[5, 'Señor Silencio'], [6, 'Doctora Filtro ATS']].forEach(([n, nombre]) => {
+    assert.strictEqual(J('jefeDeSemana')(n).nombre, nombre, 'jefe de la semana ' + n);
+    ARTE.posesJefe.forEach(s => existe(ARTE.jefes[nombre].id + '/sprite_' + s + '.png'));
+  });
   Object.values(ARTE.jefes).forEach(j => { if (fs.existsSync(path.join(raiz, j.id))) ARTE.posesJefe.forEach(s => existe(j.id + '/sprite_' + s + '.png')); });
   assert.ok(!/oscar\.png|Press Start 2P|VT323/.test(html), 'sin la foto ni las fuentes anteriores');
 }
