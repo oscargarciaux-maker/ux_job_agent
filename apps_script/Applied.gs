@@ -8,6 +8,8 @@
 
 /** Recorre la carpeta de aplicadas y reescribe la hoja "Aplicadas" (con el color de cada carpeta). */
 function sincronizarAplicadas() {
+  // Envío programado de borradores aprobados uno por uno (EnvioProgramado.gs; excepción autorizada 2026-11-04)
+  envioProgramado_();
   // Borradores de correos en frío (2026-10-24): van primero y aparte, así un error aquí no frena la sincronización
   try {
     crearBorradoresEnFrio();
