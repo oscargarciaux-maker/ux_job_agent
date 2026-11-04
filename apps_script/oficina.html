@@ -1182,7 +1182,6 @@ function modeloDemo(ahora) {
         el('p', { text: g.filas.length + (g.filas.length === 1 ? ' borrador listo en Gmail' : ' borradores listos en Gmail') + (g.asunto ? ' · ' + g.asunto : '') }),
       ]);
       if (g.aviso) li.appendChild(el('p', { text: '⚠ ' + (nota.length > 120 ? nota.slice(0, 117) + '…' : nota) }));
-      li.appendChild(el('p', { text: 'Antes de enviar, borra del asunto «[BORRAR ANTES DE ENVIAR: ' + g.empresa + ']».' }));
       li.appendChild(el('div', { class: 'botones' }, [
         enlaceBtn(enlaceGmail(cuenta, 'in:drafts "' + g.empresa + '"'), 'Gmail', 'Abrir en Gmail los borradores para ' + g.empresa, 'btn--primario'),
         ESCRIBE || demo ? boton('Ya los envié', 'Ya envié los correos a ' + g.empresa, function () { yaLosEnvie(g); }) : null,
