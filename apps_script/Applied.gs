@@ -10,6 +10,12 @@
 function sincronizarAplicadas() {
   // Envío programado de borradores aprobados uno por uno (EnvioProgramado.gs; excepción autorizada 2026-11-04)
   envioProgramado_();
+  // Apify (2026-11-04): de madrugada deja corriendo la búsqueda de publicaciones para que a las 5:00 ya esté lista
+  try {
+    apifyKickoff_();
+  } catch (e) {
+    console.warn('Apify no arrancó: ' + e.message);
+  }
   // Borradores de correos en frío (2026-10-24): van primero y aparte, así un error aquí no frena la sincronización
   try {
     crearBorradoresEnFrio();

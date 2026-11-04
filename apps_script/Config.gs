@@ -113,6 +113,33 @@ const CONFIG = {
       roles: ['diseñador ux', 'diseñador ui', 'ux designer', 'ui ux designer', 'product designer', 'diseñador de producto'],
       queriesPerRun: 8, pauseMs: 1100,
     },
+    // Apify (decisión del usuario 2026-11-04, cambia la del 27 oct de no usar servicios tipo Apify): el actor
+    // supreme_coder~linkedin-post lee las publicaciones del buscador de contenido de LinkedIn sin cookies ni la cuenta
+    // del usuario y trae el texto completo (≈0,002 USD por publicación). Solo si existe la propiedad APIFY_TOKEN. Una
+    // corrida al día: la arranca sincronizarAplicadas de madrugada (kickoffHours, hora de Bogotá) o, si no, la
+    // búsqueda de las 5:00; la lee la primera búsqueda que la encuentre terminada (el repaso de las 5:45 si hace falta).
+    // Últimas 24 h porque corre a diario: solo se paga por publicaciones nuevas. Tope de gasto por corrida.
+    // Las búsquedas viven aquí (no en la consola de Apify): para cambiar una, se edita esta lista. Cada publicación
+    // guarda la etiqueta de su búsqueda en su fuente, así «Calidad por fuente» dice cuántas HV salen de cada una.
+    apify: {
+      api: 'https://api.apify.com/v2',
+      actor: 'supreme_coder~linkedin-post',
+      maxTotalChargeUsd: 0.25,   // 6 búsquedas × 20 publicaciones × 0,002 USD ≈ 0,24; nunca más de ≈7,5 USD al mes
+      limitPerSource: 20,
+      timeoutSecs: 600,
+      waitMaxSecs: 30,           // espera máxima en la búsqueda si la corrida aún no termina (sale del presupuesto)
+      kickoffHours: [3, 4],      // sincronizarAplicadas (cada hora) la arranca en esta franja si hoy no hay corrida
+      datePosted: 'past-24h',
+      // AND, OR y NOT en mayúscula, frases cortas entre comillas y sin barras («ux/ui» rompió una búsqueda de prueba)
+      searches: [
+        { label: 'español', keywords: '(diseñador OR diseñadora) AND (ux OR ui) AND (contratando OR buscamos OR vacante OR "oportunidad laboral")' },
+        { label: 'product designer Colombia', keywords: '("diseñador de producto" OR "product designer") AND (Colombia OR Bogotá OR Medellín OR remoto) AND (buscamos OR contratando OR vacante) NOT vagas' },
+        { label: 'LATAM', keywords: '("ux designer" OR "product designer" OR "ui designer") AND hiring AND (LATAM OR "Latin America" OR Colombia)' },
+        { label: 'research y servicios', keywords: '("ux researcher" OR "investigador ux" OR "diseñador de servicios" OR "service designer") AND (buscamos OR hiring OR vacante)' },
+        { label: 'junior', keywords: '(junior OR trainee OR practicante) AND (ux OR ui OR "product designer") AND (Colombia OR LATAM OR remoto)' },
+        { label: 'HV por correo', keywords: '(ux OR ui) AND (diseñador OR designer) AND ("hoja de vida" OR "envía tu cv" OR "send your cv")' },
+      ],
+    },
     // elempleo.com (2026-10-26): desde el 27 oct 2026 se busca en GitHub Actions (tools/jobspy_buscar.py: desde Google
     // tardaba 3 min) y llega en jobspy.json. Indeed responde 401 a Google y Computrabajo casi solo trae diseño gráfico.
     elempleo: { bonus: 3 },
@@ -147,7 +174,7 @@ const CONFIG = {
   LINKEDIN_POST_LOCATION_TERMS: '("remoto" OR "remote" OR "LATAM" OR "Colombia")',
   // Publicación que ya no contrata (2026-10-26: un post de "hiring" terminaba en "we got the people we wanted")
   // Publicaciones que no son vacantes (plan 2026-10-27): gente buscando empleo, cursos, webinars
-  POST_NOISE_PATTERN: /#?open ?to ?work|busco (empleo|trabajo|oportunidad)|estoy buscando (empleo|trabajo|oportunidad|nuevos retos)|i'?m (currently )?looking for (a )?(new )?(role|job|position|opportunit)|webinar|inscr[ií]bete|bootcamp|masterclass/i,
+  POST_NOISE_PATTERN: /#?open ?to ?work|busco (empleo|trabajo|oportunidad)|estoy buscando (empleo|trabajo|oportunidad|nuevos retos)|i'?m (currently )?looking for (a )?(new )?(role|job|position|opportunit)|webinar|inscr[ií]bete|bootcamp|masterclass|stipend|immediate joiners?/i,
   CLOSED_POST_PATTERN: /caducad|expirad|expired|cerrad|closed|ya no|we (got|found|have found) (the|our)|position (has been |is )?filled|no longer (hiring|accepting)|ya (contratamos|encontramos|cubrimos)|vacante (ocupada|cubierta)/i,
   LINKEDIN_POST_LOCATION_PATTERN: /remot|remote|latam|latinoam|am[eé]rica latina|colombia|bogot|medell|anywhere|work from home|home office/i,
   MAX_POST_AGE_DAYS: 21,
@@ -286,6 +313,8 @@ const PROPS = {
   DASHBOARD_API_ID: 'DASHBOARD_API_ID',  // Id de la implementación (api= de los enlaces); lo guarda doGet (2026-10-27)
   DASHBOARD_WRITE_KEY: 'DASHBOARD_WRITE_KEY',  // Clave de escritura del juego (&e=), solo en el enlace de Oscar (Acciones.gs)
   SERPAPI_LAST_DAY: 'SERPAPI_LAST_DAY',   // Último día (yyyy-MM-dd) en que se gastaron créditos de SerpAPI
+  APIFY_TOKEN: 'APIFY_TOKEN',   // Token de Apify (publicaciones de LinkedIn); solo en Propiedades del script
+  APIFY_RUN: 'APIFY_RUN',       // Corrida de Apify del día: {day, id, datasetId, read}
   FOLLOWUP_DRAFTS_LAST_DAY: 'FOLLOWUP_DRAFTS_LAST_DAY',   // Último día (yyyy-MM-dd) en que se buscaron correos en frío para seguimiento
 };
 

@@ -1258,4 +1258,55 @@ assert.ok(fs.readFileSync(path.join(__dirname, '..', 'instalador', 'Cargador.gs'
   assert.ok(/addMailboxRequest_/.test(fs.readFileSync(path.join(dir, 'Acciones.gs'), 'utf8')));
 }
 
+// Apify (decisión del usuario 2026-11-04): publicaciones de LinkedIn con texto completo, 6 búsquedas al día
+{
+  const cfg = run('CONFIG.EXTRA_SOURCES.apify');
+  assert.strictEqual(cfg.searches.length, 6, 'las 6 búsquedas acordadas');
+  assert.ok(cfg.searches.every(s => s.label && !/\//.test(s.keywords)), 'sin barras: «ux/ui» rompió una búsqueda de prueba');
+  assert.ok(cfg.searches.every(s => !/\b(and|or|not)\b/.test(s.keywords)), 'AND, OR y NOT en mayúscula');
+  assert.ok(cfg.maxTotalChargeUsd > 0 && cfg.maxTotalChargeUsd <= 0.3, 'tope de gasto por corrida');
+  const urls = context.buildApifyUrls(cfg.searches, cfg.datePosted);
+  assert.strictEqual(urls.length, 6);
+  assert.ok(urls.every(u => u.startsWith('https://www.linkedin.com/search/results/content/?keywords=')));
+  assert.ok(urls[0].includes('datePosted=%22past-24h%22') && urls[0].includes('sortBy=%22date_posted%22'), urls[0]);
+  // La etiqueta sale de las keywords aunque Apify devuelva la URL con otra codificación
+  assert.strictEqual(context.apifyQueryLabel(urls[5], cfg.searches), 'HV por correo');
+  const raw = 'https://www.linkedin.com/search/results/content/?keywords=' + cfg.searches[2].keywords.replace(/ /g, '+') + '&datePosted="past-24h"';
+  assert.strictEqual(context.apifyQueryLabel(raw, cfg.searches), 'LATAM');
+  assert.strictEqual(context.apifyQueryLabel('https://www.linkedin.com/search/results/content/?keywords=ux', cfg.searches), 'otra');
+  // Forma real de un elemento de supreme_coder~linkedin-post (corrida de prueba del 2026-11-04, datos inventados)
+  const item = {
+    inputUrl: urls[0], url: 'https://www.linkedin.com/posts/ana-perez_activity-7522068755460374528-AbCd',
+    authorName: 'Ana Pérez', authorType: 'Person', postedAtISO: '2026-11-03T20:33:11.533Z', isRepost: false,
+    text: '¡Estamos contratando!\nBuscamos Diseñador UX/UI para el sector financiero en Colombia, modalidad remota.\nEnvía tu CV a talento@example.com',
+  };
+  const post = context.parseApifyPost(item, cfg.searches);
+  assert.strictEqual(post.title, '¡Estamos contratando!');
+  assert.strictEqual(post.company, 'Post Ana Pérez');
+  assert.strictEqual(post.postedAt, '2026-11-03');
+  assert.strictEqual(post.apifyLabel, 'español');
+  assert.ok(post.fromPost && !post.isPost && post.pageChecked, 'trae el texto completo: carpeta, verificación e HV');
+  assert.ok(/Apify: español/.test(post.source));
+  assert.ok(context.apifyPostReachable(post));
+  assert.strictEqual(context.extractContactEmail(post), 'talento@example.com', 'con correo, borrador de Gmail');
+  assert.strictEqual(context.parseApifyPost(Object.assign({}, item, { authorType: 'Company', authorName: 'Acme' }), cfg.searches).company, 'Acme');
+  assert.ok(/feed\/update\/urn:li:activity:1/.test(context.parseApifyPost({ urn: 'urn:li:activity:1', text: 'x' }, cfg.searches).link));
+  // Filtro más estricto: «remote» a secas ya no basta y las cadenas de prácticas en India se descartan
+  const P = d => ({ link: item.url, description: d });
+  assert.ok(!context.apifyPostReachable(P("We're hiring a UX Designer! Remote. Send your CV")), 'remote a secas');
+  assert.ok(context.apifyPostReachable(P("We're hiring a Product Designer, remote LATAM")));
+  assert.ok(context.apifyPostReachable(P('Buscamos diseñador UX/UI senior, 100% remoto, contrato indefinido')), 'remoto en español');
+  assert.ok(!context.apifyPostReachable(P('Hiring UI/UX design interns, remote, anywhere. Stipend provided, immediate joiners')));
+  assert.ok(!context.apifyPostReachable(P('#OpenToWork Diseñador UX/UI en Colombia')));
+  assert.ok(!context.apifyPostReachable(P('Buscamos diseñador UX en Bogotá. Vacante cerrada, gracias a todos')));
+  // Una corrida por día
+  assert.ok(context.apifyRunDue(null, '2026-11-04'));
+  assert.ok(context.apifyRunDue({ day: '2026-11-03', id: 'a' }, '2026-11-04'));
+  assert.ok(!context.apifyRunDue({ day: '2026-11-04', id: 'a', read: true }, '2026-11-04'));
+  // El token nunca va en el repositorio (es público)
+  assert.ok(textFiles().every(f => !/apify_api_[A-Za-z0-9]{10,}/.test(fs.readFileSync(path.join(dir, f), 'utf8'))));
+  assert.ok(/apifyKickoff_\(\)/.test(fs.readFileSync(path.join(dir, 'Applied.gs'), 'utf8')), 'la madrugada deja la corrida lista');
+  assert.ok(/searchApifyPosts_\(startedAt\)/.test(fs.readFileSync(path.join(dir, 'Search.gs'), 'utf8')));
+}
+
 console.log('OK: todas las pruebas de apps_script pasaron');
