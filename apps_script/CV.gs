@@ -142,7 +142,10 @@ function buildCvsInFolder_(dateFolder, sheet) {
       let draftNote = 'sin correo directo';
       if (vacancy.email && cv._correo_cuerpo) {
         const subject = buildApplicationEmail(vacancy, cv._idioma).subject;
-        createApplicationDraft_(vacancy.email, subject, cv._correo_cuerpo, pdf ? pdf.getBlob() : null);  // Sin PDF: el usuario lo adjunta
+        // 2026-11-03 (Satoritech: «no sé por qué no se lo adjunta automáticamente»): el borrador nace con la HV en PDF
+        // aunque CV_EXPORT_PDF esté apagado; el PDF solo va en el correo (el de la carpeta lo crea la corrida de cada hora)
+        const attachment = pdf ? pdf.getBlob() : copy.getAs(MimeType.PDF).setName(cvName + '.pdf');
+        createApplicationDraft_(vacancy.email, subject, cv._correo_cuerpo, attachment);
         draftNote = 'borrador para ' + vacancy.email;
       }
       updateVacancyStatus_(sheet, vacancy.link, 'Pendiente');
