@@ -124,7 +124,7 @@ const CONFIG = {
     apify: {
       api: 'https://api.apify.com/v2',
       actor: 'supreme_coder~linkedin-post',
-      maxTotalChargeUsd: 0.25,   // 6 búsquedas × 15 publicaciones × 0,002 USD ≈ 0,18 (con la última semana se llenan); tope ≈7,5 USD al mes
+      maxTotalChargeUsd: 0.25,   // 5 búsquedas × 15 publicaciones × 0,002 USD ≈ 0,15; tope ≈7,5 USD al mes
       limitPerSource: 15,        // con 20 por búsqueda el tope cortaba las últimas búsquedas
       timeoutSecs: 600,
       waitMaxSecs: 30,           // espera máxima en la búsqueda si la corrida aún no termina (sale del presupuesto)
@@ -136,13 +136,15 @@ const CONFIG = {
       // el actor falla («Unknown error when trying to fetch posts») con 3 o más grupos de AND/OR, y cualquier palabra con
       // ñ o tilde («diseñador») devuelve 0. Reglas: sin ñ ni tildes, como máximo 2 grupos entre paréntesis, AND, OR y NOT
       // en mayúscula, frases cortas entre comillas
+      // Precisión (2026-11-04, a pedido del usuario: «filtrar antes de que lleguen»): Apify cobra cada publicación, así
+      // que el filtro que ahorra es la búsqueda misma. Con «hiring» + cargo + LATAM/Colombia y NOT engineer/developer
+      // llegaron 13 útiles de 29 (antes 6 de 69); «ui designer» y «ux researcher» solos dieron 0 de 19 y se quitaron
       searches: [
-        { label: 'vacante Colombia', keywords: 'ux AND vacante AND Colombia' },
-        { label: 'buscamos ux', keywords: 'ux AND (buscamos OR contratando)' },
-        { label: 'ux designer LATAM', keywords: '"ux designer" AND (Colombia OR LATAM)' },
-        { label: 'product designer LATAM', keywords: '"product designer" AND (Colombia OR LATAM)' },
-        { label: 'ui designer LATAM', keywords: '"ui designer" AND (Colombia OR LATAM)' },
-        { label: 'research y servicios', keywords: '("ux researcher" OR "service designer") AND (Colombia OR remoto)' },
+        { label: 'ux designer hiring', keywords: '"ux designer" AND hiring AND (Colombia OR LATAM) NOT engineer NOT developer' },
+        { label: 'product designer hiring', keywords: '"product designer" AND hiring AND (Colombia OR LATAM) NOT engineer NOT developer' },
+        { label: 'hiring LATAM', keywords: 'hiring AND ("ux designer" OR "ui designer") AND LATAM NOT engineer' },
+        { label: 'ux remoto Colombia', keywords: '"ux designer" AND (remote OR remoto) AND Colombia NOT engineer' },
+        { label: 'vacante Colombia', keywords: 'ux AND vacante AND Colombia NOT desarrollador NOT ingeniero NOT developer' },
       ],
     },
     // elempleo.com (2026-10-26): desde el 27 oct 2026 se busca en GitHub Actions (tools/jobspy_buscar.py: desde Google
@@ -180,7 +182,7 @@ const CONFIG = {
   // Publicación que ya no contrata (2026-10-26: un post de "hiring" terminaba en "we got the people we wanted")
   // Publicaciones que no son vacantes (plan 2026-10-27): gente buscando empleo, cursos, webinars
   POST_NOISE_PATTERN: /#?open ?to ?work|busco (empleo|trabajo|oportunidad)|estoy buscando (empleo|trabajo|oportunidad|nuevos retos)|i'?m (currently )?looking for (a )?(new )?(role|job|position|opportunit)|webinar|inscr[ií]bete|bootcamp|masterclass|stipend|immediate joiners?/i,
-  CLOSED_POST_PATTERN: /caducad|expirad|expired|cerrad|closed|ya no|we (got|found|have found) (the|our)|position (has been |is )?filled|no longer (hiring|accepting)|ya (contratamos|encontramos|cubrimos)|vacante (ocupada|cubierta)/i,
+  CLOSED_POST_PATTERN: /caducad|expirad|expired|cerrad|closed|-\s*paused\s*-|\bpausad[ao]\b|ya no|we (got|found|have found) (the|our)|position (has been |is )?filled|no longer (hiring|accepting)|ya (contratamos|encontramos|cubrimos)|vacante (ocupada|cubierta)/i,
   LINKEDIN_POST_LOCATION_PATTERN: /remot|remote|latam|latinoam|am[eé]rica latina|colombia|bogot|medell|anywhere|work from home|home office/i,
   MAX_POST_AGE_DAYS: 21,
   // Avisos en el portal de empleo de la propia empresa (Greenhouse, Lever, Ashby, Workable): esos portales solo muestran
