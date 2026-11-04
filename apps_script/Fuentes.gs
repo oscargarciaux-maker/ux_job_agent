@@ -5,6 +5,7 @@
  * - Sistemas de empleo (ATS) de las empresas de la pestaña "Empresas objetivo": Greenhouse, Lever, Ashby y Workable.
  * - Alertas de LinkedIn en el Gmail del usuario (solo lectura): vacantes y publicaciones que la búsqueda pública no ve.
  * - Brave Search: más búsquedas de publicaciones de reclutadores (si existe la propiedad BRAVE_API_KEY).
+ * - Apify (2026-11-04): publicaciones de LinkedIn con texto completo, 6 búsquedas al día (si existe APIFY_TOKEN).
  * Ninguna usa la cuenta de LinkedIn del usuario. Si una falla, solo se registra.
  */
 
@@ -289,6 +290,143 @@ function buildBraveQueries(phrases, roles, n, date) {
   const all = [];
   roles.forEach(role => phrases.forEach(phrase => all.push('site:linkedin.com/posts "' + phrase + '" "' + role + '"')));
   return pickDailyItems(all, n, date);
+}
+
+// ---------- Apify: publicaciones de LinkedIn con texto completo (decisión del usuario 2026-11-04) ----------
+
+/** URL del buscador de contenido de LinkedIn para cada búsqueda de CONFIG.EXTRA_SOURCES.apify.searches. */
+function buildApifyUrls(searches, datePosted) {
+  return searches.map(s => 'https://www.linkedin.com/search/results/content/?keywords=' + encodeURIComponent(s.keywords) +
+                           '&datePosted=' + encodeURIComponent('"' + datePosted + '"') +
+                           '&sortBy=' + encodeURIComponent('"date_posted"'));
+}
+
+/** Etiqueta de la búsqueda de la que vino una publicación (por sus keywords, aunque Apify reescriba la URL). */
+function apifyQueryLabel(inputUrl, searches) {
+  const keywordsOf = url => {
+    const m = String(url || '').match(/[?&]keywords=([^&]*)/);
+    if (!m) return '';
+    let k = m[1].replace(/\+/g, ' ');
+    try { k = decodeURIComponent(k); } catch (e) { /* se compara tal cual */ }
+    return k.replace(/\s+/g, ' ').trim().toLowerCase();
+  };
+  const k = keywordsOf(inputUrl);
+  const hit = searches.filter(s => s.keywords.replace(/\s+/g, ' ').trim().toLowerCase() === k)[0];
+  return hit ? hit.label : 'otra';
+}
+
+/** Publicación de Apify (campos de supreme_coder~linkedin-post) -> vacante con texto completo (fromPost). */
+function parseApifyPost(item, searches) {
+  const text = String(item.text || '').trim();
+  const article = item.article && typeof item.article === 'object'
+    ? Object.keys(item.article).map(k => item.article[k]).filter(x => typeof x === 'string' && x.trim()).join('\n') : '';
+  const firstLine = (text.split('\n').map(s => s.trim()).filter(Boolean)[0] || 'Publicación de LinkedIn').slice(0, 80);
+  const author = String(item.authorName || '').trim();
+  const label = apifyQueryLabel(item.inputUrl, searches);
+  const link = item.url || (item.urn ? 'https://www.linkedin.com/feed/update/' + item.urn : '');
+  return {
+    title: firstLine,
+    company: /company/i.test(item.authorType || '') && author ? author : (author ? 'Post ' + author : 'Post LinkedIn'),
+    location: '', description: [text, article].filter(Boolean).join('\n\n'), snippet: '', link: link,
+    postedAt: String(item.postedAtISO || '').slice(0, 10) || linkedInPostDate(link),
+    source: 'Publicación LinkedIn (Apify: ' + label + ')', apifyLabel: label, fromPost: true, pageChecked: true,
+  };
+}
+
+/**
+ * Filtro más estricto que isReachablePost: el buscador de LinkedIn trae publicaciones de todo el mundo, y en la prueba
+ * del 2026-11-04 «remote» a secas dejó pasar 20 de 30 (8 eran la misma cadena de prácticas en India). Además del filtro
+ * de siempre, el texto debe nombrar Colombia, LATAM, anywhere o una zona horaria de la región, o decir «remoto» en español.
+ */
+function apifyPostReachable(post) {
+  const text = post.description || '';
+  if (!isReachablePost(post)) return false;
+  if (CONFIG.OPEN_TO_COLOMBIA_PATTERN.test(text)) return true;
+  return detectLanguage(text) === 'es' && /remot/i.test(text);
+}
+
+/** Estado guardado de la corrida del día ({day, id, datasetId, read}) o null. */
+function apifyRunState_() {
+  try { return JSON.parse(getProp_(PROPS.APIFY_RUN) || 'null'); } catch (e) { return null; }
+}
+
+/** true si hoy (yyyy-MM-dd) aún no se arrancó la corrida de Apify. */
+function apifyRunDue(state, day) {
+  return !state || state.day !== day;
+}
+
+function apifyRequest_(method, path, query, payload) {
+  const token = getProp_(PROPS.APIFY_TOKEN);
+  const cfg = CONFIG.EXTRA_SOURCES.apify;
+  const qs = Object.keys(query || {}).map(k => k + '=' + encodeURIComponent(query[k])).join('&');
+  const options = { method: method, muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + token } };
+  if (payload) { options.contentType = 'application/json'; options.payload = JSON.stringify(payload); }
+  const r = UrlFetchApp.fetch(cfg.api + path + (qs ? '?' + qs : ''), options);
+  if (r.getResponseCode() >= 300) throw new Error('Apify respondió ' + r.getResponseCode() + ': ' + r.getContentText().slice(0, 200));
+  return JSON.parse(r.getContentText());
+}
+
+/** Arranca la corrida del día si hace falta (sin esperar a que termine). Devuelve el estado. */
+function apifyEnsureRun_(day) {
+  if (!getProp_(PROPS.APIFY_TOKEN)) return null;
+  const state = apifyRunState_();
+  if (!apifyRunDue(state, day)) return state;
+  const cfg = CONFIG.EXTRA_SOURCES.apify;
+  const input = { urls: buildApifyUrls(cfg.searches, cfg.datePosted), limitPerSource: cfg.limitPerSource,
+                  deepScrape: false, rawData: false, fetchDocumentDetails: false };
+  const run = apifyRequest_('post', '/acts/' + cfg.actor + '/runs',
+                            { maxTotalChargeUsd: cfg.maxTotalChargeUsd, timeout: cfg.timeoutSecs }, input).data;
+  const next = { day: day, id: run.id, datasetId: run.defaultDatasetId, read: false };
+  setProp_(PROPS.APIFY_RUN, JSON.stringify(next));
+  console.log('Apify: corrida ' + run.id + ' arrancada con ' + cfg.searches.length + ' búsquedas (tope ' + cfg.maxTotalChargeUsd + ' USD)');
+  return next;
+}
+
+/** Lo llama sincronizarAplicadas: de madrugada deja corriendo la búsqueda de Apify para que a las 5:00 ya esté lista. */
+function apifyKickoff_() {
+  if (!getProp_(PROPS.APIFY_TOKEN)) return;
+  const now = new Date();
+  if (CONFIG.EXTRA_SOURCES.apify.kickoffHours.indexOf(Number(Utilities.formatDate(now, tz_(), 'H'))) < 0) return;
+  apifyEnsureRun_(Utilities.formatDate(now, tz_(), 'yyyy-MM-dd'));
+}
+
+/**
+ * Publicaciones de la corrida de hoy. Si aún no termina, espera lo que quede del presupuesto de búsqueda (máximo
+ * waitMaxSecs) y, si sigue corriendo, la deja para el repaso. Una corrida se lee una sola vez.
+ */
+function searchApifyPosts_(startedAt) {
+  if (!getProp_(PROPS.APIFY_TOKEN)) return [];
+  const cfg = CONFIG.EXTRA_SOURCES.apify;
+  const day = Utilities.formatDate(new Date(), tz_(), 'yyyy-MM-dd');
+  const state = apifyEnsureRun_(day);
+  if (!state || !state.id) return [];
+  if (state.read) { console.log('Apify: la corrida de hoy ya se leyó'); return []; }
+  const left = Math.floor((CONFIG.SEARCH_BUDGET_MS - (Date.now() - (startedAt || Date.now()))) / 1000);
+  const run = apifyRequest_('get', '/actor-runs/' + state.id, { waitForFinish: Math.max(0, Math.min(cfg.waitMaxSecs, left)) }).data;
+  if (/^(READY|RUNNING)$/.test(run.status)) {
+    console.log('Apify: la corrida ' + state.id + ' sigue trabajando (' + run.status + '); la lee la próxima búsqueda');
+    return [];
+  }
+  // Terminada, abortada por el tope de gasto o por tiempo: se usa lo que alcanzó a traer
+  const items = apifyRequest_('get', '/datasets/' + (state.datasetId || run.defaultDatasetId) + '/items', { clean: 'true', format: 'json' });
+  state.read = true;
+  setProp_(PROPS.APIFY_RUN, JSON.stringify(state));
+  const byLink = {}, perSearch = {};
+  cfg.searches.forEach(s => { perSearch[s.label] = { found: 0, kept: 0 }; });
+  const list = Array.isArray(items) ? items : [];
+  (list ? items : []).map(it => parseApifyPost(it, cfg.searches)).forEach(p => {
+    perSearch[p.apifyLabel] = perSearch[p.apifyLabel] || { found: 0, kept: 0 };
+    perSearch[p.apifyLabel].found++;
+    if (!p.link || byLink[p.link]) return;
+    if (!isRecent(p.postedAt, CONFIG.MAX_POST_AGE_DAYS) || !apifyPostReachable(p)) return;
+    byLink[p.link] = p;
+    perSearch[p.apifyLabel].kept++;
+  });
+  const kept = Object.keys(byLink).map(k => byLink[k]);
+  console.log('Apify (' + run.status + ', ' + (run.usageTotalUsd != null ? run.usageTotalUsd + ' USD' : 'costo s/d') + '): ' +
+              list.length + ' publicaciones, ' + kept.length + ' útiles · ' +
+              Object.keys(perSearch).map(k => k + ' ' + perSearch[k].kept + '/' + perSearch[k].found).join(' · '));
+  return kept;
 }
 
 // ---------- Conteo por fuente (pestaña "Fuentes") ----------

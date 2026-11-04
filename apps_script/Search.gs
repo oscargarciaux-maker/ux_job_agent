@@ -16,6 +16,9 @@ function searchUxJobs_(startedAt) {
   const serpDue = serpApiDue(getProp_(PROPS.SERPAPI_LAST_DAY), day);
   if (serpDue) setProp_(PROPS.SERPAPI_LAST_DAY, day);
   else console.log('SerpAPI ya se consultó hoy (' + day + '): esta corrida usa solo las fuentes gratuitas.');
+  // Apify (2026-11-04): si sincronizarAplicadas no la arrancó de madrugada, la corrida empieza ya y trabaja mientras se
+  // consultan las demás fuentes; se lee al final de la búsqueda
+  try { apifyEnsureRun_(day); } catch (e) { console.warn('Apify no arrancó: ' + e.message); }
   const queries = !serpDue ? [] : [{ q: pickDailyItems(CONFIG.SEARCH_QUERY_POOL, 1, today)[0], remote: false },
                                    { q: pickDailyItems(CONFIG.REMOTE_QUERY_POOL, 1, today)[0], remote: true }];
   if (serpDue) console.log('Búsquedas de hoy: ' + queries.map(x => x.q).join(' | '));
@@ -57,6 +60,11 @@ function searchUxJobs_(startedAt) {
       console.warn('Fuente ' + source.name + ' falló: ' + e.message);
     }
   });
+  try {
+    searchApifyPosts_(startedAt).forEach(v => add(v, 'Publicaciones LinkedIn (Apify · ' + v.apifyLabel + ')', v.link));
+  } catch (e) {
+    console.warn('Fuente searchApifyPosts_ falló: ' + e.message);
+  }
   if (serpDue && CONFIG.LINKEDIN_POST_ROLE_POOL.length) {
     searchLinkedInPosts_(apiKey).forEach(v => add(v, 'Publicaciones LinkedIn (SerpAPI)', v.link));
   }
