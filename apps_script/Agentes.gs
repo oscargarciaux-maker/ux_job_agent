@@ -79,6 +79,55 @@ function iaBacklogStats_(registryRows, pendingRows, today, hm) {
   return { waiting: waiting, ready: ready, alert: hm >= '08:45' && waiting > 0 && ready === 0 };
 }
 
+/** Pulso operativo diario (a partir de 18:45 hora Bogotá): una sola foto de resultados observables,
+ * sin LLM, correo, búsquedas pagadas ni nuevos activadores. No pretende medir tokens del proveedor.
+ */
+function registrarMetricasDiarias_() {
+  const now = new Date();
+  const today = Utilities.formatDate(now, tz_(), 'yyyy-MM-dd');
+  const hm = Utilities.formatDate(now, tz_(), 'HH:mm');
+  if (hm < '18:45' || getProp_(PROPS.METRICS_LAST_DAY) === today) return;
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(1000)) return;
+  try {
+    if (getProp_(PROPS.METRICS_LAST_DAY) === today) return;
+    const ss = SpreadsheetApp.openById(getProp_(PROPS.SHEET_ID));
+    const reg = ss.getSheets()[0];
+    const pending = ss.getSheetByName(CONFIG.PENDING_CV_SHEET_NAME);
+    const cold = ss.getSheetByName(CONFIG.COLD_EMAIL_SHEET_NAME);
+    const regRows = reg.getLastRow() > 1 ? reg.getRange(2, 1, reg.getLastRow()-1, 6).getDisplayValues() : [];
+    const pendingRows = pending && pending.getLastRow() > 1
+      ? pending.getRange(2, 1, pending.getLastRow()-1, 5).getDisplayValues() : [];
+    const coldRows = cold && cold.getLastRow() > 1
+      ? cold.getRange(2, 6, cold.getLastRow()-1, 1).getDisplayValues() : [];
+    const m = dailyOpsMetrics_(regRows, pendingRows, coldRows, today);
+    const detail = 'Registradas ' + m.registradas + '; descartadas ' + m.descartadas +
+      '; esperando CV ' + m.esperando + '; HV en Por enviar ' + m.hv +
+      '; revisadas listas ' + m.listas + '; borradores sin enviar ' + m.borradores + '.';
+    const row = agentRow(today + ' ' + hm, 'maquina', 'oscar', 'resumen',
+      'Pulso operativo del día', 'hecho', detail, '', 'PULSO-' + today.replace(/-/g, ''));
+    const sh = agentsSheet_(ss);
+    sh.getRange(sh.getLastRow()+1, 1, 1, row.length).setNumberFormat('@').setValues([row]);
+    setProp_(PROPS.METRICS_LAST_DAY, today);  // Solo tras confirmar escritura del resultado
+    console.log('Pulso operativo: ' + detail);
+  } finally { lock.releaseLock(); }
+}
+
+/** No infiere trabajo a partir de turnos: cuenta solo estados y archivos del Sheet. */
+function dailyOpsMetrics_(registryRows, pendingRows, coldRows, today) {
+  const dated = (registryRows || []).filter(r => normalizeStamp(r[0]).slice(0, 10) === today);
+  const hv = (pendingRows || []).filter(r => normalizeStamp(r[0]).slice(0, 10) === today);
+  const state = r => String(r[5] || '').toLowerCase();
+  return {
+    registradas: dated.length,
+    descartadas: dated.filter(r => /^descartad/.test(state(r))).length,
+    esperando: dated.filter(r => /^esperando cv/.test(state(r))).length,
+    hv: hv.length,
+    listas: hv.filter(r => /lista para enviar/i.test(String(r[4] || ''))).length,
+    borradores: (coldRows || []).filter(r => /borrador preparado.*no enviado/i.test(String(r[0] || ''))).length
+  };
+}
+
 // ---------- Lógica pura (probada en tests/apps_script.test.js) ----------
 
 /** Id de un pedido: P-<yyyyMMdd-HHmm>-<2 letras> (las letras evitan choques entre dos pedidos del mismo minuto). */

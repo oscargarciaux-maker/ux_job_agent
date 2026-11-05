@@ -1,5 +1,7 @@
 # Requisitos del agente y dónde se cumplen
 
+**Política permanente (5 nov 2026):** [POLITICA_OPERATIVA.md](POLITICA_OPERATIVA.md) se aplica tanto con Claude como con ChatGPT. Implementado: coordinación por rol/tanda, verificación antes de cada CV, seguridad de borradores y recuperación sin duplicados. **Nuevo en Apps Script:** un pulso verificable por día en `Agentes` después de las 18:45 (sin modelos, sin búsquedas pagadas); cola de `COLOR PENDIENTE` en `Seguimiento` limitada a carpetas existentes en `CV/`, con validación de estados y fila de confirmación. **Pendiente de prueba real:** primera corrida con los permisos Drive/Sheets y ajuste de color de la paleta; no se puede medir uso exacto de tokens sin datos del proveedor. Un despliegue en `deploy` no acredita ejecución de Claude.
+
 Fuente: la guía del usuario "Guia busqueda de vacantes y creacion de HV" (Google Drive, 2026-10-22). La guía tiene datos
 personales y vive solo en Drive; aquí va cada regla en términos generales, su estado y dónde se puede comprobar.
 Las reglas personales (experiencias, títulos exactos de LinkedIn, enlaces del encabezado) viven en los Google Docs

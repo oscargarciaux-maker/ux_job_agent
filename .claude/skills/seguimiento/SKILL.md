@@ -5,6 +5,8 @@ description: Revisa el Gmail laboral del candidato (por fechas, incluidos Spam, 
 
 # Seguimiento
 
+Esta skill aplica permanentemente junto con `docs/POLITICA_OPERATIVA.md`, tanto en Claude como en ChatGPT. El seguimiento de Gmail es **solo lectura**, aun si el conector permite modificar mensajes. La cobertura parcial no se registra como revisión completa.
+
 Objetivo: que el candidato sepa en qué va cada proceso sin abrir su correo, y que las carpetas, sus colores y el Sheet
 digan la verdad, con evidencia. Método propuesto por el usuario (24 oct 2026): **cobertura por fecha antes que por
 empresa, reconstruir cada proceso, separar hechos de dudas, dejar evidencia y cerrar diciendo los límites.**
@@ -112,6 +114,7 @@ para confirmar que quedó.
 
 1. **Color de la carpeta** de la postulación: Drive `update_file` con `folderColorRgb` (los valores de la tabla; Drive
    los ajusta a su paleta). La pestaña `Aplicadas` se actualiza sola cada hora (`sincronizarAplicadas` lee los colores);
+   - Si el conector no permite actualizar `folderColorRgb`, **no simules** el cambio: deja una fila en `Seguimiento` con Notas `COLOR PENDIENTE`, columna Carpeta = URL `https://drive.google.com/drive/folders/<id>` de la carpeta real en CV/, Estado nuevo y Fuente = evidencia. `sincronizarAplicadas` aplicará el color de forma segura cuando compruebe que esa carpeta pertenece a CV/ y que no hay una decisión más reciente; luego añadirá confirmación. No marcar fila REVISIÓN completa si faltó cobertura de Gmail.
    no la edites a mano.
 2. **Postulación enviada que no tiene carpeta** (decisión del usuario, 24 oct 2026: se crea). Antes de crearla,
    comprueba que de verdad no existe: las carpetas no siempre llevan el nombre de la empresa (el 24 oct 2026 se creó

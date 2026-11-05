@@ -1113,6 +1113,29 @@ assert.strictEqual(run('safeCell')('+57 300'), "'+57 300");
   const est = JSON.parse(JSON.stringify(run('contactedAddresses')([['X', 'z@x.co', '2026-10-27 10:00', '', '', run('COLD_SENT_STATUS_'), '']])));
   assert.deepStrictEqual(est, { 'z@x.co': 'usado' });
 }
+// La cola de colores SOLO toma el último evento del mismo ID con marca explícita y carpeta de CV.
+{
+  const h = ['Fecha revisión','Empresa','Cargo','Carpeta','Hecho','Fecha del mensaje','Fuente',
+    'Estado anterior','Estado nuevo','Siguiente acción','Quién','Plazo','Notas'];
+  const row = (id,state,notes,source='https://mail.google.com/mail/u/0/#all/a') =>
+    ['2026-11-05','Acme','Designer','https://drive.google.com/drive/folders/'+id,'', '',source,
+      'Aplicada',state,'Esperar','empresa','',notes];
+  const p = JSON.parse(JSON.stringify(context.pendingColorActions_([h,
+    row('one','Rechazada (rojo)','COLOR PENDIENTE'),
+    row('two','En proceso (verde)','COLOR PENDIENTE'),
+    row('one','En proceso (verde)','COLOR APLICADO'), // Una fila posterior cancela el trabajo viejo
+    row('three','Aplicada, sin respuesta','COLOR PENDIENTE'),
+    row('four','Dudosa','COLOR PENDIENTE'),
+    row('five','Rechazada','COLOR PENDIENTE','')
+  ], 100, 5)));
+  assert.deepStrictEqual(p.map(x=>x.id),['two','three']);
+  assert.strictEqual(p[0].color,'#16a765');
+  assert.strictEqual(p[1].color,'#ffad46');
+  assert.strictEqual(p[0].fila,101);
+  assert.strictEqual(context.desiredFolderColor_('Rechazada'),'#f83a22');
+  assert.strictEqual(context.desiredFolderColor_('REVISAR'),'');
+  assert.strictEqual(context.pendingColorActions_([['Carpeta','Estado nuevo','Notas','Fuente']], 2, 5).length,0);
+}
 assert.strictEqual(run('safeCell')('Rechazada (rojo)'), 'Rechazada (rojo)');
 {
   const reg = [{ 'Empresa': 'PadSplit', 'Cargo': 'Senior Product Designer', 'Link': 'https://jobicy.com/1' },
@@ -1289,6 +1312,22 @@ assert.ok(fs.readFileSync(path.join(__dirname, '..', 'instalador', 'Cargador.gs'
   assert.deepStrictEqual(est, { waiting: 1, ready: 0, alert: true });
   assert.strictEqual(context.iaBacklogStats_([['2026-11-05', 'Acme', 'UX', '', 90, 'Esperando CV (IA)']], [], '2026-11-05', '06:00').alert, false);
   assert.strictEqual(context.iaBacklogStats_([['2026-11-05', 'Acme', 'UX', '', 90, 'Esperando CV (IA)']], [['2026-11-05']], '2026-11-05', '13:35').alert, false);
+  const pulse = context.dailyOpsMetrics_([
+    ['2026-11-05', 'A', 'UX', '', 95, 'Descartada: función no UX'],
+    ['2026-11-05', 'B', 'UX', '', 90, 'Esperando CV (IA)'],
+    ['2026-11-05', 'C', 'UX', '', 80, 'Pendiente'],
+    ['2026-11-04', 'D', 'UX', '', 60, 'Descartada: vieja']
+  ], [
+    ['2026-11-05', 'C', 'UX', 'Lista', 'Lista para enviar'],
+    ['2026-11-04', 'D', 'UX', 'Lista', 'Lista para enviar']
+  ], [
+    ['Borrador preparado, no enviado'], ['Enviado, sin rebote'], ['Borrador preparado, no enviado']
+  ], '2026-11-05');
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(pulse)), {
+    registradas: 3, descartadas: 1, esperando: 1, hv: 1, listas: 1, borradores: 2
+  });
+  assert.strictEqual(context.dailyOpsMetrics_([], [], [], '2026-11-05').registradas, 0);
+
 
   assert.strictEqual(estancado.o.jefe.estado, 'atencion', 'el jefe debe señalar la falla de la tarea externa');
   assert.ok(/tarea programada de Claude/.test(estancado.o.jefe.resumen));

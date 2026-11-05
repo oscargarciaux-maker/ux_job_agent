@@ -1,5 +1,7 @@
 # Operación temporal del agente UX con ChatGPT
 
+**Esta guía únicamente adapta herramientas de ChatGPT. La lógica operativa PERMANENTE y compartida con Claude está en [POLITICA_OPERATIVA.md](POLITICA_OPERATIVA.md).**
+
 **Actualizado:** 2026-11-05. Este documento coordina temporalmente las tareas mientras el plan de Claude no permite ejecutarlas. No sustituye ni duplica las instrucciones completas; el repositorio y los recursos del Drive laboral siguen siendo la fuente de verdad.
 
 ## Fuente de verdad por responsabilidad

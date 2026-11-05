@@ -1,5 +1,7 @@
 # CLAUDE.md - Agente Autónomo de Búsqueda de Empleo UX/UI
 
+**REGLA PERMANENTE Y VINCULANTE PARA CLAUDE:** antes de orquestar cualquier tarea lee [docs/POLITICA_OPERATIVA.md](docs/POLITICA_OPERATIVA.md). Esa política es independiente del proveedor de IA y prevalece en presupuesto, coordinación, permisos y bitácora. Evita volver al diseño costoso de un agente por vacante. La guía temporal de ChatGPT no es la fuente de verdad.
+
 ## 🎯 Propósito del Agente
 Agente inteligente y modular diseñado para automatizar la búsqueda diaria de 10 vacantes de Diseñador UX/UI Junior (enfocado en sistemas de diseño, decisiones UX y research), filtrado por Match Score, organización en Google Drive, personalización de CVs basada en plantilla y creación de borradores en Gmail con supervisión humana estricta (HITL).
 
@@ -37,7 +39,7 @@ Agente inteligente y modular diseñado para automatizar la búsqueda diaria de 1
 - `Setup.gs`: `configurarAgente` crea carpeta/hoja/plantilla faltantes e instala el activador diario de `ejecutarPipeline` (idempotente).
 
 ## 🧠 Paso de IA (Fase 3): cómo se redacta el CV
-El usuario NO quiere pagar API aparte: la IA corre con su **plan de Claude** mediante una **tarea programada de Claude Code** ("CV con IA diario", `trig_01GsmgCkRgo2hy3HKkDFBHFT`, 6:03 y 7:03 Bogotá desde 2026-10-27 (antes 7:33 y 13:33; antes 9:10), sesión nueva en cada ejecución) con el **conector de Google Drive** de claude.ai. Prompt: `ia/prompt_cv_diario.md`; desde 2026-11-01 la tarea solo guarda un arranque corto que descarga ese archivo de `main` con `curl` (si aún no tiene el cambio, de la rama `claude/funny-gates-0lgwpf`) y lo sigue: cambiar el archivo basta, sin `update_trigger`.
+El usuario NO quiere pagar API aparte: la IA corre con un **proveedor disponible** (habitualmente Claude; temporalmente ChatGPT), sin usar una API de IA aparte. El contrato de Drive/Sheets es independiente del proveedor. Para Claude, la tarea programada original es ("CV con IA diario", `trig_01GsmgCkRgo2hy3HKkDFBHFT`, 6:03 y 7:03 Bogotá desde 2026-10-27 (antes 7:33 y 13:33; antes 9:10), sesión nueva en cada ejecución) con el **conector de Google Drive** de claude.ai. Prompt: `ia/prompt_cv_diario.md`; desde 2026-11-01 la tarea solo guarda un arranque corto que descarga ese archivo de `main` con `curl` (sin recurrir a ramas antiguas; si falla `main`, registrar bloqueo y no improvisar) y lo sigue: cambiar el archivo basta, sin `update_trigger`.
 
 **Flujo (mañana condensada, 2026-10-27):** 4:45–5:15 (`atHour(5).nearMinute(0)`: ±15 min; sin `nearMinute` corre en un minuto cualquiera de la hora; repaso 5:30–6:00) Apps Script deja cada vacante en `/Vacantes con IA/Sin revisar/YYYY-MM-DD/[Empresa]/Detalle_Vacante` → 6:03 (y 7:03, segunda tanda) la sesión de Claude lee `GUIA_CV`, `CONTEXTO_CV`, los marcadores de `MASTER_TEMPLATE` y cada `Detalle_Vacante` de hoy, aplica la guía (keywords, match/gaps, cargos adaptados, logros cuantificados, resumen, ≤2 páginas, idioma de la vacante) y deja `CV_IA.json` en la carpeta de cada vacante → cada 10 min Apps Script valida cada `CV_IA.json` nuevo, llena `MASTER_TEMPLATE`, exporta PDF y crea el borrador de Gmail (y aparta descartadas/dudosas mientras la IA trabaja) → 7:53 "Revisión HV diaria" (respaldo 8:53). Fin ≈ 8:30 (antes ≈ 9:30 y la segunda tanda ≈ 15:30).
 

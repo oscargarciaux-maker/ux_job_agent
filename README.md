@@ -1,3 +1,5 @@
+> **Arquitectura vigente:** [Política operativa permanente](docs/POLITICA_OPERATIVA.md). Claude, ChatGPT y futuros ejecutores siguen **las mismas reglas** de presupuesto por tanda, calidad, colores pendientes, seguridad de Gmail y métricas de jornada. El código actual vive en `apps_script/`. El resto de este README conserva parte del plan técnico original y puede estar desactualizado.
+
 [implementation_plan.md](https://github.com/user-attachments/files/33605766/implementation_plan.md)
 
 # Plan Director Técnico: Agente Autónomo de Búsqueda de Empleo y Personalización de CVs (UX/UI Junior)

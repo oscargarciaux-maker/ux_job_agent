@@ -5,6 +5,8 @@ description: Prepara correos en frío para empresas sin vacante publicada (inves
 
 # Correo en frío
 
+Política permanente: `docs/POLITICA_OPERATIVA.md`. Un **cartero por tanda** de hasta 3 empresas, con lectura única de recursos compartidos; ninguna petición de redactar correos permite enviarlos. Ante fallos de acceso, registrar estado parcial, no simular que el borrador existe.
+
 Objetivo: que el candidato abra Gmail, revise cada borrador y lo envíe él mismo. **Nunca se envía nada** (ni correo, ni
 mensaje de LinkedIn, ni formulario): solo borradores. Trabajo a pedido y por lotes (decisión del usuario, 24 oct 2026).
 
