@@ -1241,6 +1241,8 @@ assert.ok(fs.readFileSync(path.join(__dirname, '..', 'instalador', 'Cargador.gs'
     { Fecha: '2026-11-05', Estado: 'Esperando CV (IA)' }
   ], porEnviar: [] }, '2026-11-05 13:35');
   assert.strictEqual(estancado.o.escriba.estado, 'atencion');
+  assert.strictEqual(estancado.o.jefe.estado, 'atencion', 'el jefe debe señalar la falla de la tarea externa');
+  assert.ok(/tarea programada de Claude/.test(estancado.o.jefe.resumen));
   assert.ok(/ALERTA/.test(estancado.o.escriba.resumen));
   const temprano = equipo({ registro: [{ Fecha: '2026-11-05', Estado: 'Esperando CV (IA)' }] }, '2026-11-05 06:00');
   assert.strictEqual(temprano.o.escriba.estado, 'esperando');
