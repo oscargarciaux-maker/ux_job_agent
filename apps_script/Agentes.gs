@@ -162,8 +162,12 @@ function buildAgentsModel(d, now) {
   // Escriba: HV armadas hoy (Por enviar) y las que esperan su CV_IA.json o fueron rechazadas por la validación
   const waiting = statusToday(/esperando cv/i), rejected = statusToday(/cv rechazado/i);
   if (todayPending.length || waiting || rejected) {
-    set('escriba', { estado: rejected ? 'atencion' : 'listo', ultima: today,
-      resumen: todayPending.length + (todayPending.length === 1 ? ' HV nueva hoy' : ' HV nuevas hoy') + (waiting ? ' · ' + waiting + ' en cola' : ''),
+    // Después de la mañana, cero HV y vacantes esperando requiere atención, no un falso «listo».
+    // Diagnóstico local con datos del tablero: no usa LLM, APIs externas ni búsquedas pagadas.
+    const morningMissed = now.slice(11, 16) >= '08:45' && waiting > 0 && todayPending.length === 0;
+    set('escriba', { estado: rejected || morningMissed ? 'atencion' : todayPending.length ? 'listo' : 'esperando', ultima: today,
+      resumen: (morningMissed ? 'ALERTA: no hay HV nuevas tras la tanda de IA · ' : '') +
+        todayPending.length + (todayPending.length === 1 ? ' HV nueva hoy' : ' HV nuevas hoy') + (waiting ? ' · ' + waiting + ' en cola' : ''),
       cifras: [['HV hoy', todayPending.length], ['en cola', waiting], ['rechazadas', rejected]] });
   } else set('escriba', { estado: 'esperando', resumen: 'Escribe a las 6:03 y a las 7:03' });
 
