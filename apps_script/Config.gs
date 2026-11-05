@@ -9,7 +9,10 @@ const CONFIG = {
   // así que 14 candidatas alcanzaban (cerca de la mitad se descarta al verificar); antes 20 con 10 HV por tanda.
   // Meta de 15 HV al día (decisión del usuario 2026-11-01, con el jefe que lee todo una sola vez): 30 candidatas.
   DAILY_LIMIT: 30,
-  MIN_JUNIOR: 5,             // Al menos 5 de las 10 vacantes diarias serán Junior (si existen)
+  MIN_JUNIOR: 5,
+  MIN_SEARCH_PRIORITY: 45, // No consumir cupos con requisitos muy alejados
+  VERY_SENIOR_YEARS: 7, // 7+ años de experiencia: prioridad baja, no veto universal
+  VERY_SENIOR_PENALTY: 30,             // Al menos 5 de las 10 vacantes diarias serán Junior (si existen)
   // Rotación diaria (decisiones del usuario 2026-10-19). Cada día: 1 búsqueda de SEARCH_QUERY_POOL en Colombia y 1 de
   // REMOTE_QUERY_POOL (remoto para LATAM, sin limitar a Colombia), 1 crédito de SerpAPI cada una.
   // Solo español en Colombia: "product designer", "product designer junior" y "diseñador ux banca seguros" dieron
@@ -21,6 +24,8 @@ const CONFIG = {
   REMOTE_QUERY_POOL: [
     'remote ux designer latam', 'remote ui ux designer latin america',
     'remote product designer latam', 'ux ui designer remote colombia',
+    'junior ux designer remote latam', 'mid ux ui designer remote colombia',
+    'design systems designer remote latam',
   ],
   // Orden de preferencia del enlace de cada vacante (Google Jobs lista todos los sitios donde está publicada).
   // Cualquier otro sitio (portal de la empresa u otro) va después. Más alto = más prioridad al elegir las 10 del día.
@@ -162,7 +167,7 @@ const CONFIG = {
   FINTECH_BONUS: 10,
   // Decisión del usuario 2026-11-02: español primero; Himalayas trae copias sin original, expiradas y dudosas.
   SPANISH_BONUS: 12,
-  LOW_TRUST_SOURCE_PATTERN: /himalayas\.app/i,
+  LOW_TRUST_SOURCE_PATTERN: /himalayas\.app|jobicy\.com|buscojobs\.|jobilize\.|remotive\.com/i,
   LOW_TRUST_SOURCE_PENALTY: 10,
   SEARCH_LOCATION: 'Colombia',
   // Publicaciones de reclutadores en LinkedIn (contratan sin publicar vacante formal). 1 crédito más por día.
@@ -202,9 +207,9 @@ const CONFIG = {
   TIME_BUDGET_MS: 5 * 60 * 1000,
   // La publicación debe ser de un rol de diseño (evita "remote hiring" de otros oficios, p. ej. video annotation)
   LINKEDIN_POST_ROLE_PATTERN: /ux\s*\/\s*ui|ui\s*\/\s*ux|(ux|ui|product)\s+design|designer\s+(ux|ui)|dise[nñ]ador|design system|figma|ux research/i,
-  // Si Google Jobs no trae la fecha, se lee "datePosted" de la página original (gratis, sin SerpAPI). Las que siguen
-  // sin fecha solo entran (marcadas "SIN VERIFICAR") si con las verificadas no se llega a MIN_DAILY.
-  MIN_DAILY: 5,              // Pueden ser menos de DAILY_LIMIT, pero no menos de 5 (decisión del usuario)
+  // Si la fuente no trae fecha original, se consulta datePosted en el anuncio primario sin IA.
+  // No se crean carpetas con fechas sin verificar para cumplir una cuota.
+  MIN_DAILY: 0,              // 2026-11-05: no rellenar carpetas con vacantes sin fecha comprobable
   // Mañana condensada (decisión del usuario 2026-10-27: "que todo quede listo más temprano"): búsqueda a las 5:00 y un
   // repaso a las 5:45 que retoma lo que la primera no alcanzó a crear (o la reemplaza si se cortó). ±15 min cada una.
   // SerpAPI solo se consulta en la primera corrida del día (SERPAPI_LAST_DAY): el plan gratuito da 100 créditos al mes.
