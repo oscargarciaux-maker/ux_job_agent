@@ -292,6 +292,35 @@ function buildBraveQueries(phrases, roles, n, date) {
   return pickDailyItems(all, n, date);
 }
 
+/** Cinco consultas diarias, no cinco más las rotativas. Rota dos nichos y conserva los tres anclajes.
+ * Función pura: no consume créditos; la llamada pagada ocurre solo en apifyEnsureRun_.
+ */
+function apifySearchesForDay_(cfg, day) {
+  const fixed = (cfg.searches || []).slice();
+  const rotation = cfg.rotatingSearches || [];
+  const count = Math.min(cfg.rotatingPerDay || 0, rotation.length);
+  if (!count || !/^\d{4}-\d{2}-\d{2}$/.test(String(day || ''))) return fixed;
+  const ordinal = Math.floor(Date.parse(day + 'T00:00:00Z') / 86400000);
+  const first = (ordinal * count) % rotation.length;
+  return fixed.concat(Array.from({ length: count }, (_, i) => rotation[(first + i) % rotation.length]));
+}
+
+/** Extrae un cargo concreto del texto de un post; una mención de Figma o #UX no basta.
+ * La fuente original permanece completa en description para verificación humana/IA.
+ */
+function apifyPostRole_(text) {
+  const excerpt = String(text || '').slice(0, 1200);
+  const patterns = [
+    /\b(?:junior|mid[\s-]?level|mid|semi[\s-]?senior|senior)?\s*(?:ux\s*[\/&-]\s*ui|ui\s*[\/&-]\s*ux)\s*(?:&\s*graphic\s*)?designer\b/i,
+    /\b(?:junior|mid[\s-]?level|mid|semi[\s-]?senior|senior)?\s*(?:ux|ui|product|service|interaction|digital|visual|web)\s+(?:designer|researcher)\b/i,
+    /\b(?:design\s+systems?|system\s+design)\s+(?:designer|specialist)\b/i,
+    /\b(?:dise[nñ]ador(?:a)?|designer)\s+(?:de\s+)?(?:ux\s*\/\s*ui|ui\s*\/\s*ux|ux|ui|interfaces?|producto\s+digital|experiencia\s+de\s+usuario|servicios|interacci[oó]n)\b/i,
+    /\b(?:especialista\s+en\s+ux|ux\s+specialist|investigador(?:a)?\s+(?:ux|de\s+usuarios))\b/i,
+  ];
+  const matches = patterns.map(p => p.exec(excerpt)).filter(Boolean).sort((a,b) => a.index-b.index);
+  return matches.length ? matches[0][0].trim().replace(/\s+/g,' ') : '';
+}
+
 // ---------- Apify: publicaciones de LinkedIn con texto completo (decisión del usuario 2026-11-04) ----------
 
 /** URL del buscador de contenido de LinkedIn para cada búsqueda de CONFIG.EXTRA_SOURCES.apify.searches. */
@@ -321,14 +350,16 @@ function parseApifyPost(item, searches) {
   const article = item.article && typeof item.article === 'object'
     ? Object.keys(item.article).map(k => item.article[k]).filter(x => typeof x === 'string' && x.trim()).join('\n') : '';
   const firstLine = (text.split('\n').map(s => s.trim()).filter(Boolean)[0] || 'Publicación de LinkedIn').slice(0, 80);
+  const role = apifyPostRole_([text, article].filter(Boolean).join('\n'));
   const author = String(item.authorName || '').trim();
   const label = apifyQueryLabel(item.inputUrl, searches);
   const link = item.url || (item.urn ? 'https://www.linkedin.com/feed/update/' + item.urn : '');
   return {
-    title: firstLine,
+    title: role || firstLine,
     company: /company/i.test(item.authorType || '') && author ? author : (author ? 'Post ' + author : 'Post LinkedIn'),
     location: '', description: [text, article].filter(Boolean).join('\n\n'), snippet: '', link: link,
     postedAt: String(item.postedAtISO || '').slice(0, 10) || linkedInPostDate(link),
+    dateUnverified: !(String(item.postedAtISO || '').slice(0, 10) || linkedInPostDate(link)),
     source: 'Publicación LinkedIn (Apify: ' + label + ')', apifyLabel: label, fromPost: true, pageChecked: true,
   };
 }
@@ -348,7 +379,8 @@ function apifyPostReachable(post) {
   // Listas de vacantes de varias empresas o cargos (2026-11-04: 12 de 19 carpetas de la primera corrida eran listas de
   // ingeniería, ventas o de otros países) y publicaciones cuyo arranque no habla de un cargo de diseño
   if (isJobListPost(text)) return false;
-  if (!CONFIG.LINKEDIN_POST_ROLE_PATTERN.test(text.slice(0, 400))) return false;
+  // Priorizar puestos nombrados explícitamente, también si el reclutador empieza con «Hola».
+  if (!apifyPostRole_(text)) return false;
   if (CONFIG.OPEN_TO_COLOMBIA_PATTERN.test(text)) return true;
   return detectLanguage(text) === 'es' && /remot/i.test(text);
 }
@@ -363,6 +395,8 @@ const APIFY_HIRING_PATTERN_ = /hiring|we'?re looking for|join (our|the) team|ope
 function isJobListPost(text) {
   const t = String(text || '');
   if ((t.match(/lnkd\.in\//g) || []).length >= 3) return true;
+  // Los recopilatorios de 10/19 empleos se detectaron como falsos positivos en el registro real.
+  if (/\b(?:\d{2,}\s+(?:vacantes|oportunidades|roles|jobs|positions|openings)|job\s+roundup|lista\s+de\s+(?:vacantes|oportunidades)|\d+\s+new\s+startup\s+jobs)\b/i.test(t.slice(0, 450))) return true;
   const roleLines = t.split('\n').filter(l => /^\s*(?:[•▸▹►‣◦∙·*\-–]|\d+[.)]|[\u{1F300}-\u{1FAFF}\u2600-\u27BF]\uFE0F?)\s*/u.test(l) &&
     /\b(engineer|developer|desarrollador|ingenier[oa]|architect|arquitect|account|sales|ventas|marketing|manager|analyst|analista|consultant|consultor|data|qa|devops|support|soporte|executive|recruiter|abogad|contador)\b/i.test(l));
   return roleLines.length >= 3;
@@ -404,13 +438,14 @@ function apifyEnsureRun_(day) {
     const current = apifyRunState_();  // Releer después de adquirir el bloqueo.
     if (!apifyRunDue(current, day)) return current;
     const cfg = CONFIG.EXTRA_SOURCES.apify;
-    const input = { urls: buildApifyUrls(cfg.searches, cfg.datePosted), limitPerSource: cfg.limitPerSource,
+    const searches = apifySearchesForDay_(cfg, day);
+    const input = { urls: buildApifyUrls(searches, cfg.datePosted), limitPerSource: cfg.limitPerSource,
                     deepScrape: false, rawData: false, fetchDocumentDetails: false };
     const run = apifyRequest_('post', '/acts/' + cfg.actor + '/runs',
                               { maxTotalChargeUsd: cfg.maxTotalChargeUsd, timeout: cfg.timeoutSecs }, input).data;
-    const next = { day: day, id: run.id, datasetId: run.defaultDatasetId, read: false };
+    const next = { day: day, id: run.id, datasetId: run.defaultDatasetId, read: false, searches: searches };
     setProp_(PROPS.APIFY_RUN, JSON.stringify(next));
-    console.log('Apify: corrida ' + run.id + ' arrancada con ' + cfg.searches.length + ' búsquedas (tope ' + cfg.maxTotalChargeUsd + ' USD)');
+    console.log('Apify: corrida ' + run.id + ' arrancada con ' + searches.length + ' búsquedas (tope ' + cfg.maxTotalChargeUsd + ' USD)');
     return next;
   } finally {
     lock.releaseLock();
@@ -435,6 +470,7 @@ function searchApifyPosts_(startedAt) {
   const day = Utilities.formatDate(new Date(), tz_(), 'yyyy-MM-dd');
   const state = apifyEnsureRun_(day);
   if (!state || !state.id) return [];
+  const searches = state.searches || apifySearchesForDay_(cfg, day);
   if (state.read) { console.log('Apify: la corrida de hoy ya se leyó'); return []; }
   const left = Math.floor((CONFIG.SEARCH_BUDGET_MS - (Date.now() - (startedAt || Date.now()))) / 1000);
   const run = apifyRequest_('get', '/actor-runs/' + state.id, { waitForFinish: Math.max(0, Math.min(cfg.waitMaxSecs, left)) }).data;
@@ -445,9 +481,9 @@ function searchApifyPosts_(startedAt) {
   // Terminada, abortada por el tope de gasto o por tiempo: se usa lo que alcanzó a traer
   const items = apifyRequest_('get', '/datasets/' + (state.datasetId || run.defaultDatasetId) + '/items', { clean: 'true', format: 'json' });
   const byLink = {}, perSearch = {};
-  cfg.searches.forEach(s => { perSearch[s.label] = { found: 0, kept: 0 }; });
+  searches.forEach(s => { perSearch[s.label] = { found: 0, kept: 0 }; });
   const list = Array.isArray(items) ? items : [];
-  (list ? items : []).map(it => parseApifyPost(it, cfg.searches)).forEach(p => {
+  (list ? items : []).map(it => parseApifyPost(it, searches)).forEach(p => {
     perSearch[p.apifyLabel] = perSearch[p.apifyLabel] || { found: 0, kept: 0 };
     perSearch[p.apifyLabel].found++;
     if (!p.link || byLink[p.link]) return;
