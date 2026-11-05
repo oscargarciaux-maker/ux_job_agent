@@ -72,6 +72,8 @@ function computePriority(vacancy, score) {
   const fintech = CONFIG.FINTECH_PATTERN.test(vacancyText_(vacancy) + ' ' + (vacancy.company || '')) ? CONFIG.FINTECH_BONUS : 0;
   const years = requiredYears(vacancy);
   const tooMuch = years !== null && years >= CONFIG.EXPERIENCE_YEARS_LIMIT ? CONFIG.EXPERIENCE_PENALTY : 0;
+  // 7+ años profesionales: candidatura remota, sin desplazar a junior/mid.
+  const verySenior = years !== null && years >= CONFIG.VERY_SENIOR_YEARS ? CONFIG.VERY_SENIOR_PENALTY : 0;
   const verify = vacancy.roleToVerify ? CONFIG.ROLE_VERIFY_PENALTY : 0;
   const english = englishFluent(vacancy) ? CONFIG.ENGLISH_FLUENT_PENALTY
                 : englishAdvanced(vacancy) ? CONFIG.ENGLISH_ADVANCED_PENALTY : 0;
@@ -79,7 +81,7 @@ function computePriority(vacancy, score) {
   // y 2 avisos expirados: el español sube y Himalayas baja al elegir las candidatas del día.
   const spanish = isSpanishVacancy(vacancy) ? CONFIG.SPANISH_BONUS : 0;
   const himalayas = CONFIG.LOW_TRUST_SOURCE_PATTERN.test(String(vacancy.link || '')) ? CONFIG.LOW_TRUST_SOURCE_PENALTY : 0;
-  return score + (vacancy.sourceBonus || 0) + fintech + spanish - tooMuch - verify - english - himalayas;
+  return score + (vacancy.sourceBonus || 0) + fintech + spanish - tooMuch - verySenior - verify - english - himalayas;
 }
 
 /** Aviso escrito en español: más palabras funcionales en español que en inglés, y al menos 3 (un título suelto no decide). */
@@ -141,8 +143,24 @@ function exclusionReason(vacancy) {
   // Hay empresas que publican «UX Designer» pero en la descripción piden explícitamente un Principal/Staff:
   // ejemplo real, GraceMark Solutions, 2026-11-05. No penalizar la sola mención de colaboradores senior.
   if (hiddenPrincipalRole_(vacancy)) return 'cargo principal/staff oculto en la descripción';
+  const mismatch = explicitHardMismatch_(vacancy);
+  if (mismatch) return mismatch;
   // Cargos de liderazgo muy por encima de junior (Senior sí entra, con la regla de años)
   return CONFIG.EXCLUDED_TITLE_PATTERN.test(vacancy.title || '') ? 'cargo de liderazgo (staff/principal/head/director/manager)' : null;
+}
+
+/** Requisitos obligatorios incompatibles y claros: evita gastar verificación de IA.
+ * No descartar por simples menciones en la descripción o habilidades deseables.
+ */
+function explicitHardMismatch_(vacancy) {
+  const d = String((vacancy || {}).description || '');
+  if (/\b(?:[4-9]|1[0-9])\s*\+?\s*(?:years|yrs|años)\s+of\s+experience\s+(?:working\s+)?as\s+(?:a\s+)?(?:software\s+)?developer\b/i.test(d) ||
+      /\b(?:[4-9]|1[0-9])\s*\+?\s*(?:years|yrs|años)\s+(?:de\s+)?experiencia\s+como\s+desarrollador\b/i.test(d))
+    return 'exige trayectoria profesional de desarrollador de software';
+  if (/\b(?:required|requirements|must\s+have|obligatori[oa])\b[\s\S]{0,160}\bconnected[- ]hardware\b/i.test(d) &&
+      /\bshipped\s+connected[- ]product\s+work\b/i.test(d))
+    return 'exige productos de hardware conectado lanzados, experiencia no acreditada';
+  return null;
 }
 
 /** Detecta un cargo Principal/Staff que no aparece en el título del agregador; evita falsos «mid». */
@@ -262,16 +280,12 @@ function selectDailyVacancies(scored, limit, minJunior) {
 }
 
 /**
- * Selección con la regla de fecha: solo vacantes con fecha verificada (<= MAX_POST_AGE_DAYS); las que no tienen fecha
- * verificable entran solo para completar minDaily (pueden ser menos de limit, pero no menos de minDaily).
+ * Nunca rellenar una cuota con avisos sin fecha verificada ni puestos manifiestamente poco compatibles.
+ * minDaily se conserva por compatibilidad con llamadas anteriores, sin forzar cantidad.
  */
 function selectWithDateRule(scored, limit, minJunior, minDaily) {
-  const picked = selectDailyVacancies(scored.filter(x => !x.vacancy.dateUnverified), limit, minJunior);
-  const rank = x => (x.priority !== undefined ? x.priority : x.score);
-  let formal = picked.filter(x => !x.vacancy.isPost).length;  // Las publicaciones (manuales) no cuentan para el mínimo
-  scored.filter(x => x.vacancy.dateUnverified).sort((a, b) => rank(b) - rank(a))
-    .forEach(x => { if (formal < minDaily && picked.length < limit) { picked.push(x); formal++; } });
-  return picked;
+  return selectDailyVacancies(scored.filter(x => !x.vacancy.dateUnverified &&
+    (x.priority === undefined || x.priority >= CONFIG.MIN_SEARCH_PRIORITY)), limit, minJunior);
 }
 
 /**
