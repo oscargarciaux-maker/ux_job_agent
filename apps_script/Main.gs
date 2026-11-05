@@ -73,8 +73,11 @@ function runPipeline_(opts) {
     } catch (e) {
       console.warn('No se pudo leer la hoja ' + CONFIG.COLD_EMAIL_SHEET_NAME + ': ' + e.message);
     }
-    const known = raw.filter(v => existing[v.link] || existing[vacancyKey(v)] || isHiddenCompanyRepeat(v, existing) ||
-                                  (!v.isPost && !/confiden/i.test(v.company || '') && existing['base:' + vacancyBaseKey(v)]));
+    const known = raw.filter(v => existing[v.link] || ((v.isPost || v.fromPost) && existing[linkedinPostKey_(v.link)]) ||
+                                  (!(v.isPost || v.fromPost) && existing[vacancyKey(v)]) ||
+                                  isHiddenCompanyRepeat(v, existing) ||
+                                  (!v.isPost && !v.fromPost && !/confiden/i.test(v.company || '') &&
+                                    existing['base:' + vacancyBaseKey(v)]));
     // Empresa con carpeta en CV/ (decisión del usuario 2026-10-24): se abre la carpeta y solo es repetida si es el
     // mismo cargo (o la misma vacante); con otro cargo entra, con una nota para que el usuario lo tenga en cuenta.
     const appliedHits = [];
@@ -119,6 +122,12 @@ function runPipeline_(opts) {
                                                   (scored.length - distinct.length) + ' fuera de la selección');
   const selected = selectWithDateRule(distinct, CONFIG.DAILY_LIMIT, CONFIG.MIN_JUNIOR, CONFIG.MIN_DAILY);
   console.log('3. Seleccionadas: ' + selected.length + ' (Junior: ' + selected.filter(x => x.seniority === 'junior').length + ')');
+  const candidates = selected.filter(x => !x.vacancy.isPost);
+  console.log('   Meta de ' + CONFIG.DAILY_OPPORTUNITY_TARGET + ' candidatas para verificación: ' +
+              candidates.length + ' (formales: ' + candidates.filter(x => !x.vacancy.fromPost).length +
+              ', posts con texto completo: ' + candidates.filter(x => x.vacancy.fromPost).length +
+              '); publicaciones sin texto completo, solo manuales: ' + (selected.length - candidates.length) +
+              '. La IA todavía debe confirmar apertura y requisitos.');
 
   // Primero las vacantes formales (pasan a la IA), luego las publicaciones (proceso manual)
   selected.sort((a, b) => (a.vacancy.isPost ? 1 : 0) - (b.vacancy.isPost ? 1 : 0));

@@ -14,7 +14,10 @@ function getExistingUrls_(sheet) {
   if (lastRow < 2) return {};
   const seen = {};
   sheet.getRange(2, 2, lastRow - 1, 3).getValues().forEach(row => {
-    if (row[2]) seen[row[2]] = true;
+    if (row[2]) {
+      seen[row[2]] = true;
+      if (/linkedin\.com\/(?:posts|feed\/update)\//i.test(row[2])) seen[linkedinPostKey_(row[2])] = true;
+    }
     seen[vacancyKey({ company: row[0], title: row[1] })] = true;
     // El mismo aviso en otra ciudad (27 oct 2026: Blacksmith Agency lo publicó en 7 ciudades)
     if (!/confiden/i.test(row[0])) seen['base:' + vacancyBaseKey({ company: row[0], title: row[1] })] = true;
@@ -286,4 +289,12 @@ function createApplicationDraft_(to, subject, bodyText, pdfBlob) {
   const raw = Utilities.base64EncodeWebSafe(buildMimeMessage(to, subject, bodyText, pdfBlob));
   const draft = Gmail.Users.Drafts.create({ message: { raw: raw } }, 'me');
   return draft.id;
+}
+
+
+/** Normaliza el ID de una publicación de LinkedIn entre /posts/ y /feed/update/. */
+function linkedinPostKey_(url) {
+  const text = String(url || '');
+  const id = text.match(/activity[-:](\d{18,20})\b/i);
+  return id ? 'linkedin-post:' + id[1] : text.replace(/[?#].*$/, '').replace(/\/$/, '');
 }
