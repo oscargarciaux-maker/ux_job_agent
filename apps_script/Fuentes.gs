@@ -380,7 +380,7 @@ function apifyPostReachable(post) {
   // ingeniería, ventas o de otros países) y publicaciones cuyo arranque no habla de un cargo de diseño
   if (isJobListPost(text)) return false;
   // Priorizar puestos nombrados explícitamente, también si el reclutador empieza con «Hola».
-  if (!apifyPostRole_(text)) return false;
+  if (!apifyPostRole_(text.slice(0, 400))) return false;
   if (CONFIG.OPEN_TO_COLOMBIA_PATTERN.test(text)) return true;
   return detectLanguage(text) === 'es' && /remot/i.test(text);
 }
