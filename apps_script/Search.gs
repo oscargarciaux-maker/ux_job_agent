@@ -443,7 +443,8 @@ function verifyPostingDates_(vacancies, startedAt) {
   // Se abre la página original de todas las vacantes formales (gratis): da la fecha si Google Jobs no la trajo y
   // permite descartar las que ya no reciben postulaciones (guía 2026-10-22: solo vacantes abiertas y verificadas).
   // Las publicaciones y los avisos cuya página ya se leyó al buscarlos (LinkedIn, elempleo, alertas) no se abren de nuevo.
-  // Desde el 27 oct 2026 solo se abren las que no traen fecha (la regla de 21 días la necesita) y nunca las de
+  // También se abre el enlace primario de Himalayas para confirmar su fecha real (no la fecha del agregador).
+  // Desde el 27 oct 2026 solo se abren las que no traen fecha (salvo estas copias) y nunca las de
   // linkedin.com: tres corridas seguidas se colgaron más de 4 min en la primera tanda de páginas, con LinkedIn en ella,
   // después de las 60 búsquedas públicas a LinkedIn (UrlFetchApp no tiene tiempo límite). Si siguen abiertas lo
   // comprueba la verificación de la IA (verificar-vacante), que abre cada aviso.
