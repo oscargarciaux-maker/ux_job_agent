@@ -156,6 +156,12 @@ for (let i = 0; i < 4; i++) context.pickDailyItems(qpool, 2, new Date(2026, 9, 1
 assert.strictEqual(semana.size, 8, 'en 4 días se usan las 8 búsquedas');
 assert.strictEqual(context.linkedInPostDate('https://www.linkedin.com/posts/x_y-activity-7516573783793659905-2WJX'), '2026-10-15');
 assert.strictEqual(context.linkedInPostDate('https://www.linkedin.com/posts/sin-id'), '');
+assert.strictEqual(context.shouldUpgradeLinkedInPost_(
+  { isPost:true,description:'fragmento' }, { fromPost:true,description:'Publicación completa para UX Designer remoto Colombia' }), true);
+assert.strictEqual(context.shouldUpgradeLinkedInPost_(
+  { fromPost:true,description:'Publicación completa para UX Designer remoto Colombia' }, { isPost:true,description:'fragmento' }), false);
+assert.strictEqual(context.shouldUpgradeLinkedInPost_(
+  { fromPost:true,description:'fragmento' }, { fromPost:true,description:'Oferta con detalles de UX Designer Colombia, Figma y postulación por email' }), true);
 assert.strictEqual(context.linkedinPostKey_('https://www.linkedin.com/posts/a_activity-7522068755460374528?trk=a'),
   context.linkedinPostKey_('https://www.linkedin.com/feed/update/urn:li:activity:7522068755460374528/'));
 assert.ok(/function linkedinPostKey_/.test(fs.readFileSync(path.join(dir, 'Workspace.gs'), 'utf8')));
