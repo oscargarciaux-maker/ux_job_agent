@@ -74,8 +74,10 @@ function runPipeline_(opts) {
       console.warn('No se pudo leer la hoja ' + CONFIG.COLD_EMAIL_SHEET_NAME + ': ' + e.message);
     }
     const known = raw.filter(v => existing[v.link] || ((v.isPost || v.fromPost) && existing[linkedinPostKey_(v.link)]) ||
-                                  existing[vacancyKey(v)] || isHiddenCompanyRepeat(v, existing) ||
-                                  (!v.isPost && !/confiden/i.test(v.company || '') && existing['base:' + vacancyBaseKey(v)]));
+                                  (!(v.isPost || v.fromPost) && existing[vacancyKey(v)]) ||
+                                  isHiddenCompanyRepeat(v, existing) ||
+                                  (!v.isPost && !v.fromPost && !/confiden/i.test(v.company || '') &&
+                                    existing['base:' + vacancyBaseKey(v)]));
     // Empresa con carpeta en CV/ (decisión del usuario 2026-10-24): se abre la carpeta y solo es repetida si es el
     // mismo cargo (o la misma vacante); con otro cargo entra, con una nota para que el usuario lo tenga en cuenta.
     const appliedHits = [];
