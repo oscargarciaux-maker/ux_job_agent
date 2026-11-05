@@ -39,3 +39,12 @@
 - Claude y ChatGPT consumen **las mismas reglas de este repositorio** y las skills de rol. Las diferencias se limitan al modo de acceso a herramientas, **no a decisiones de negocio ni seguridad**.
 - Los cambios permanentes de comportamiento se documentan aquí, en la skill/prompt del rol afectado y, cuando corresponde, en código y pruebas. Una guía temporal por proveedor nunca sustituye esta política.
 - **Una sola plataforma ejecutora por fase y horario.** Antes de devolver el control a Claude, pausar la automatización equivalente de ChatGPT y verificar que no haya una corrida en curso. No correr simultáneamente dos jefes sobre las mismas carpetas.
+
+## Calidad de búsqueda antes de crear carpetas (5 nov 2026)
+
+- Meta: oportunidades **reales y pertinentes**, no completar una cuota diaria de anuncios. El mínimo artificial de cinco candidatos sin fecha se desactivó. El límite de 15 CV continúa siendo máximo, no obligación.
+- Rechazar en el prefiltro títulos sin funciones de UX/UI o diseño digital aunque provengan de una consulta de Google Jobs; no descartar funciones cercanas como Service Design o Research si están respaldadas.
+- Conservar vacantes de 5+ años con menor prioridad, pero penalizar especialmente 7+; reconocer requisitos inequívocos de 4+ años como **desarrollador** o experiencia obligatoria de **hardware conectado lanzado**. No aplicar estas reglas a habilidades meramente deseables.
+- Si Himalayas proporciona enlace de postulación **primario**, escogerlo antes de su `guid` y comprobar fecha en ese sitio. Si no aporta enlace original, no considerar verificada la fecha de la copia para generar carpetas/HV. Otras fuentes agregadas reciben penalización hasta demostrar vigencia en un portal original.
+- Usar la misma cantidad de consultas por corrida, con rotación adicional de junior, UX/UI, sistemas de diseño y sectores financiero/fintech; evaluar rendimiento por **HV útiles, enlaces originales, entrevistas y postulaciones**, no número bruto de hallazgos.
+- La precisión puede aumentar aunque una jornada tenga menos de cinco candidatas; **eso es preferible a generar CV para anuncios cerrados o imposibles**. La captación de más oportunidades requiere ampliar fuentes oficiales y medirlas, no bajar los filtros indiscriminadamente.
