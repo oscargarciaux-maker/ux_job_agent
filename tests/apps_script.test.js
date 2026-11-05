@@ -431,6 +431,16 @@ assert.ok(mime.includes('application/pdf') && mime.includes('JVBERg=='));
 const htmlPart = mime.split('text/html; charset="UTF-8"')[1].split('\r\n\r\n')[1].split('\r\n--')[0];
 assert.ok(Buffer.from(htmlPart.replace(/\r\n/g, ''), 'base64').toString().includes('sans-serif'));
 
+// La generación nunca debe dar por completo un CV antes de llenar su plantilla
+// y una caída del borrador de Gmail no debe dejar «Esperando CV (IA)» ni duplicar documentos.
+const cvSource = fs.readFileSync(path.join(dir, 'CV.gs'), 'utf8');
+assert.ok(/tryLock\(1000\)/.test(cvSource), 'solo una generación HV concurrente');
+assert.ok(/makeCopy\('EN_PROCESO_' \+ cvName, folder\)/.test(cvSource), 'primero crear copia temporal');
+assert.ok(/copy\.setName\(cvName\)/.test(cvSource), 'publicar HV solo tras completarla');
+assert.ok(/copy\.setTrashed\(true\)/.test(cvSource), 'limpiar copia rota');
+assert.ok(cvSource.indexOf("updateVacancyStatus_(sheet, vacancy.link, 'Pendiente');") <
+          cvSource.indexOf("createApplicationDraft_(vacancy.email"), 'la HV no depende del éxito del correo');
+assert.ok(/CV_DRAFT_ERRORS_NAME/.test(cvSource), 'error Gmail queda documentado');
 // Fase 3: CV_IA.json (contrato + anti-alucinación)
 const contexto = 'Diseñador Industrial. Practicante en Estudio Forma (2023), rediseño que redujo errores 30%. Figma.';
 const marcadores = ['PERFIL_PERSONALIZADO', 'EMPRESA_EXP_1', 'LOGRO_1_1', 'LOGRO_1_2'];
