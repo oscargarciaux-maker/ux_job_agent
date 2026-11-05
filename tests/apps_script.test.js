@@ -1113,6 +1113,29 @@ assert.strictEqual(run('safeCell')('+57 300'), "'+57 300");
   const est = JSON.parse(JSON.stringify(run('contactedAddresses')([['X', 'z@x.co', '2026-10-27 10:00', '', '', run('COLD_SENT_STATUS_'), '']])));
   assert.deepStrictEqual(est, { 'z@x.co': 'usado' });
 }
+// La cola de colores SOLO toma el último evento del mismo ID con marca explícita y carpeta de CV.
+{
+  const h = ['Fecha revisión','Empresa','Cargo','Carpeta','Hecho','Fecha del mensaje','Fuente',
+    'Estado anterior','Estado nuevo','Siguiente acción','Quién','Plazo','Notas'];
+  const row = (id,state,notes,source='https://mail.google.com/mail/u/0/#all/a') =>
+    ['2026-11-05','Acme','Designer','https://drive.google.com/drive/folders/'+id,'', '',source,
+      'Aplicada',state,'Esperar','empresa','',notes];
+  const p = JSON.parse(JSON.stringify(context.pendingColorActions_([h,
+    row('one','Rechazada (rojo)','COLOR PENDIENTE'),
+    row('two','En proceso (verde)','COLOR PENDIENTE'),
+    row('one','En proceso (verde)','COLOR APLICADO'), // Una fila posterior cancela el trabajo viejo
+    row('three','Aplicada, sin respuesta','COLOR PENDIENTE'),
+    row('four','Dudosa','COLOR PENDIENTE'),
+    row('five','Rechazada','COLOR PENDIENTE','')
+  ], 100, 5)));
+  assert.deepStrictEqual(p.map(x=>x.id),['two','three']);
+  assert.strictEqual(p[0].color,'#16a765');
+  assert.strictEqual(p[1].color,'#ffad46');
+  assert.strictEqual(p[0].fila,101);
+  assert.strictEqual(context.desiredFolderColor_('Rechazada'),'#f83a22');
+  assert.strictEqual(context.desiredFolderColor_('REVISAR'),'');
+  assert.strictEqual(context.pendingColorActions_([['Carpeta','Estado nuevo','Notas','Fuente']], 2, 5).length,0);
+}
 assert.strictEqual(run('safeCell')('Rechazada (rojo)'), 'Rechazada (rojo)');
 {
   const reg = [{ 'Empresa': 'PadSplit', 'Cargo': 'Senior Product Designer', 'Link': 'https://jobicy.com/1' },
