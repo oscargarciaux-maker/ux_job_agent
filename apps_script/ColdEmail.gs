@@ -78,6 +78,12 @@ function crearBorradoresEnFrio() {
           updateColdEmailRow_(sheet, r.para, r.asunto, pdf.getName());
           done.push(r.para + ' -> borrador ' + draftId + ' reescrito con la HV nueva');
         } else {
+          // Si Gmail creó el borrador pero el Sheet falló antes de guardar la fila,
+          // la siguiente corrida NO debe crear un segundo mensaje al mismo destinatario.
+          if (coldDraftExists_(r.para)) {
+            done.push('AVISO: ' + r.para + ' -> Gmail ya tiene un borrador; revisar su fila en Sheets antes de reintentar');
+            return;
+          }
           const id = createApplicationDraft_(r.para, subject, body, pdf);
           sheet.appendRow([data.empresa, r.para, '—', r.asunto, pdf.getName(), 'Borrador preparado, no enviado', '',
                            [r.fuente, r.fecha_fuente, r.nota].filter(Boolean).join(' | ')]);
@@ -106,6 +112,14 @@ function markTargetCompany_(ss, company, status) {
   names.forEach((row, i) => {
     if (targetCompanyMatches(row[0], company)) sheet.getRange(i + 2, headers.indexOf('Estado') + 1).setValue(status);
   });
+}
+
+/** Consulta indexada de Gmail: evita duplicar borradores si falló el registro de Sheets. */
+function coldDraftExists_(email) {
+  const address = String(email || '').trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address)) return false;
+  const found = Gmail.Users.Messages.list('me', { q: 'in:drafts to:' + address, maxResults: 1 });
+  return !!(found.messages && found.messages.length);
 }
 
 /** Destinatario (en minúsculas) -> id de su borrador de Gmail; si hay varios, el más reciente. */
