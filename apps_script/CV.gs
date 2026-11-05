@@ -24,6 +24,9 @@ function generarCVsDesdeIA() {
   const now = new Date();
   const hour = Number(Utilities.formatDate(now, tz_(), 'H'));
   if (!isWithinCvWindow(hour)) return;  // El activador corre cada CV_EVERY_MINUTES todo el día
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(1000)) { console.log('Generación HV: otra corrida está procesando las mismas carpetas'); return; }
+  try {
   const root = DriveApp.getFolderById(getProp_(PROPS.ROOT_FOLDER_ID));
   const today = Utilities.formatDate(now, tz_(), 'yyyy-MM-dd');
   // Sin revisar/<día> desde 2026-10-22; <hoy> en la raíz por si alguna corrida anterior la dejó allí
@@ -38,6 +41,7 @@ function generarCVsDesdeIA() {
   }
   const sheet = getRegistrySheet_();
   dateFolders.forEach(f => buildCvsInFolder_(f, sheet));
+  } finally { lock.releaseLock(); }
 }
 
 /** Hoy y los `back` días anteriores, como 'yyyy-MM-dd', de hoy hacia atrás. */
@@ -110,7 +114,11 @@ function buildCvsInFolder_(dateFolder, sheet) {
       const jsonFile = firstFileByName_(folder, CONFIG.CV_JSON_NAME);
       if (!jsonFile) return;
       if (hasGeneratedCv_(folder)) {
-        console.log(label + ' -> ya tiene CV generado, se omite');
+        // Recuperar el estado en Sheets tras un fallo previo al actualizar la fila.
+        const detail = firstFileByName_(folder, 'Detalle_Vacante');
+        const priorVacancy = parseVacancyDetail(detail ? DocumentApp.openById(detail.getId()).getBody().getText() : '');
+        updateVacancyStatus_(sheet, priorVacancy.link, 'Pendiente');
+        console.log(label + ' -> ya tiene CV generado; estado sincronizado, no se duplica');
         return;
       }
       const detailFile = firstFileByName_(folder, 'Detalle_Vacante');
@@ -134,21 +142,39 @@ function buildCvsInFolder_(dateFolder, sheet) {
       }
 
       const cvName = buildCvFileName(cv, vacancy, label);
-      const copy = template.makeCopy(cvName, folder);
-      fillCvDocument_(copy.getId(), cv);
-      const pdf = CONFIG.CV_EXPORT_PDF ? folder.createFile(copy.getAs(MimeType.PDF).setName(cvName + '.pdf')) : null;
+      // No llamar HV_/CV_ a un documento hasta completar su contenido: evita aceptar copias incompletas.
+      const copy = template.makeCopy('EN_PROCESO_' + cvName, folder);
+      let pdf = null;
+      try {
+        fillCvDocument_(copy.getId(), cv);
+        if (CONFIG.CV_EXPORT_PDF) pdf = folder.createFile(copy.getAs(MimeType.PDF).setName(cvName + '.pdf'));
+        copy.setName(cvName);  // Marca de documento realmente terminado.
+      } catch (buildError) {
+        copy.setTrashed(true);  // Solo nuestra copia temporal, nunca un CV del usuario.
+        throw buildError;
+      }
       removeFiles_(folder, CONFIG.CV_ERRORS_NAME);
+      updateVacancyStatus_(sheet, vacancy.link, 'Pendiente');
 
       let draftNote = 'sin correo directo';
       if (vacancy.email && cv._correo_cuerpo) {
-        const subject = buildApplicationEmail(vacancy, cv._idioma).subject;
-        // 2026-11-03 (Satoritech: «no sé por qué no se lo adjunta automáticamente»): el borrador nace con la HV en PDF
-        // aunque CV_EXPORT_PDF esté apagado; el PDF solo va en el correo (el de la carpeta lo crea la corrida de cada hora)
-        const attachment = pdf ? pdf.getBlob() : copy.getAs(MimeType.PDF).setName(cvName + '.pdf');
-        createApplicationDraft_(vacancy.email, subject, cv._correo_cuerpo, attachment);
-        draftNote = 'borrador para ' + vacancy.email;
+        // Un fallo de Gmail no deshace la HV ni la deja bloqueada como «Esperando CV».
+        // Si create() creó el borrador pero la respuesta se perdió, NO reintentar a ciegas
+        // para evitar duplicarlo; dejar un aviso que Oscar pueda comprobar.
+        try {
+          const subject = buildApplicationEmail(vacancy, cv._idioma).subject;
+          const attachment = pdf ? pdf.getBlob() : copy.getAs(MimeType.PDF).setName(cvName + '.pdf');
+          createApplicationDraft_(vacancy.email, subject, cv._correo_cuerpo, attachment);
+          removeFiles_(folder, CONFIG.CV_DRAFT_ERRORS_NAME);
+          draftNote = 'borrador para ' + vacancy.email;
+        } catch (mailError) {
+          replaceFile_(folder, CONFIG.CV_DRAFT_ERRORS_NAME,
+            'HV creada. No se confirmó borrador para ' + vacancy.email + ': ' + mailError.message +
+            '\\nRevisar Gmail antes de reintentar; una respuesta de API perdida puede haber creado el borrador.');
+          draftNote = 'borrador sin confirmar (revisar archivo de errores)';
+          console.warn(label + ' -> Gmail: ' + mailError.message);
+        }
       }
-      updateVacancyStatus_(sheet, vacancy.link, 'Pendiente');
       console.log(label + ' -> ' + cvName + (pdf ? ' (Doc + PDF)' : ' (Google Doc)') + ' y ' + draftNote + ' OK');
     } catch (e) {
       console.error(label + ' -> ERROR: ' + e.message);
