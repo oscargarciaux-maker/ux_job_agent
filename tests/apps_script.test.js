@@ -347,6 +347,14 @@ assert.ok(!context.isDesignRole({ title: 'Administrador/a de Infraestructura Lin
 assert.ok(context.isDesignRole({ title: 'UI/UX Designer (Mobile Native)' }) && context.isDesignRole({ title: 'Diseñador(a) UX/UI' }));
 assert.strictEqual(context.exclusionReason({ title: 'Staff Product Designer (Contract)', description: '' }), 'cargo de liderazgo (staff/principal/head/director/manager)');
 assert.strictEqual(context.exclusionReason({ title: 'Senior UX Designer', description: '' }), null);
+assert.strictEqual(context.exclusionReason({
+  title: 'User Experience Designer', location: 'Remote Colombia',
+  description: "We're seeking a hands-on Principal Experience Designer. Principal-level ownership and execution."
+}), 'cargo principal/staff oculto en la descripción', 'un Principal no debe entrar como mid porque el título esté recortado');
+assert.strictEqual(context.exclusionReason({
+  title: 'UX Designer', description: 'You will collaborate with our Principal Product Designer and engineers.'
+}), null, 'colaborar con un Principal no convierte la vacante en Principal');
+
 const loc = run('CONFIG.REACHABLE_REMOTE_LOCATION');
 assert.ok(loc.test('Americas') && loc.test('UTC-5') && loc.test('GMT -3') && !loc.test('North America') && !loc.test('USA') && !loc.test('UTC+8'));
 // Vacantes ya aplicadas: estado por color de carpeta, nombre de carpeta y empresa ya aplicada
@@ -599,6 +607,9 @@ assert.ok(!context.isCvFile_({ name: 'HV_notas.txt', mimeType: 'text/plain' }));
   assert.strictEqual(c.find(x => x.empresa === 'LinkTic').fila, 0);
   assert.strictEqual(c.find(x => x.empresa === 'Koombea').ingles, true);
   assert.strictEqual(context.followupCandidates(rows, '2026-11-25').length, 0, 'pasados 30 días ya no se insiste');
+  assert.strictEqual(context.threadHasDraft_([{ labelIds: ['SENT'] }, { labelIds: ['DRAFT'] }]), true);
+  assert.strictEqual(context.threadHasDraft_([{ labelIds: ['SENT'] }]), false);
+
   const es = context.followupBody(c.find(x => x.empresa === 'LinkTic'), 'Oscar Garcia');
   assert.ok(/20 de octubre/.test(es) && /LinkTic/.test(es) && /Oscar Garcia$/.test(es));
   assert.ok(context.countEmailWords(es.split('\n\n')[0]) <= run('CONFIG.COLD_EMAIL_MAX_WORDS'), 'corto, como pide la guía');
@@ -770,6 +781,17 @@ assert.strictEqual(context.roleTitleClass('Product & Content UX/UI Designer'), '
 assert.strictEqual(context.roleTitleClass('CX Designer'), 'verify');
 assert.strictEqual(context.roleTitleClass('Analista de Producto Digital'), 'verify');
 assert.strictEqual(context.roleTitleClass('SEO Copywriter'), 'excluded');
+ // Falsos positivos encontrados el 5 de noviembre.
+ ['English to Lao Review Lead for UI, Marketing & Product Content',
+  'English to Maltese Review Lead for UI, Marketing & Product Content',
+  'English to Kyrgyz Review Lead for UI, Marketing & Product Content'].forEach(t =>
+    assert.strictEqual(context.roleTitleClass(t), 'excluded', t));
+ assert.strictEqual(context.roleTitleClass('UX/UI Designer'), 'design');
+ assert.strictEqual(context.apifyPostReachable({
+   title: 'Vacante en stand by',
+   description: 'VACANTE EN STAND BY. Buscamos UX Designer remoto Colombia. Hiring UX/UI Designer.',
+   link: 'https://www.linkedin.com/posts/example_activity-7523087121235177473'
+ }), false, 'una convocatoria pausada no debe generar HV');
 // 2026-11-03 (decisión del usuario: «muy pocas vacantes»): cargos cercanos
 assert.strictEqual(context.roleTitleClass('Growth Designer'), 'design');
 assert.strictEqual(context.roleTitleClass('Mobile App Designer'), 'design');
@@ -1156,6 +1178,8 @@ assert.ok(!/\.send\(|Messages\.send|sendEmail|GmailApp/.test(allCode), 'El agent
   const parse = vm.runInContext('parseScheduledSend', context);
   const ok = parse(JSON.stringify({ enviar_desde: '2026-11-05T08:00:00-05:00', borradores: ['r123', 'r-45'] }));
   assert.strictEqual(ok.startMs, Date.parse('2026-11-05T13:00:00Z'));
+  assert.strictEqual(context.isScheduledSendDue_(ok.startMs, ok.startMs - 1), false, 'nunca enviar antes de la hora');
+  assert.strictEqual(context.isScheduledSendDue_(ok.startMs, ok.startMs), true, 'enviar a partir de la hora autorizada');
   assert.deepStrictEqual(Array.from(ok.ids), ['r123', 'r-45']);
   assert.strictEqual(ok.pauseMs, 3000);
   assert.throws(() => parse('{"enviar_desde":"2026-11-05T08:00:00","borradores":["r1"]}'), /zona horaria/, 'sin zona horaria no');
@@ -1224,6 +1248,25 @@ assert.ok(fs.readFileSync(path.join(__dirname, '..', 'instalador', 'Cargador.gs'
   assert.strictEqual(hilos[1].estado, 'hecho', 'los cerrados van después de los abiertos');
 
   const equipo = (d, now) => { const m = J(context.buildAgentsModel(d, now)); const o = {}; m.equipo.forEach(a => { o[a.id] = a; }); return { m, o }; };
+  // 2026-11-05: si la IA no trabajó, no mostrar «listo» por tener vacantes en cola.
+  const estancado = equipo({ registro: [
+    { Fecha: '2026-11-05', Estado: 'Esperando CV (IA)' },
+    { Fecha: '2026-11-05', Estado: 'Esperando CV (IA)' }
+  ], porEnviar: [] }, '2026-11-05 13:35');
+  assert.strictEqual(estancado.o.escriba.estado, 'atencion');
+  const est = JSON.parse(JSON.stringify(context.iaBacklogStats_(
+    [['2026-11-05', 'Acme', 'UX Designer', '', 90, 'Esperando CV (IA)'],
+     ['2026-11-04', 'Old', 'UX Designer', '', 90, 'Esperando CV (IA)']],
+    [], '2026-11-05', '13:35')));
+  assert.deepStrictEqual(est, { waiting: 1, ready: 0, alert: true });
+  assert.strictEqual(context.iaBacklogStats_([['2026-11-05', 'Acme', 'UX', '', 90, 'Esperando CV (IA)']], [], '2026-11-05', '06:00').alert, false);
+  assert.strictEqual(context.iaBacklogStats_([['2026-11-05', 'Acme', 'UX', '', 90, 'Esperando CV (IA)']], [['2026-11-05']], '2026-11-05', '13:35').alert, false);
+
+  assert.strictEqual(estancado.o.jefe.estado, 'atencion', 'el jefe debe señalar la falla de la tarea externa');
+  assert.ok(/tarea programada de Claude/.test(estancado.o.jefe.resumen));
+  assert.ok(/ALERTA/.test(estancado.o.escriba.resumen));
+  const temprano = equipo({ registro: [{ Fecha: '2026-11-05', Estado: 'Esperando CV (IA)' }] }, '2026-11-05 06:00');
+  assert.strictEqual(temprano.o.escriba.estado, 'esperando');
   // Sin datos: nadie trabaja, cada uno dice cuándo le toca
   const vacio = equipo({}, '2026-10-28 03:00');
   assert.strictEqual(vacio.m.equipo.length, 11);

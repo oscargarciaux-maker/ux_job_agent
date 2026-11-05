@@ -343,6 +343,8 @@ function apifyPostReachable(post) {
   if (!isReachablePost(post)) return false;
   // Solo publicaciones que contratan (2026-11-04): las búsquedas amplias traen opiniones, portafolios y gente buscando empleo
   if (!APIFY_HIRING_PATTERN_.test(text)) return false;
+  // Evitar crear HV cuando el propio post anuncia que la vacante está pausada o cerrada.
+  if (/\b(?:vacante|convocatoria|proceso|position|role)\b[^\n.!?]{0,65}\b(?:en stand[ -]?by|pausad[oa]|suspendid[oa]|on hold|closed|cerrad[oa])\b/i.test(text.slice(0, 700))) return false;
   // Listas de vacantes de varias empresas o cargos (2026-11-04: 12 de 19 carpetas de la primera corrida eran listas de
   // ingeniería, ventas o de otros países) y publicaciones cuyo arranque no habla de un cargo de diseño
   if (isJobListPost(text)) return false;
@@ -392,15 +394,27 @@ function apifyEnsureRun_(day) {
   if (!getProp_(PROPS.APIFY_TOKEN)) return null;
   const state = apifyRunState_();
   if (!apifyRunDue(state, day)) return state;
-  const cfg = CONFIG.EXTRA_SOURCES.apify;
-  const input = { urls: buildApifyUrls(cfg.searches, cfg.datePosted), limitPerSource: cfg.limitPerSource,
-                  deepScrape: false, rawData: false, fetchDocumentDetails: false };
-  const run = apifyRequest_('post', '/acts/' + cfg.actor + '/runs',
-                            { maxTotalChargeUsd: cfg.maxTotalChargeUsd, timeout: cfg.timeoutSecs }, input).data;
-  const next = { day: day, id: run.id, datasetId: run.defaultDatasetId, read: false };
-  setProp_(PROPS.APIFY_RUN, JSON.stringify(next));
-  console.log('Apify: corrida ' + run.id + ' arrancada con ' + cfg.searches.length + ' búsquedas (tope ' + cfg.maxTotalChargeUsd + ' USD)');
-  return next;
+  // Un sincronizador horario y una búsqueda pueden arrancar a la vez: cobrar solo una corrida.
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(3000)) {
+    console.warn('Apify: otra ejecución está iniciando la corrida; no se lanza una segunda');
+    return apifyRunState_();
+  }
+  try {
+    const current = apifyRunState_();  // Releer después de adquirir el bloqueo.
+    if (!apifyRunDue(current, day)) return current;
+    const cfg = CONFIG.EXTRA_SOURCES.apify;
+    const input = { urls: buildApifyUrls(cfg.searches, cfg.datePosted), limitPerSource: cfg.limitPerSource,
+                    deepScrape: false, rawData: false, fetchDocumentDetails: false };
+    const run = apifyRequest_('post', '/acts/' + cfg.actor + '/runs',
+                              { maxTotalChargeUsd: cfg.maxTotalChargeUsd, timeout: cfg.timeoutSecs }, input).data;
+    const next = { day: day, id: run.id, datasetId: run.defaultDatasetId, read: false };
+    setProp_(PROPS.APIFY_RUN, JSON.stringify(next));
+    console.log('Apify: corrida ' + run.id + ' arrancada con ' + cfg.searches.length + ' búsquedas (tope ' + cfg.maxTotalChargeUsd + ' USD)');
+    return next;
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 /** Lo llama sincronizarAplicadas: de madrugada deja corriendo la búsqueda de Apify para que a las 5:00 ya esté lista. */
@@ -430,8 +444,6 @@ function searchApifyPosts_(startedAt) {
   }
   // Terminada, abortada por el tope de gasto o por tiempo: se usa lo que alcanzó a traer
   const items = apifyRequest_('get', '/datasets/' + (state.datasetId || run.defaultDatasetId) + '/items', { clean: 'true', format: 'json' });
-  state.read = true;
-  setProp_(PROPS.APIFY_RUN, JSON.stringify(state));
   const byLink = {}, perSearch = {};
   cfg.searches.forEach(s => { perSearch[s.label] = { found: 0, kept: 0 }; });
   const list = Array.isArray(items) ? items : [];
@@ -444,6 +456,9 @@ function searchApifyPosts_(startedAt) {
     perSearch[p.apifyLabel].kept++;
   });
   const kept = Object.keys(byLink).map(k => byLink[k]);
+  // Solo marcar la corrida leída después de parsear y filtrar con éxito; un error deja reintento.
+  state.read = true;
+  setProp_(PROPS.APIFY_RUN, JSON.stringify(state));
   console.log('Apify (' + run.status + ', ' + (run.usageTotalUsd != null ? run.usageTotalUsd + ' USD' : 'costo s/d') + '): ' +
               list.length + ' publicaciones, ' + kept.length + ' útiles · ' +
               Object.keys(perSearch).map(k => k + ' ' + perSearch[k].kept + '/' + perSearch[k].found).join(' · '));

@@ -8,6 +8,10 @@
  */
 
 function crearBorradoresEnFrio() {
+  // Un clic manual y el activador horario pueden coincidir; nunca crear dos borradores para la misma fila.
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(1000)) { console.warn('Correos en frío: otra ejecución está trabajando'); return; }
+  try {
   const root = DriveApp.getFolderById(getProp_(PROPS.ROOT_FOLDER_ID));
   const base = root.getFoldersByName(CONFIG.COLD_EMAIL_FOLDER_NAME);
   if (!base.hasNext()) return;
@@ -90,6 +94,7 @@ function crearBorradoresEnFrio() {
       console.error(label + ' -> ERROR: ' + e.message);
     }
   });
+  } finally { lock.releaseLock(); }
 }
 
 /** Estado de la empresa en la pestaña "Empresas objetivo" (skill investigar-empresas), si está allí. */
@@ -362,10 +367,14 @@ function validateColdEmails(data, contextText, contacted) {
 function crearBorradoresDeSeguimiento_() {
   const today = Utilities.formatDate(new Date(), tz_(), 'yyyy-MM-dd');
   if (getProp_(PROPS.FOLLOWUP_DRAFTS_LAST_DAY) === today) return;
+  // Dos activadores simultáneos no deben generar el mismo seguimiento.
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(1000)) { console.warn('Seguimientos: otra ejecución está trabajando'); return; }
+  try {
   const ss = SpreadsheetApp.openById(getProp_(PROPS.SHEET_ID));
   const sheet = ss.getSheetByName(CONFIG.COLD_EMAIL_SHEET_NAME);
-  setProp_(PROPS.FOLLOWUP_DRAFTS_LAST_DAY, today);
   if (!sheet || sheet.getLastRow() < 2) return;
+  let failed = false;
   const width = CONFIG.COLD_EMAIL_SHEET_HEADERS.length;
   const rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, width).getDisplayValues();
   const candidates = followupCandidates(rows, today).slice(0, CONFIG.FOLLOWUP_DRAFTS_PER_DAY);
@@ -375,6 +384,21 @@ function crearBorradoresDeSeguimiento_() {
       if (!original) {
         console.warn('Seguimiento ' + c.empresa + ' -> no encontré el correo enviado a ' + c.para + '; no se crea borrador');
         return;
+      }
+      if (original.threadId) {
+        const thread = Gmail.Users.Threads.get('me', original.threadId, { format: 'minimal' });
+        if (threadHasReply(thread.messages)) {
+          console.log('Seguimiento ' + c.empresa + ' -> hay respuesta en el hilo, se omite');
+          return;
+        }
+        if (threadHasDraft_(thread.messages)) {
+          // Puede haber quedado un borrador antes de que Sheets registrara una corrida interrumpida.
+          const previous = String(rows[c.fila][7] || '');
+          const stamp = 'Seguimiento: borrador existente ' + today;
+          sheet.getRange(c.fila + 2, 8).setValue(previous ? previous + ' | ' + stamp : stamp);
+          console.log('Seguimiento ' + c.empresa + ' -> reutilizar borrador existente, sin duplicar');
+          return;
+        }
       }
       const headers = {};
       ((original.payload && original.payload.headers) || []).forEach(h => { headers[h.name.toLowerCase()] = h.value; });
@@ -389,9 +413,17 @@ function crearBorradoresDeSeguimiento_() {
       sheet.getRange(c.fila + 2, 8).setValue(note ? note + ' | ' + stamp : stamp);
       console.log('Seguimiento ' + c.empresa + ' -> borrador para ' + c.para + ' (enviado el ' + c.dia + ')');
     } catch (e) {
+      failed = true;
       console.error('Seguimiento ' + c.empresa + ' -> ERROR: ' + e.message);
     }
   });
+  if (!failed) setProp_(PROPS.FOLLOWUP_DRAFTS_LAST_DAY, today);
+  } finally { lock.releaseLock(); }
+}
+
+/** true si el hilo ya contiene un borrador sin enviar (para no duplicar tras un fallo de registro). */
+function threadHasDraft_(messages) {
+  return (messages || []).some(m => (m.labelIds || []).indexOf('DRAFT') !== -1);
 }
 
 /** El correo enviado: por el id que la skill seguimiento deja en Notas («msg <id>») o, si no, el último enviado a esa dirección. */

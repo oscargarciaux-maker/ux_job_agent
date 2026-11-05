@@ -138,8 +138,18 @@ function exclusionReason(vacancy) {
   if (foreign) return 'solo para ' + foreign + ' (no dice Colombia ni remoto LATAM)';
   // En el título basta con nombrarlo (27 oct 2026: "Diseñador/a de Experiencia de Cliente para personas con Discapacidad")
   if (CONFIG.DISABILITY_TITLE_PATTERN.test(vacancy.title || '')) return 'exclusiva para personas con discapacidad';
+  // Hay empresas que publican «UX Designer» pero en la descripción piden explícitamente un Principal/Staff:
+  // ejemplo real, GraceMark Solutions, 2026-11-05. No penalizar la sola mención de colaboradores senior.
+  if (hiddenPrincipalRole_(vacancy)) return 'cargo principal/staff oculto en la descripción';
   // Cargos de liderazgo muy por encima de junior (Senior sí entra, con la regla de años)
   return CONFIG.EXCLUDED_TITLE_PATTERN.test(vacancy.title || '') ? 'cargo de liderazgo (staff/principal/head/director/manager)' : null;
+}
+
+/** Detecta un cargo Principal/Staff que no aparece en el título del agregador; evita falsos «mid». */
+function hiddenPrincipalRole_(vacancy) {
+  const description = String((vacancy || {}).description || '');
+  return /\b(?:we(?:'re| are) seeking|we(?:'re| are) hiring|looking for|buscamos|seeking)\b[^.\n]{0,95}\b(?:principal|staff)\s+(?:\w+\s+){0,3}(?:designer|dise[nñ]ador)\b/i.test(description) ||
+         /\b(?:principal|staff)[- ]level\s+(?:ownership|execution|impact)\b/i.test(description);
 }
 
 /**

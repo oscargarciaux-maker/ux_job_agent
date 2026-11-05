@@ -23,6 +23,11 @@ function sincronizarAplicadas() {
     console.error('Correos en frío -> ERROR: ' + e.message);
   }
   sincronizarRegistro_({ pdf: true });
+  try {
+    avisarFalloIaDiario_();
+  } catch (e) {
+    console.warn('Alerta fase IA -> ' + e.message);
+  }
   // Seguimiento de correos en frío sin respuesta (2026-10-28): un borrador corto en el mismo hilo, una vez al día
   try {
     crearBorradoresDeSeguimiento_();

@@ -39,6 +39,46 @@ function addMailboxRequest_(ss, text) {
   return id;
 }
 
+/** Revisa solo la bitácora existente de vacantes: cero llamadas a IA, SerpAPI o Apify.
+ * Si terminó la mañana sin ninguna HV nueva, deja un aviso por día en Agentes.
+ * No dispara ninguna tarea externa: evita alertas engañosas de «reparación automática».
+ */
+function avisarFalloIaDiario_() {
+  const now = new Date();
+  const today = Utilities.formatDate(now, tz_(), 'yyyy-MM-dd');
+  const hm = Utilities.formatDate(now, tz_(), 'HH:mm');
+  if (hm < '08:45' || getProp_(PROPS.IA_ALERT_LAST_DAY) === today) return;
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(1000)) return;
+  try {
+    if (getProp_(PROPS.IA_ALERT_LAST_DAY) === today) return;
+    const ss = SpreadsheetApp.openById(getProp_(PROPS.SHEET_ID));
+    const registry = ss.getSheets()[0];
+    const pending = ss.getSheetByName(CONFIG.PENDING_CV_SHEET_NAME);
+    const rows = registry.getLastRow() > 1 ? registry.getRange(2, 1, registry.getLastRow() - 1, 6).getDisplayValues() : [];
+    const done = pending && pending.getLastRow() > 1
+      ? pending.getRange(2, 1, pending.getLastRow() - 1, 1).getDisplayValues() : [];
+    const status = iaBacklogStats_(rows, done, today, hm);
+    if (!status.alert) return;
+    const stamp = today + ' ' + hm;
+    const detail = status.waiting + ' vacantes esperando CV (IA), 0 HV nuevas. Comprobar tareas Claude 6:03/7:03 y accesos; no repetir búsquedas.';
+    const row = agentRow(stamp, 'maquina', 'oscar', 'aviso', 'Bloqueo de fase IA: sin HV nuevas', 'bloqueado',
+                         detail, '', 'DIARIO-' + today.replace(/-/g, ''));
+    const sheet = agentsSheet_(ss);
+    sheet.getRange(sheet.getLastRow() + 1, 1, 1, row.length).setNumberFormat('@').setValues([row]);
+    setProp_(PROPS.IA_ALERT_LAST_DAY, today);
+    console.warn(detail);
+  } finally { lock.releaseLock(); }
+}
+
+/** Entrada sin encabezado: columnas Fecha y Estado de Hoja 1; fecha de Por enviar. */
+function iaBacklogStats_(registryRows, pendingRows, today, hm) {
+  const waiting = (registryRows || []).filter(r =>
+    normalizeStamp(r[0]).slice(0, 10) === today && /^esperando cv/i.test(String(r[5] || ''))).length;
+  const ready = (pendingRows || []).filter(r => normalizeStamp(r[0]).slice(0, 10) === today).length;
+  return { waiting: waiting, ready: ready, alert: hm >= '08:45' && waiting > 0 && ready === 0 };
+}
+
 // ---------- Lógica pura (probada en tests/apps_script.test.js) ----------
 
 /** Id de un pedido: P-<yyyyMMdd-HHmm>-<2 letras> (las letras evitan choques entre dos pedidos del mismo minuto). */
@@ -162,8 +202,12 @@ function buildAgentsModel(d, now) {
   // Escriba: HV armadas hoy (Por enviar) y las que esperan su CV_IA.json o fueron rechazadas por la validación
   const waiting = statusToday(/esperando cv/i), rejected = statusToday(/cv rechazado/i);
   if (todayPending.length || waiting || rejected) {
-    set('escriba', { estado: rejected ? 'atencion' : 'listo', ultima: today,
-      resumen: todayPending.length + (todayPending.length === 1 ? ' HV nueva hoy' : ' HV nuevas hoy') + (waiting ? ' · ' + waiting + ' en cola' : ''),
+    // Después de la mañana, cero HV y vacantes esperando requiere atención, no un falso «listo».
+    // Diagnóstico local con datos del tablero: no usa LLM, APIs externas ni búsquedas pagadas.
+    const morningMissed = now.slice(11, 16) >= '08:45' && waiting > 0 && todayPending.length === 0;
+    set('escriba', { estado: rejected || morningMissed ? 'atencion' : todayPending.length ? 'listo' : 'esperando', ultima: today,
+      resumen: (morningMissed ? 'ALERTA: no hay HV nuevas tras la tanda de IA · ' : '') +
+        todayPending.length + (todayPending.length === 1 ? ' HV nueva hoy' : ' HV nuevas hoy') + (waiting ? ' · ' + waiting + ' en cola' : ''),
       cifras: [['HV hoy', todayPending.length], ['en cola', waiting], ['rechazadas', rejected]] });
   } else set('escriba', { estado: 'esperando', resumen: 'Escribe a las 6:03 y a las 7:03' });
 
@@ -211,9 +255,13 @@ function buildAgentsModel(d, now) {
   const messages = agentMessages(d.agentes || []);
   const threads = agentThreads(messages);
   const open = threads.filter(t => t.estado !== 'hecho' && t.estado !== 'cancelado');
-  set('jefe', { estado: open.some(t => t.pregunta || t.estado === 'bloqueado') ? 'atencion' : open.length ? 'trabajando' : 'libre',
-    resumen: open.length ? open.length + (open.length === 1 ? ' pedido abierto' : ' pedidos abiertos') : 'Sin pedidos: déjame uno en el buzón',
-    cifras: [['abiertos', open.length]] });
+  // La búsqueda en Apps Script no garantiza la ejecución del jefe externo (tarea de Claude).
+  // Cuando termina la ventana de IA y siguen pendientes sin una sola HV, mostrar el bloqueo también en Jefe.
+  const iaStalled = now.slice(11, 16) >= '08:45' && waiting > 0 && todayPending.length === 0;
+  set('jefe', { estado: iaStalled || open.some(t => t.pregunta || t.estado === 'bloqueado') ? 'atencion' : open.length ? 'trabajando' : 'libre',
+    resumen: iaStalled ? 'Revisar tarea programada de Claude: ' + waiting + ' vacantes siguen sin HV' :
+      open.length ? open.length + (open.length === 1 ? ' pedido abierto' : ' pedidos abiertos') : 'Sin pedidos: déjame uno en el buzón',
+    cifras: [['abiertos', open.length], ['sin HV hoy', iaStalled ? waiting : 0]] });
   ['vigia', 'constructor'].forEach(id => set(id, { resumen: 'A pedido del jefe' }));
   AGENT_IDS_.forEach(id => {
     const mine = messages.filter(m => m.de === id);
