@@ -496,7 +496,7 @@ function aplicarColoresPendientes_(ss, appliedRows) {
     const folder = known[t.id];  // Solo hojas reales del árbol CV/, no IDs arbitrarios ni Sin revisar
     if (!folder || folder.status === 'Preparada, sin enviar') return;
     const current = applicationStatusKey(folder.status);
-    const desired = applicationStatusKey(t.estado);
+    const desired = applicationStatusKey(colorToStatus(t.color));
     // No rebajar una carpeta por silencio ni reabrir rechazos sin evidencia explícita.
     if (current === 'rechazada' && desired !== 'rechazada' && !/REAPERTURA CONFIRMADA/i.test(t.notas)) return;
     if (current === 'proceso' && desired !== 'proceso' && desired !== 'rechazada') return;
