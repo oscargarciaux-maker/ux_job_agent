@@ -404,6 +404,22 @@ assert.strictEqual(context.selectWithDateRule(sinFecha(2), 10, 5, 5).length, 0);
 const posts = n => Array.from({ length: n }, (_, i) => ({ vacancy: { title: 'p' + i, isPost: true }, seniority: 'mid', score: 80 }));
 assert.strictEqual(context.selectWithDateRule(posts(8).concat(conFecha(1), sinFecha(6)), 15, 5, 5).filter(x => x.vacancy.dateUnverified).length, 0);
 assert.strictEqual(context.selectWithDateRule([{ vacancy: { dateUnverified: false }, seniority: 'senior', score: 80, priority: 20 }], 10, 5, 5).length, 0);
+// Una copia de agregador no acredita fecha ni reemplaza el portal de postulación.
+const hPrimary = context.parseHimalayasJob({
+  title: 'UX Designer',companyName:'Acme',pubDate:1793577600,
+  guid:'https://himalayas.app/jobs/sample',
+  applicationLink:'https://jobs.company.example/123',
+  description:'Remote Colombia',locationRestrictions:['Colombia']
+});
+assert.strictEqual(hPrimary.link,'https://jobs.company.example/123');
+assert.strictEqual(hPrimary.originalDateRequired,true);
+assert.strictEqual(hPrimary.dateUnverified,true);
+const hCopy = context.parseHimalayasJob({
+  title:'UX Designer',companyName:'Acme',pubDate:1793577600,
+  guid:'https://himalayas.app/jobs/sample',description:'Remote Colombia'
+});
+assert.strictEqual(hCopy.dateUnverified,true);
+assert.strictEqual(hCopy.pageChecked,true);
 // Nombre del archivo del CV (guía Adaptia: HV_Nombre_Apellido_Cargo)
 assert.strictEqual(context.buildCvFileName({ _nombre_archivo: 'HV_Ana_Pérez_Diseñador(a) UX/UI' }, {}, 'x'), 'HV_Ana_Pérez_Diseñador(a)_UX_UI');
 assert.strictEqual(context.buildCvFileName({}, { title: 'UX Designer' }, 'x'), 'HV_UX_Designer');
