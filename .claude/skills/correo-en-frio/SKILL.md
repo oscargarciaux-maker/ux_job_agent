@@ -26,13 +26,15 @@ mensaje de LinkedIn, ni formulario): solo borradores. Trabajo a pedido y por lot
   `investigar-empresas`, ya verificadas y con sus correos; en orden: Bogotá, resto de Colombia, exterior). Si no quedan,
   ejecuta primero `investigar-empresas`. Las empresas de "Empresas Tech en Bogotá" también sirven (el candidato ya las
   aprobó); cualquier otra que no venga de esas dos fuentes la aprueba él antes.
-- **"Crea los correos"** (modo tandas, decisión del usuario, 24 oct 2026): todas las empresas con Estado `Nueva` de
-  `Empresas objetivo` (o las que nombre), en ese orden, **de 3 en 3**. Ver "Modo tandas" más abajo.
+- **"Crea los correos"** (modo tandas): prepara **una tanda de hasta 3 empresas** con Estado `Nueva` (o las que
+  nombre) por ejecución. Deja el avance en el Sheet, indica cuántas quedan y retoma la siguiente tanda solo
+  en otra ejecución o si Oscar pide expresamente más con presupuesto adicional. Nunca encadenes tandas
+  ilimitadas en una sola sesión: el coste de IA se dispara.
 - **Tope de borradores (decisión del usuario, 28 oct 2026: producir menos, el cuello de botella es enviar).** Antes de
   un lote nuevo, cuenta en la pestaña `Correos en frío` las direcciones con Estado `Borrador preparado, no enviado`. Si
-  son **más de 10**, no prepares un lote nuevo («siguiente lote» y «crea los correos» quedan en pausa): dile al candidato
-  cuántos borradores esperan y que los envíe primero desde la tarjeta «Tu tanda de hoy» de la oficina. Solo sigue si él
-  lo pide explícitamente para una empresa concreta («escríbele a X»).
+  son **más de 10**, se pausa toda **producción autónoma** de correos. Si Oscar pide **expresamente**
+  «crea los correos», «siguiente lote» o «escríbele a X», puedes preparar **una sola tanda de hasta 3 empresas**,
+  indicando primero cuántos borradores esperan. Crear borradores no autoriza enviarlos.
 - **Antes de empezar, lee el Sheet** `Vacantes UX - Registro` (siempre, aunque la empresa venga de `Empresas objetivo`:
   pudo recibir correo después) y descarta: empresas ya contactadas (pestaña `Correos en frío`, también las que tienen
   solo el borrador preparado), empresas con postulación en curso
@@ -49,9 +51,12 @@ baja ni un poco** por hacer muchas.
    `crear-hv` (modo B) y **`revisar-hv` con la revisión visual del PDF**, direcciones con fuente y `Correos.json`
    revisado contra el control de calidad de la guía (hasta 3 párrafos de ≤35 palabras sin contar el saludo ni la empresa, gancho específico, métrica de
    `CONTEXTO_CV`, saludo por el nombre, asunto sin la empresa). Si hay una herramienta de subagentes, puedes darle a cada
-   empresa de la tanda su propio subagente (contexto limpio = misma calidad para la tercera que para la primera); tú
-   revisas cada resultado con esta misma lista antes de aceptarlo.
-3. Solo cuando las 3 estén completas y revisadas, informa la tanda en 3 líneas y empieza la siguiente.
+   empresa un subagente distinto: eso multiplica la lectura de los mismos documentos y los tokens. Usa **un
+   único cartero para las 3 empresas**, leyendo recursos compartidos una vez; prepara y revisa las tres
+   individualmente con la misma lista de calidad.
+3. Solo cuando las 3 estén completas y revisadas, informa la tanda en 3 líneas, indica el número de empresas
+   restantes y **termina la sesión**. La próxima ejecución continúa donde quedó; no inicies otra tanda sin
+   nueva orden de Oscar.
 4. Empresas con Estado `Sin correo`: no entran (no hay a quién escribir).
 5. **Si la sesión se alarga** (muchas tandas seguidas), termina la tanda en curso y para: di cuántas faltan. El estado
    vive en el Sheet (`Nueva` / `En lote` / `Borradores creados`), así que la siguiente sesión sigue donde quedó, con
