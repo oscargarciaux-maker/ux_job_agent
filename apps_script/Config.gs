@@ -207,8 +207,8 @@ const CONFIG = {
   TIME_BUDGET_MS: 5 * 60 * 1000,
   // La publicación debe ser de un rol de diseño (evita "remote hiring" de otros oficios, p. ej. video annotation)
   LINKEDIN_POST_ROLE_PATTERN: /ux\s*\/\s*ui|ui\s*\/\s*ux|(ux|ui|product)\s+design|designer\s+(ux|ui)|dise[nñ]ador|design system|figma|ux research/i,
-  // Si Google Jobs no trae la fecha, se lee "datePosted" de la página original (gratis, sin SerpAPI). Las que siguen
-  // sin fecha solo entran (marcadas "SIN VERIFICAR") si con las verificadas no se llega a MIN_DAILY.
+  // Si la fuente no trae fecha original, se consulta datePosted en el anuncio primario sin IA.
+  // No se crean carpetas con fechas sin verificar para cumplir una cuota.
   MIN_DAILY: 0,              // 2026-11-05: no rellenar carpetas con vacantes sin fecha comprobable
   // Mañana condensada (decisión del usuario 2026-10-27: "que todo quede listo más temprano"): búsqueda a las 5:00 y un
   // repaso a las 5:45 que retoma lo que la primera no alcanzó a crear (o la reemplaza si se cortó). ±15 min cada una.
