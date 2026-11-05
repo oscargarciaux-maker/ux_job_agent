@@ -6,14 +6,23 @@
 function searchUxJobs_(startedAt) {
   startedAt = startedAt || Date.now();
   const apiKey = getProp_(PROPS.SERPAPI_API_KEY);
-  if (!apiKey) throw new Error('Falta la propiedad SERPAPI_API_KEY en Propiedades del script.');
+  if (!apiKey) console.warn('Sin SERPAPI_API_KEY: omitir SerpAPI, pero conservar JobSpy y Apify.');
 
-  const byKey = {};   // Misma vacante en varias fuentes -> una sola (la primera que la trae queda como su origen)
-  const add = (v, origin, key) => { v.origin = v.origin || origin; const k = key || vacancyKey(v); byKey[k] = byKey[k] || v; };
+  const byKey = {};
+  const add = (v, origin, key) => {
+    const k = (v.isPost || v.fromPost) ? linkedinPostKey_(v.link || key) : (key || vacancyKey(v));
+    const previous = byKey[k];
+    // Una fuente puede aportar solo un fragmento y Apify el post completo del mismo ID.
+    // Conservar el texto completo permite verificarlo y preparar HV, sin duplicar el post.
+    if (!previous || (previous.isPost && v.fromPost && (v.description || '').length > (previous.description || '').length)) {
+      v.origin = v.origin || origin;
+      byKey[k] = v;
+    }
+  };
   const today = new Date();
   // Una sola vez al día (≈3 créditos): el repaso de las 5:45 y las corridas a mano solo usan las fuentes gratuitas
   const day = Utilities.formatDate(today, tz_(), 'yyyy-MM-dd');
-  const serpDue = serpApiDue(getProp_(PROPS.SERPAPI_LAST_DAY), day);
+  const serpDue = !!apiKey && serpApiDue(getProp_(PROPS.SERPAPI_LAST_DAY), day);
   if (serpDue) setProp_(PROPS.SERPAPI_LAST_DAY, day);
   else console.log('SerpAPI ya se consultó hoy (' + day + '): esta corrida usa solo las fuentes gratuitas.');
   // Apify (2026-11-04): si sincronizarAplicadas no la arrancó de madrugada, la corrida empieza ya y trabaja mientras se
