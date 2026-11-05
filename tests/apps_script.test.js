@@ -599,6 +599,9 @@ assert.ok(!context.isCvFile_({ name: 'HV_notas.txt', mimeType: 'text/plain' }));
   assert.strictEqual(c.find(x => x.empresa === 'LinkTic').fila, 0);
   assert.strictEqual(c.find(x => x.empresa === 'Koombea').ingles, true);
   assert.strictEqual(context.followupCandidates(rows, '2026-11-25').length, 0, 'pasados 30 días ya no se insiste');
+  assert.strictEqual(context.threadHasDraft_([{ labelIds: ['SENT'] }, { labelIds: ['DRAFT'] }]), true);
+  assert.strictEqual(context.threadHasDraft_([{ labelIds: ['SENT'] }]), false);
+
   const es = context.followupBody(c.find(x => x.empresa === 'LinkTic'), 'Oscar Garcia');
   assert.ok(/20 de octubre/.test(es) && /LinkTic/.test(es) && /Oscar Garcia$/.test(es));
   assert.ok(context.countEmailWords(es.split('\n\n')[0]) <= run('CONFIG.COLD_EMAIL_MAX_WORDS'), 'corto, como pide la guía');
@@ -1167,6 +1170,8 @@ assert.ok(!/\.send\(|Messages\.send|sendEmail|GmailApp/.test(allCode), 'El agent
   const parse = vm.runInContext('parseScheduledSend', context);
   const ok = parse(JSON.stringify({ enviar_desde: '2026-11-05T08:00:00-05:00', borradores: ['r123', 'r-45'] }));
   assert.strictEqual(ok.startMs, Date.parse('2026-11-05T13:00:00Z'));
+  assert.strictEqual(context.isScheduledSendDue_(ok.startMs, ok.startMs - 1), false, 'nunca enviar antes de la hora');
+  assert.strictEqual(context.isScheduledSendDue_(ok.startMs, ok.startMs), true, 'enviar a partir de la hora autorizada');
   assert.deepStrictEqual(Array.from(ok.ids), ['r123', 'r-45']);
   assert.strictEqual(ok.pauseMs, 3000);
   assert.throws(() => parse('{"enviar_desde":"2026-11-05T08:00:00","borradores":["r1"]}'), /zona horaria/, 'sin zona horaria no');
