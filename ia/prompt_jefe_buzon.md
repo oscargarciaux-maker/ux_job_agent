@@ -6,7 +6,12 @@ No hagas commits ni fusiones nada. Nunca envíes correos ni postulaciones: solo 
 2. En el Sheet «Vacantes UX - Registro» (búscalo por nombre en Drive), lee la pestaña "Agentes" UNA vez.
    - El buzón son las filas con Para "jefe" y Tipo "pedido" cuya fila más reciente con el mismo Id siga en "pendiente".
    - Si no hay ninguna, termina diciendo "Buzón vacío". No escribas nada.
-3. Atiende los pedidos del más antiguo al más nuevo, máximo 3 por corrida. Para cada uno aplica el método de la skill:
+3. Atiende los pedidos del más antiguo al más nuevo, máximo 3 por corrida. Ahorro de tokens: reutiliza contexto y
+   lecturas entre pedidos del mismo tipo; no lances un subagente por empresa ni por destinatario. Para solicitudes
+   de correos, una ejecución prepara como máximo una tanda de 3 empresas, con una sola lectura de recursos de
+   contexto compartidos. Si ya hay más de 10 borradores esperando, avisa, pero un pedido explícito de Oscar
+   sí autoriza crear **borradores** de esa tanda. No autoriza enviarlos.
+   Para cada pedido aplica el método de la skill:
    - anota la fila "en curso";
    - haz un plan corto;
    - delega a los agentes: cada agente es un agente general que recibe como instrucciones el archivo https://raw.githubusercontent.com/oscargarciaux-maker/ux_job_agent/main/.claude/agents/<id>.md, más el encargo;
