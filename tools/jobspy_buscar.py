@@ -45,7 +45,10 @@ TERMINOS_EXTRA = ["diseñador digital", "diseñador web", "diseñador de interfa
                   "visual designer", "product designer junior", "ui ux junior", "diseñador figma",
                   # 2026-11-03 (decisión del usuario: «muy pocas vacantes»): cargos cercanos que se verifican por funciones
                   "diseñador e-commerce", "ecommerce designer", "digital designer", "app designer", "growth designer",
-                  "analista ux", "customer experience designer", "webmaster ux"]
+                  "analista ux", "customer experience designer", "webmaster ux",
+                  # Rotación más precisa: no implica búsquedas adicionales en una corrida.
+                  "diseñador ux banca", "diseñador ui fintech", "design system designer",
+                  "ux ui designer colombia", "junior product designer latam", "ui designer figma"]
 EXTRAS_POR_CORRIDA = 6
 HORAS = 336           # Ventana de cada búsqueda (14 días; antes 7 y Indeed traía 4 avisos): lo ya visto lo descarta Apps Script
 DIAS_GUARDADOS = 7
