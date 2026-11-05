@@ -5,6 +5,8 @@ description: Revisa el Gmail laboral del candidato (por fechas, incluidos Spam, 
 
 # Seguimiento
 
+Esta skill aplica permanentemente junto con `docs/POLITICA_OPERATIVA.md`, tanto en Claude como en ChatGPT. El seguimiento de Gmail es **solo lectura**, aun si el conector permite modificar mensajes. La cobertura parcial no se registra como revisión completa.
+
 Objetivo: que el candidato sepa en qué va cada proceso sin abrir su correo, y que las carpetas, sus colores y el Sheet
 digan la verdad, con evidencia. Método propuesto por el usuario (24 oct 2026): **cobertura por fecha antes que por
 empresa, reconstruir cada proceso, separar hechos de dudas, dejar evidencia y cerrar diciendo los límites.**
