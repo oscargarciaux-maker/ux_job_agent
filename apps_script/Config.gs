@@ -9,6 +9,7 @@ const CONFIG = {
   // así que 14 candidatas alcanzaban (cerca de la mitad se descarta al verificar); antes 20 con 10 HV por tanda.
   // Meta de 15 HV al día (decisión del usuario 2026-11-01, con el jefe que lee todo una sola vez): 30 candidatas.
   DAILY_LIMIT: 30,
+  DAILY_OPPORTUNITY_TARGET: 10, // Meta combinada: ATS + publicaciones completas, nunca cuota de HV
   MIN_JUNIOR: 5,
   MIN_SEARCH_PRIORITY: 45, // No consumir cupos con requisitos muy alejados
   VERY_SENIOR_YEARS: 7, // 7+ años de experiencia: prioridad baja, no veto universal
