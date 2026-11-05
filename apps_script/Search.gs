@@ -160,11 +160,16 @@ function parseHimalayasJob(job) {
   if (region && /\b(europe|eu|emea|us|usa|united states|uk|united kingdom|canada|india|apac|asia)\b/i.test(region) &&
       !CONFIG.OPEN_TO_COLOMBIA_PATTERN.test(region)) return null;
   const published = job.pubDate ? new Date(Number(job.pubDate) * 1000).toISOString().slice(0, 10) : '';
+  const direct = String(job.applicationLink || '').replace(/\?utm_source=api$/, '');
+  const original = /^https?:\/\//i.test(direct) && !CONFIG.LOW_TRUST_SOURCE_PATTERN.test(direct);
+  // La fecha del agregador NO prueba la fecha real del portal de la empresa.
+  // Si ofrece link directo, revisarlo gratis en verifyPostingDates_; si no, marcar origen sin verificar.
   return {
     title: job.title || '', company: job.companyName || '',
     location: 'Remote ' + (allowed.length ? 'Colombia' : 'worldwide') + (region ? ' (' + region + ')' : ''),
-    description: description, snippet: '', link: String(job.guid || job.applicationLink || '').replace(/\?utm_source=api$/, ''),
+    description: description, snippet: '', link: original ? direct : String(job.guid || direct),
     postedAt: published, source: 'Himalayas', sourceBonus: 0,
+    originalDateRequired: original, dateUnverified: true, pageChecked: !original,
   };
 }
 
@@ -444,7 +449,8 @@ function verifyPostingDates_(vacancies, startedAt) {
   // comprueba la verificación de la IA (verificar-vacante), que abre cada aviso.
   vacancies.filter(v => !v.isPost && !v.fromPost && !v.postedAt && /linkedin\.com/i.test(hostOf_(v.link || '')))
     .forEach(v => { v.dateUnverified = true; });
-  const pending = vacancies.filter(v => !v.isPost && !v.fromPost && !v.pageChecked && !v.postedAt &&
+  const pending = vacancies.filter(v => !v.isPost && !v.fromPost && !v.pageChecked &&
+                                        (!v.postedAt || v.originalDateRequired) &&
                                         !/linkedin\.com/i.test(hostOf_(v.link || '')));
   // Por tandas, mirando el reloj antes de cada una: el 27 oct 2026 (9:46) un solo fetchAll de todas las páginas tardó
   // más de 5 min y Apps Script cortó la corrida sin crear carpetas. Las que no alcanzan a abrirse quedan para la IA.
@@ -467,17 +473,17 @@ function verifyPostingDates_(vacancies, startedAt) {
       if (r && (r.getResponseCode() === 404 || r.getResponseCode() === 410)) v.deadLink = true;  // La vacante ya no existe
       const html = r && r.getResponseCode() === 200 ? r.getContentText() : '';
       if (isClosedPosting(html)) v.closed = true;
-      if (v.postedAt) return;
+      if (v.postedAt && !v.originalDateRequired) return;
       const dates = extractJobPostingDates(html);
-      if (dates.posted) v.postedAt = dates.posted;
+      if (dates.posted) { v.postedAt = dates.posted; v.dateUnverified = false; }
+      else v.dateUnverified = true;
       if (dates.validThrough) v.validThrough = dates.validThrough;
-      if (!dates.posted) v.dateUnverified = true;
     });
     opened += batch.length;
   }
   if (opened < pending.length) {
     console.warn('Sin tiempo para abrir las páginas de ' + (pending.length - opened) + ' vacantes: quedan para la verificación de la IA');
-    pending.slice(opened).forEach(v => { if (!v.postedAt) v.dateUnverified = true; });
+    pending.slice(opened).forEach(v => { if (!v.postedAt || v.originalDateRequired) v.dateUnverified = true; });
   }
   const today = new Date();
   return vacancies.filter(v => {
