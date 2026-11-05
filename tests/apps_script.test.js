@@ -791,6 +791,16 @@ assert.strictEqual(context.roleTitleClass('Product & Content UX/UI Designer'), '
 assert.strictEqual(context.roleTitleClass('CX Designer'), 'verify');
 assert.strictEqual(context.roleTitleClass('Analista de Producto Digital'), 'verify');
 assert.strictEqual(context.roleTitleClass('SEO Copywriter'), 'excluded');
+[
+ 'Junior Digital Interior E-commerce Designer',
+ 'Interior E-commerce Designer',
+ 'Learning experience designer',
+ 'Content Designer | LATAM',
+ 'Senior Content Designer'
+].forEach(t => assert.strictEqual(context.roleTitleClass(t), 'excluded', t));
+assert.strictEqual(context.roleTitleClass('Product & Content UX/UI Designer'), 'verify', 'un cargo UX con content sigue pasando a verificación');
+assert.strictEqual(context.roleTitleClass('E-commerce Designer'), 'verify', 'diseño de tiendas digitales sigue posible');
+
  // Falsos positivos encontrados el 5 de noviembre.
  ['English to Lao Review Lead for UI, Marketing & Product Content',
   'English to Maltese Review Lead for UI, Marketing & Product Content',
