@@ -581,22 +581,16 @@ function proximoTurno(id, ahoraHm) {
 function faseDelDia(ahoraHm) {
   var t = minutos(ahoraHm);
   var ahora = RITMO.filter(function (r) { return t >= minutos(r.desde) && t < minutos(r.hasta); });
-  if (ahora.length) return { ahora: true, texto: EQUIPO[ahora[ahora.length - 1].id].nombre + ': ' + ahora[ahora.length - 1].que.toLowerCase() };
+  if (ahora.length) return { ahora: true, texto: 'Turno previsto: ' + EQUIPO[ahora[ahora.length - 1].id].nombre + ' · ' + ahora[ahora.length - 1].que.toLowerCase() };
   var sig = RITMO.filter(function (r) { return minutos(r.desde) > t; })[0] || RITMO[0];
   return { ahora: false, texto: 'Próximo: ' + EQUIPO[sig.id].nombre + ' a las ' + sig.desde.replace(/^0/, '') };
 }
 /**
- * Estado que se ve de un agente: el del servidor, salvo que el ritmo diga que le toca ahora y todavía no haya reportado
- * nada en este turno (entonces «trabajando, por horario»). `a`: { id, estado, resumen, ultima }.
+ * Estado de actividad según la bitácora y el backend, nunca por el reloj solamente.
+ * El horario es orientativo; una tarea de Claude apagada no debe parecer «trabajando».
  */
 function estadoVisible(a, ahora) {
-  var base = { estado: ESTADOS[a.estado] ? a.estado : 'libre', resumen: a.resumen || '', porHorario: false };
-  if (base.estado === 'trabajando' || base.estado === 'atencion') return base;
-  var turno = turnoActual(a.id, hhmm(ahora));
-  if (!turno) return base;
-  var inicio = ahora.slice(0, 10) + ' ' + turno.desde;
-  if (a.ultima && a.ultima.length >= 16 && a.ultima >= inicio) return base;
-  return { estado: 'trabajando', resumen: turno.que, porHorario: true };
+  return { estado: ESTADOS[a.estado] ? a.estado : 'libre', resumen: a.resumen || '', porHorario: false };
 }
 /** Lo que espera a Oscar: agentes que lo necesitan y pedidos con una pregunta. */
 function teNecesitan(modelo) {
