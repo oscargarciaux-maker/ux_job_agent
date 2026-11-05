@@ -76,11 +76,10 @@ function searchUxJobs_(startedAt) {
   return Object.keys(byKey).map(k => byKey[k]).filter(v => {
     let reason = exclusionReason(v);
     if (!reason && !v.isPost && !v.fromPost) {
-      // Google Jobs llega por búsquedas de diseño: solo se descarta redacción/SEO/programación; los demás títulos que no
-      // son de diseño entran marcados para revisar sus funciones
+      // Google Jobs puede devolver cargos que no son UX/UI aunque la consulta lo sea.
       const cls = roleTitleClass(v.title);
-      if (cls === 'excluded') reason = 'no es diseño (redacción, SEO o programación)';
-      else if (cls !== 'design') v.roleToVerify = true;
+      if (cls === 'excluded' || cls === 'other') reason = 'título sin rol UX/UI o diseño digital verificable';
+      else if (cls === 'verify') v.roleToVerify = true;
     }
     if (reason) console.log('Descartada (' + reason + '): ' + v.title + ' @ ' + v.company);
     return !reason;
