@@ -242,7 +242,9 @@ function distinctPostings(scored, maxPerCompany) {
     const v = x.vacancy;
     if (v.isPost) return true;
     const company = norm(v.company);
-    const hidden = !company || /confiden/.test(company);
+    // "Post Ana Pérez" es la autora del post, NO la empresa contratante.
+    // No colapsar sus publicaciones distintas por el mismo título "UX Designer" ni limitarla a 2 empresas.
+    const hidden = !company || /confiden/.test(company) || (v.fromPost && /^post\b/.test(company));
     const desc = norm(v.description);
     // La descripción COMPLETA (28 oct 2026): con solo los primeros 400 caracteres, el texto de presentación que Greenhouse y
     // Ashby ponen al inicio de cada aviso hacía «repetidos» cargos distintos de la misma empresa (Clara, Truelogic)
