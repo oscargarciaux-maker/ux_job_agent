@@ -343,6 +343,8 @@ function apifyPostReachable(post) {
   if (!isReachablePost(post)) return false;
   // Solo publicaciones que contratan (2026-11-04): las búsquedas amplias traen opiniones, portafolios y gente buscando empleo
   if (!APIFY_HIRING_PATTERN_.test(text)) return false;
+  // Evitar crear HV cuando el propio post anuncia que la vacante está pausada o cerrada.
+  if (/\b(?:vacante|convocatoria|proceso|position|role)\b[^\n.!?]{0,65}\b(?:en stand[ -]?by|pausad[oa]|suspendid[oa]|on hold|closed|cerrad[oa])\b/i.test(text.slice(0, 700))) return false;
   // Listas de vacantes de varias empresas o cargos (2026-11-04: 12 de 19 carpetas de la primera corrida eran listas de
   // ingeniería, ventas o de otros países) y publicaciones cuyo arranque no habla de un cargo de diseño
   if (isJobListPost(text)) return false;
