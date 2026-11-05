@@ -399,6 +399,21 @@ assert.strictEqual(context.classifySeniority(post), 'junior');
 assert.strictEqual(context.extractContactEmail(es), 'talento@example.com');
 assert.strictEqual(context.extractContactEmail({ snippet: 'sin correo' }), null);
 assert.strictEqual(context.buildApplicationEmail(en, 'en').subject, 'Application: Junior UX/UI Designer - Demo Company EN');
+// Publicaciones (2026-11-05): título con emoji y lista de países, empresa "Post <autor>" y título vacío
+assert.strictEqual(context.cleanVacancyTitle('🎨 UX/UI & Graphic Designer - Argentina, Perú, Colombia…'), 'UX/UI & Graphic Designer');
+assert.strictEqual(context.cleanVacancyTitle('# UX Designer - Fintech'), 'UX Designer - Fintech');
+assert.strictEqual(context.cleanVacancyTitle("We're hiring! 🚀 Product Designer | Remote LATAM"), 'Product Designer');
+const postVacancy = { title: '🎨 UX/UI & Graphic Designer - Argentina, Perú…', company: 'Post Ana Pérez' };
+assert.strictEqual(context.buildApplicationEmail(postVacancy, 'es').subject, 'Postulación: UX/UI & Graphic Designer');
+assert.strictEqual(context.buildApplicationEmail(postVacancy, 'en').subject, 'Application: UX/UI & Graphic Designer');
+assert.ok(!/Post Ana/.test(context.buildApplicationEmail(postVacancy, 'es').body));
+assert.strictEqual(context.buildApplicationEmail({ title: '', company: 'Post Ana Pérez' }, 'es').subject, 'Postulación: Diseñador UX/UI');
+assert.strictEqual(context.buildApplicationEmail({ title: null, company: 'Acme' }, 'en').subject, 'Application: UX/UI Designer - Acme');
+assert.strictEqual(context.buildApplicationEmail({ title: 'Publicación de LinkedIn', company: 'Post LinkedIn' }, 'es').subject,
+  'Postulación: Diseñador UX/UI');
+assert.strictEqual(context.buildApplicationEmail({ title: 'Buscamos a alguien con muchas ganas de aprender diseño de producto y experiencia de usuario en Bogotá', company: 'Acme' }, 'es').subject,
+  'Postulación: Diseñador UX/UI - Acme');
+assert.ok(!/junior/i.test(context.buildApplicationEmail({}, 'es').subject + context.buildApplicationEmail({}, 'en').subject));
 
 // MIME del borrador: texto + HTML Sans Serif + PDF adjunto
 const pdf = { getName: () => 'CV_Demo_EN.pdf', getBytes: () => [37, 80, 68, 70] };
@@ -447,6 +462,14 @@ const detalle = context.parseVacancyDetail(['Diseñador UX/UI Junior', 'Empresa:
   'Idioma: EN', 'Correo de contacto: N/D', 'Descripción completa'].join('\n'));
 assert.deepStrictEqual(JSON.parse(JSON.stringify(detalle)),
   { title: 'Diseñador UX/UI Junior', company: 'Acme', link: 'https://x.co/1', email: null, language: 'en' });
+// Detalle_Vacante real: DocumentApp.create deja un párrafo vacío antes del encabezado (2026-11-05)
+const detallePost = context.parseVacancyDetail(['', '🎨 UX/UI & Graphic Designer - Argentina, Perú…', 'Empresa: Post Ana Pérez',
+  'Link: https://www.linkedin.com/posts/x', 'Correo de contacto: ana@example.com', 'Descripción completa', 'texto'].join('\n'));
+assert.strictEqual(detallePost.title, '🎨 UX/UI & Graphic Designer - Argentina, Perú…');
+assert.strictEqual(context.buildApplicationEmail(detallePost, 'es').subject, 'Postulación: UX/UI & Graphic Designer');
+assert.strictEqual(context.parseVacancyDetail('# UX Designer\nEmpresa: Acme').title, 'UX Designer');
+assert.strictEqual(context.parseVacancyDetail('\nEmpresa: Acme\nDescripción completa\n').title, null);
+assert.strictEqual(context.buildCvFileName({}, detallePost, 'Post Ana Pérez'), 'HV_UX_UI_&_Graphic_Designer');
 
 // Verificación antes de la HV (2026-10-24): veredicto de Verificacion.txt
 const verdict = t => JSON.parse(JSON.stringify(context.parseVerdict(t)));

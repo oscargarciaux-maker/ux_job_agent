@@ -296,6 +296,11 @@ const CONFIG = {
   // Palabras que nunca van en una HV ni en su nombre de archivo (guía 2026-10-22). Ojo: "internacional" no cuenta.
   CV_FORBIDDEN_WORDS: /\b(aprendiz\w*|voluntari\w*|practicante\w*|junior|jr|interns?|internships?|volunteer\w*|din'?t)\b/gi,
   CV_DEFAULT_ROLE: 'Product Designer',  // Cargo del nombre de archivo si la vacante no deja uno usable
+  // Cargo del asunto del correo de postulación si el título no deja uno usable (2026-11-05: nunca «Junior» por defecto)
+  EMAIL_DEFAULT_ROLE: { es: 'Diseñador UX/UI', en: 'UX/UI Designer' },
+  EMAIL_ROLE_MAX_LENGTH: 60,  // Más largo es una frase de la publicación, no un cargo
+  // Lo que va después de " - " en un título y es solo lugar ("Argentina, Perú…", "Remote LATAM"): se corta
+  TITLE_LOCATION_TAIL: /\b(colombia|bogot[aá]|medell[ií]n|cali|argentina|per[uú]|m[eé]xico|chile|brasil|brazil|ecuador|uruguay|paraguay|bolivia|venezuela|costa rica|panam[aá]|guatemala|latam|latinoam[eé]rica|latin america|south america|am[eé]rica latina|remot[eo]|remote|h[ií]brido|hybrid|anywhere|worldwide)\b/i,
   // 'Semana (carpeta)' (2026-10-25): la carpeta de primer nivel de CV/, la semana tal como la organiza el usuario
   APPLIED_SHEET_HEADERS: ['Grupo (carpeta)', 'Empresa', 'Cargo', 'Estado', 'Color', 'Carpeta', 'Creada', 'Semana (carpeta)'],
   FOLLOWUP_SHEET_NAME: 'Seguimiento',        // Skill seguimiento: una fila por hallazgo en el Gmail laboral
