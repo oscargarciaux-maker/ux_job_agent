@@ -150,6 +150,7 @@ function buildCvsInFolder_(dateFolder, sheet) {
         if (CONFIG.CV_EXPORT_PDF) pdf = folder.createFile(copy.getAs(MimeType.PDF).setName(cvName + '.pdf'));
         copy.setName(cvName);  // Marca de documento realmente terminado.
       } catch (buildError) {
+        if (pdf) pdf.setTrashed(true);  // No dejar un PDF aislado que impida reintentar.
         copy.setTrashed(true);  // Solo nuestra copia temporal, nunca un CV del usuario.
         throw buildError;
       }
