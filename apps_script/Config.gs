@@ -328,6 +328,7 @@ const PROPS = {
   SERPAPI_LAST_DAY: 'SERPAPI_LAST_DAY',   // Último día (yyyy-MM-dd) en que se gastaron créditos de SerpAPI
   APIFY_TOKEN: 'APIFY_TOKEN',   // Token de Apify (publicaciones de LinkedIn); solo en Propiedades del script
   APIFY_RUN: 'APIFY_RUN',       // Corrida de Apify del día: {day, id, datasetId, read}
+  METRICS_LAST_DAY: 'METRICS_LAST_DAY',  // Día del último pulso de resultados en Agentes
   IA_ALERT_LAST_DAY: 'IA_ALERT_LAST_DAY',  // Solo una alerta por día cuando Claude no genera HV
   FOLLOWUP_DRAFTS_LAST_DAY: 'FOLLOWUP_DRAFTS_LAST_DAY',   // Último día (yyyy-MM-dd) en que se buscaron correos en frío para seguimiento
 };
