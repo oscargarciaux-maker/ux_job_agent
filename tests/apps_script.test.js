@@ -423,6 +423,14 @@ assert.strictEqual(context.buildApplicationEmail({ title: 'Buscamos a alguien co
   'Postulación: Diseñador UX/UI - Acme');
 assert.ok(!/junior/i.test(context.buildApplicationEmail({}, 'es').subject + context.buildApplicationEmail({}, 'en').subject));
 
+// Una caída entre Gmail.Drafts.create y Sheet.appendRow no debe crear otro borrador.
+const originalGmail = context.Gmail;
+context.Gmail = { Users: { Messages: { list: (user, opts) =>
+  ({ messages: opts.q === 'in:drafts to:talento@example.com' ? [{ id: 'existing' }] : [] }) } } };
+assert.strictEqual(context.coldDraftExists_('talento@example.com'), true);
+assert.strictEqual(context.coldDraftExists_('nuevo@example.com'), false);
+assert.strictEqual(context.coldDraftExists_('no-es-correo'), false);
+context.Gmail = originalGmail;
 // MIME del borrador: texto + HTML Sans Serif + PDF adjunto
 const pdf = { getName: () => 'CV_Demo_EN.pdf', getBytes: () => [37, 80, 68, 70] };
 const mime = context.buildMimeMessage('jobs@example.com', 'Asunto ñ', 'Hola\n\nChao', pdf);
