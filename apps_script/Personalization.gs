@@ -11,6 +11,7 @@ const EN_WORDS_ = ['the', 'and', 'of', 'to', 'for', 'with', 'in', 'a', 'an', 'we
 const EMAIL_TEMPLATES_ = {
   es: {
     subject: 'Postulación: {cargo} - {empresa}',
+    subjectNoCompany: 'Postulación: {cargo}',
     body: 'Hola,\n\nLes escribo para postularme a la vacante de {cargo} en {empresa}. ' +
           'Soy Diseñador Industrial con enfoque en UX/UI, sistemas de diseño e investigación con usuarios.\n\n' +
           'Adjunto mi hoja de vida para su consideración. Quedo atento a cualquier información adicional.\n\n' +
@@ -18,6 +19,7 @@ const EMAIL_TEMPLATES_ = {
   },
   en: {
     subject: 'Application: {cargo} - {empresa}',
+    subjectNoCompany: 'Application: {cargo}',
     body: 'Hello,\n\nI am writing to apply for the {cargo} position at {empresa}. ' +
           'I am an Industrial Designer focused on UX/UI, design systems and user research.\n\n' +
           'Please find my CV attached. I look forward to hearing from you.\n\n' +
@@ -262,15 +264,46 @@ function selectWithDateRule(scored, limit, minJunior, minDaily) {
   return picked;
 }
 
+/**
+ * Cargo limpio a partir del título de la vacante o de la primera línea de una publicación: sin "#" de Markdown, sin
+ * emoji ni símbolos al inicio o al final y sin la lista de países que algunas publicaciones ponen después de " - "
+ * ("🎨 UX/UI & Graphic Designer - Argentina, Perú…" -> "UX/UI & Graphic Designer"). 2026-11-05: el borrador de una
+ * publicación salió con el cargo por defecto «Junior» porque el título llegaba vacío.
+ */
+function cleanVacancyTitle(title) {
+  let t = String(title || '').normalize('NFC').replace(/^\s*#+\s*/, '')
+    .replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N})]+$/gu, '')
+    .replace(/^(we'?re hiring|we are hiring|hiring|estamos contratando|estamos buscando|buscamos|vacante|oportunidad)\b[\s!:.¡-]*/i, '');
+  const cut = t.match(/^(.+?)\s+[-–—|]\s+(.*)$/);
+  if (cut && (CONFIG.TITLE_LOCATION_TAIL.test(cut[2]) || /,/.test(cut[2]))) t = cut[1];
+  return t.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N})]+$/gu, '').replace(/\s+/g, ' ').trim();
+}
+
+/** Cargo para el asunto: el título limpio si es un cargo de diseño corto; si no, '' (se usa el cargo neutro). */
+function emailRoleTitle(title) {
+  const t = cleanVacancyTitle(title);
+  if (!t || t.length > CONFIG.EMAIL_ROLE_MAX_LENGTH) return '';
+  const cls = roleTitleClass(t);
+  return cls === 'design' || cls === 'verify' ? t : '';
+}
+
+/**
+ * Asunto y cuerpo del correo de postulación. Sin cargo usable va el neutro (CONFIG.EMAIL_DEFAULT_ROLE, nunca «Junior»:
+ * solo se dice si la vacante lo dice) y la empresa se omite si es la etiqueta de carpeta de una publicación
+ * ("Post <autor>"): el correo va a esa misma persona.
+ */
 function buildApplicationEmail(vacancy, language) {
   const lang = language === 'en' ? 'en' : 'es';
+  const company = String(vacancy.company || '').trim();
+  const hasCompany = !!company && !/^post\b/i.test(company);
   const values = {
-    cargo: vacancy.title || 'UX/UI Designer Junior',
-    empresa: vacancy.company || (lang === 'en' ? 'your company' : 'su empresa'),
+    cargo: emailRoleTitle(vacancy.title) || CONFIG.EMAIL_DEFAULT_ROLE[lang],
+    empresa: hasCompany ? company : (lang === 'en' ? 'your team' : 'su equipo'),
   };
+  const tpl = EMAIL_TEMPLATES_[lang];
   return {
-    subject: fill_(EMAIL_TEMPLATES_[lang].subject, values),
-    body: fill_(EMAIL_TEMPLATES_[lang].body, values),
+    subject: fill_(hasCompany ? tpl.subject : tpl.subjectNoCompany, values),
+    body: fill_(tpl.body, values),
   };
 }
 

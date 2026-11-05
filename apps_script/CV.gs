@@ -400,7 +400,7 @@ function buildCvFileName(cv, vacancy, label) {
     : String(t || '');
   const proposed = clean(withoutCompany(cv._nombre_archivo)).replace(/^(HV|CV)_(?!IA)/, prefix);
   if (proposed.indexOf(prefix) === 0 && proposed.length > prefix.length) return proposed;
-  const role = clean(withoutCompany((vacancy && vacancy.title) || label)) || clean(CONFIG.CV_DEFAULT_ROLE);
+  const role = clean(withoutCompany(cleanVacancyTitle(vacancy && vacancy.title) || label)) || clean(CONFIG.CV_DEFAULT_ROLE);
   return prefix + role;
 }
 
@@ -414,7 +414,11 @@ function shouldRemoveParagraph(paragraphText, cv) {
   return !!markers && markers.every(m => cv[m.slice(2, -2)] === '') && !/[\p{L}\p{N}]/u.test(rest);
 }
 
-/** Lee los metadatos que createVacancyDetailDoc_ escribe en Detalle_Vacante. */
+/**
+ * Lee los metadatos que createVacancyDetailDoc_ escribe en Detalle_Vacante. El título es la primera línea con texto que
+ * no es un campo: DocumentApp.create deja un párrafo vacío antes del encabezado, y con lines[0] el título salía vacío
+ * (2026-11-05: el borrador de «Post <autor>» tomó el cargo por defecto). Un "# " de Markdown al inicio se quita.
+ */
 function parseVacancyDetail(text) {
   const lines = String(text || '').split(/\r?\n/);
   const field = name => {
@@ -422,8 +426,11 @@ function parseVacancyDetail(text) {
     const value = line ? line.slice(name.length + 2).trim() : '';
     return value && value !== 'N/D' ? value : null;
   };
+  const isField = l => /^(Empresa|Ubicación|Link|Publicada|Nivel|Match Score|Idioma|Correo de contacto|Fuente|Tipo|Rol|Aviso empresa|Inglés|Portal oficial): /.test(l);
+  const heading = lines.map(l => l.trim()).filter(l => l && !isField(l))[0] || '';
+  const title = heading.replace(/^#+\s*/, '').trim();
   return {
-    title: (lines[0] || '').trim() || null,
+    title: title && title !== 'Descripción completa' ? title : null,
     company: field('Empresa'),
     link: field('Link'),
     email: field('Correo de contacto'),
