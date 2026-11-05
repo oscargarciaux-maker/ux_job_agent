@@ -270,6 +270,25 @@ assert.strictEqual(context.distinctPostings(claraCopia, 5).length, 1, 'el mismo 
   assert.ok(context.isReachableRemoteJob(h()), 'pasa el filtro de remotas');
   assert.ok(/searchHimalayas_, 'Himalayas'/.test(fs.readFileSync(path.join(dir, 'Search.gs'), 'utf8')), 'Himalayas está en la lista de fuentes');
 }
+// Casos de noviembre: descartar requisitos ajenos al perfil ANTES de generar documentos.
+assert.strictEqual(context.roleTitleClass('User Experience Designer'), 'design');
+assert.strictEqual(context.roleTitleClass('Learning experience designer'), 'excluded');
+assert.strictEqual(context.roleTitleClass('Junior Digital Interior E-commerce Designer'), 'excluded');
+assert.strictEqual(context.roleTitleClass('English to Kyrgyz Review Lead for UI, Marketing & Product Content'), 'excluded');
+assert.strictEqual(context.roleTitleClass('Payroll Specialist'), 'other');
+assert.strictEqual(context.explicitHardMismatch_({description:
+  '- 6+ years of experience working as a developer. - 5+ years of experience in UX/UI.'}),
+  'exige trayectoria profesional de desarrollador de software');
+assert.strictEqual(context.explicitHardMismatch_({description:
+  'Required: Hands-on experience designing connected-hardware experiences. A portfolio of shipped connected-product work.'}),
+  'exige productos de hardware conectado lanzados, experiencia no acreditada');
+assert.strictEqual(context.explicitHardMismatch_({description:
+  'Preferred: Experience with connected hardware or consumer electronics; 3+ years UX/UI.'}), null);
+assert.strictEqual(context.requiredYears({title:'Senior Product Designer', description:'8+ years of experience as a product designer'}), 8);
+assert.ok(context.computePriority({title:'Senior Product Designer',location:'Remote LATAM',
+  description:'8+ years of experience as a product designer',link:'https://jobicy.com/jobs/123'},80) <
+  context.computePriority({title:'UX/UI Designer',location:'Bogotá',
+  description:'2+ years of experience in UX/UI',link:'https://empresa.co/jobs/123'},80));
 // Prefiltro por país (28 oct 2026): sin tokens para vacantes que solo son de otro país
 const solo = (title, location) => context.exclusionReason({ title: title, location: location, description: '' });
 assert.ok(/solo para costa rica/i.test(solo('UI/UX Designer', 'San José, Costa Rica')));
@@ -373,17 +392,18 @@ assert.ok(context.isAppliedCompany('Periferia IT Group', ['PeriferiaIT', 'Dropi'
 assert.ok(context.isAppliedCompany('Lite Thinking company', ['Lite Thinking']));
 assert.ok(!context.isAppliedCompany('Nequi', ['PeriferiaIT', 'Dropi']));
 assert.ok(!context.isAppliedCompany('CONFIDENTIAL', ['Confidential']));
-// Fecha sin verificar: solo completa hasta MIN_DAILY (5)
+// Fecha sin verificar: nunca rellenar cuotas con avisos sin fecha comprobada
 const conFecha = n => Array.from({ length: n }, (_, i) => ({ vacancy: { title: 'v' + i }, seniority: 'mid', score: 80 }));
 const sinFecha = n => Array.from({ length: n }, (_, i) => ({ vacancy: { title: 'u' + i, dateUnverified: true }, seniority: 'junior', score: 100 }));
 assert.strictEqual(context.selectWithDateRule(conFecha(7).concat(sinFecha(4)), 10, 5, 5).length, 7);
 const relleno = context.selectWithDateRule(conFecha(2).concat(sinFecha(6)), 10, 5, 5);
-assert.strictEqual(relleno.length, 5);
-assert.strictEqual(relleno.filter(x => x.vacancy.dateUnverified).length, 3);
-assert.strictEqual(context.selectWithDateRule(sinFecha(2), 10, 5, 5).length, 2);
-// Las publicaciones no cuentan para el mínimo de 5: no desplazan a las formales sin fecha verificada
+assert.strictEqual(relleno.length, 2);
+assert.strictEqual(relleno.filter(x => x.vacancy.dateUnverified).length, 0);
+assert.strictEqual(context.selectWithDateRule(sinFecha(2), 10, 5, 5).length, 0);
+// Las publicaciones fechadas pueden competir, pero no justifican completar una cuota con ofertas sin fecha.
 const posts = n => Array.from({ length: n }, (_, i) => ({ vacancy: { title: 'p' + i, isPost: true }, seniority: 'mid', score: 80 }));
-assert.strictEqual(context.selectWithDateRule(posts(8).concat(conFecha(1), sinFecha(6)), 15, 5, 5).filter(x => x.vacancy.dateUnverified).length, 4);
+assert.strictEqual(context.selectWithDateRule(posts(8).concat(conFecha(1), sinFecha(6)), 15, 5, 5).filter(x => x.vacancy.dateUnverified).length, 0);
+assert.strictEqual(context.selectWithDateRule([{ vacancy: { dateUnverified: false }, seniority: 'senior', score: 80, priority: 20 }], 10, 5, 5).length, 0);
 // Nombre del archivo del CV (guía Adaptia: HV_Nombre_Apellido_Cargo)
 assert.strictEqual(context.buildCvFileName({ _nombre_archivo: 'HV_Ana_Pérez_Diseñador(a) UX/UI' }, {}, 'x'), 'HV_Ana_Pérez_Diseñador(a)_UX_UI');
 assert.strictEqual(context.buildCvFileName({}, { title: 'UX Designer' }, 'x'), 'HV_UX_Designer');
