@@ -24,6 +24,8 @@ const CONFIG = {
   REMOTE_QUERY_POOL: [
     'remote ux designer latam', 'remote ui ux designer latin america',
     'remote product designer latam', 'ux ui designer remote colombia',
+    'junior ux designer remote latam', 'mid ux ui designer remote colombia',
+    'design systems designer remote latam',
   ],
   // Orden de preferencia del enlace de cada vacante (Google Jobs lista todos los sitios donde está publicada).
   // Cualquier otro sitio (portal de la empresa u otro) va después. Más alto = más prioridad al elegir las 10 del día.
