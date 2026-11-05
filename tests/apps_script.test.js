@@ -886,6 +886,16 @@ assert.strictEqual(context.roleTitleClass('Linux Administrator'), 'other');
 const pv = { title: 'CX Designer', description: '' };
 assert.ok(vm.runInContext('acceptRoleTitle_', context)(pv) && pv.roleToVerify === true);
 assert.ok(context.computePriority({ title: 'CX Designer', roleToVerify: true }, 80) < context.computePriority({ title: 'CX Designer' }, 80));
+// Dos posts diferentes del mismo reclutador con el mismo cargo no prueban ser la misma oportunidad.
+const recruitingPosts = [
+  { vacancy:{title:'UX Designer',company:'Post Ana Perez',fromPost:true,link:'https://www.linkedin.com/posts/ana_activity-7522068755460374528',
+      description:'Hiring UX Designer remote Colombia at startup A with Figma and research'.repeat(6)},priority:95 },
+  { vacancy:{title:'UX Designer',company:'Post Ana Perez',fromPost:true,link:'https://www.linkedin.com/posts/ana_activity-7522068755460374599',
+      description:'Hiring UX Designer remote Colombia at startup B with user testing and accessibility'.repeat(6)},priority:94 }
+];
+assert.strictEqual(context.distinctPostings(recruitingPosts, 2).length, 2);
+assert.strictEqual(context.linkedinPostKey_(recruitingPosts[0].vacancy.link) ===
+  context.linkedinPostKey_(recruitingPosts[1].vacancy.link),false);
 // Misma empresa: solo es repetida si es el mismo cargo
 assert.ok(context.sameRole('Diseñador UX/UI Junior', 'UX/UI Designer'));
 assert.ok(context.sameRole('Product Designer (Remoto)', 'product designer senior'));
