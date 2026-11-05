@@ -295,6 +295,6 @@ function createApplicationDraft_(to, subject, bodyText, pdfBlob) {
 /** Normaliza el ID de una publicación de LinkedIn entre /posts/ y /feed/update/. */
 function linkedinPostKey_(url) {
   const text = String(url || '');
-  const id = text.match(/\bactivity[-:](\d{18,20})\b/i);
+  const id = text.match(/activity[-:](\d{18,20})\b/i);
   return id ? 'linkedin-post:' + id[1] : text.replace(/[?#].*$/, '').replace(/\/$/, '');
 }
