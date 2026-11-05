@@ -57,6 +57,11 @@ function threadHasReply(messages) {
   });
 }
 
+/** La hora autorizada no puede adelantarse, incluso si el activador despierta antes. */
+function isScheduledSendDue_(startMs, nowMs) {
+  return nowMs >= startMs;
+}
+
 /** Lo corre sincronizarAplicadas al empezar. Nunca lanza: un error se registra y la sincronización sigue. */
 function envioProgramado_() {
   try {
@@ -68,8 +73,8 @@ function envioProgramado_() {
     if (!file) return;
     const plan = parseScheduledSend(readTextFile_(file));
     const key = 'ENVIO_PROGRAMADO_' + file.getId();
-    // Un activador de una vez puede dispararse unos minutos antes de la hora: se acepta desde 15 min antes
-    if (Date.now() < plan.startMs - 15 * 60 * 1000) {
+    // Nunca adelantar correos: la autorización específica incluye la hora exacta.
+    if (!isScheduledSendDue_(plan.startMs, Date.now())) {
       scheduleSendTrigger_(key, plan.startMs);
       return;
     }
