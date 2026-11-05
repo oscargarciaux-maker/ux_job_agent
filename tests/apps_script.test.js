@@ -770,6 +770,17 @@ assert.strictEqual(context.roleTitleClass('Product & Content UX/UI Designer'), '
 assert.strictEqual(context.roleTitleClass('CX Designer'), 'verify');
 assert.strictEqual(context.roleTitleClass('Analista de Producto Digital'), 'verify');
 assert.strictEqual(context.roleTitleClass('SEO Copywriter'), 'excluded');
+ // Falsos positivos encontrados el 5 de noviembre.
+ ['English to Lao Review Lead for UI, Marketing & Product Content',
+  'English to Maltese Review Lead for UI, Marketing & Product Content',
+  'English to Kyrgyz Review Lead for UI, Marketing & Product Content'].forEach(t =>
+    assert.strictEqual(context.roleTitleClass(t), 'excluded', t));
+ assert.strictEqual(context.roleTitleClass('UX/UI Designer'), 'design');
+ assert.strictEqual(context.apifyPostReachable({
+   title: 'Vacante en stand by',
+   description: 'VACANTE EN STAND BY. Buscamos UX Designer remoto Colombia. Hiring UX/UI Designer.',
+   link: 'https://www.linkedin.com/posts/example_activity-7523087121235177473'
+ }), false, 'una convocatoria pausada no debe generar HV');
 // 2026-11-03 (decisión del usuario: «muy pocas vacantes»): cargos cercanos
 assert.strictEqual(context.roleTitleClass('Growth Designer'), 'design');
 assert.strictEqual(context.roleTitleClass('Mobile App Designer'), 'design');
