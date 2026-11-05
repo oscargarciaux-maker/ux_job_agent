@@ -39,6 +39,11 @@ function sincronizarAplicadas() {
   } catch (e) {
     console.warn('No se pudo escribir la pestaña ' + CONFIG.SOURCE_QUALITY_SHEET_NAME + ': ' + e.message);
   }
+  try {
+    registrarMetricasDiarias_(); // Una fila al día; sin modelos, búsquedas o gasto adicional.
+  } catch (e) {
+    console.warn('Pulso operativo -> ERROR: ' + e.message);
+  }
 }
 
 /**
