@@ -1235,6 +1235,15 @@ assert.ok(fs.readFileSync(path.join(__dirname, '..', 'instalador', 'Cargador.gs'
   assert.strictEqual(hilos[1].estado, 'hecho', 'los cerrados van después de los abiertos');
 
   const equipo = (d, now) => { const m = J(context.buildAgentsModel(d, now)); const o = {}; m.equipo.forEach(a => { o[a.id] = a; }); return { m, o }; };
+  // 2026-11-05: si la IA no trabajó, no mostrar «listo» por tener vacantes en cola.
+  const estancado = equipo({ registro: [
+    { Fecha: '2026-11-05', Estado: 'Esperando CV (IA)' },
+    { Fecha: '2026-11-05', Estado: 'Esperando CV (IA)' }
+  ], porEnviar: [] }, '2026-11-05 13:35');
+  assert.strictEqual(estancado.o.escriba.estado, 'atencion');
+  assert.ok(/ALERTA/.test(estancado.o.escriba.resumen));
+  const temprano = equipo({ registro: [{ Fecha: '2026-11-05', Estado: 'Esperando CV (IA)' }] }, '2026-11-05 06:00');
+  assert.strictEqual(temprano.o.escriba.estado, 'esperando');
   // Sin datos: nadie trabaja, cada uno dice cuándo le toca
   const vacio = equipo({}, '2026-10-28 03:00');
   assert.strictEqual(vacio.m.equipo.length, 11);
