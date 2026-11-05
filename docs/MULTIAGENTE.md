@@ -1,6 +1,8 @@
 # Base Antártica: el equipo de agentes
 
-Decisión del usuario (27 oct 2026). Oscar le pide algo a un **jefe**. El jefe reparte el trabajo entre agentes especializados, revisa lo que entregan y le responde. Todo corre con el plan de Claude de Oscar: sin API pagada, sin servidor propio.
+**Política permanente:** [POLITICA_OPERATIVA.md](POLITICA_OPERATIVA.md). Este equipo conserva el mismo contrato y presupuesto con Claude, ChatGPT o cualquier ejecutor. Solo una plataforma por fase; trabajar por **papel/tanda**, nunca por vacante.
+
+Decisión del usuario (27 oct 2026). Oscar le pide algo a un **jefe**. El jefe reparte el trabajo entre agentes especializados, revisa lo que entregan y le responde. La ejecución de IA puede usar el proveedor disponible y no depende de Oscar: sin API pagada, sin servidor propio.
 
 Lo que ya existía se reutiliza sin cambios:
 - Las skills de `.claude/skills/`.
@@ -81,7 +83,7 @@ Es una bitácora en la que solo se agregan filas; nadie edita la fila de otro.
 3. **Delegar:**
    - En una sesión con el repositorio (la app de Claude abierta en `ux_job_agent`), con la herramienta Agent y el `subagent_type` del agente (`.claude/agents/<id>.md`).
    - Donde no esté el repositorio (tareas programadas), con un agente general que recibe como instrucciones el archivo del agente, descargado de `raw.githubusercontent.com/.../main/.claude/agents/<id>.md`.
-   - Los trabajos independientes van en paralelo, por ejemplo verificar tres vacantes. Los que dependen uno del otro van en orden.
+   - Los trabajos se agrupan por rol: un inspector recibe todas las vacantes de la tanda y reutiliza recursos compartidos; no lanzar tres agentes para tres vacantes. Los que dependen uno del otro van en orden.
 4. **Revisar contra el contrato:**
    - ¿Existe el archivo que tocaba?
    - ¿El veredicto tiene sus dos primeras líneas?
