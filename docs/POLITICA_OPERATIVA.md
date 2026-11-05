@@ -48,3 +48,11 @@
 - Si Himalayas proporciona enlace de postulación **primario**, escogerlo antes de su `guid` y comprobar fecha en ese sitio. Si no aporta enlace original, no considerar verificada la fecha de la copia para generar carpetas/HV. Otras fuentes agregadas reciben penalización hasta demostrar vigencia en un portal original.
 - Usar la misma cantidad de consultas por corrida, con rotación adicional de junior, UX/UI, sistemas de diseño y sectores financiero/fintech; evaluar rendimiento por **HV útiles, enlaces originales, entrevistas y postulaciones**, no número bruto de hallazgos.
 - La precisión puede aumentar aunque una jornada tenga menos de cinco candidatas; **eso es preferible a generar CV para anuncios cerrados o imposibles**. La captación de más oportunidades requiere ampliar fuentes oficiales y medirlas, no bajar los filtros indiscriminadamente.
+
+
+## Publicaciones de reclutadores en Apify — política permanente (5 nov 2026)
+- **No se elimina Apify.** El actor de publicaciones sigue activo como fuente de oportunidades que no salen en bolsas de empleo: cinco búsquedas por día y **USD 0,25 máximo por corrida**, sin nuevas llamadas de pago para alcanzar la meta.
+- Meta operativa de **10 oportunidades verificables/día**, sumando avisos formales y posts de texto completo. La meta no garantiza diez vacantes abiertas ni equivale a crear diez HV; si no hay suficientes, registrar el déficit y mejorar fuentes, nunca inventar oportunidades.
+- Tres búsquedas base todos los días y dos rotativas, con consultas booleanas de LinkedIn compatibles con el actor (sin tildes, no más de dos grupos). El rol debe estar expresamente en el cuerpo del post; «Figma», «UX» como hashtag u opiniones no bastan.
+- Cuando dos fuentes detecten el mismo post, conservar la **versión con texto completo** de Apify si existía un enlace o fragmento manual. Deduplicar mediante el ID de actividad, también entre URL /posts/ y /feed/update/. Los posts completos pasan a inspector/CV; los que solo tienen enlace quedan para revisión manual y **no cuentan como oportunidad ya verificada**.
+- Medir por etiqueta de búsqueda las publicaciones recuperadas, candidatas y descartes, CV realmente acabados y postulaciones. Ajustar las consultas rotativas según el resultado de varios días, sin prometer cuota fija ni enviar correos automáticamente.
