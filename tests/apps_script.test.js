@@ -1289,6 +1289,22 @@ assert.ok(fs.readFileSync(path.join(__dirname, '..', 'instalador', 'Cargador.gs'
   assert.deepStrictEqual(est, { waiting: 1, ready: 0, alert: true });
   assert.strictEqual(context.iaBacklogStats_([['2026-11-05', 'Acme', 'UX', '', 90, 'Esperando CV (IA)']], [], '2026-11-05', '06:00').alert, false);
   assert.strictEqual(context.iaBacklogStats_([['2026-11-05', 'Acme', 'UX', '', 90, 'Esperando CV (IA)']], [['2026-11-05']], '2026-11-05', '13:35').alert, false);
+  const pulse = context.dailyOpsMetrics_([
+    ['2026-11-05', 'A', 'UX', '', 95, 'Descartada: función no UX'],
+    ['2026-11-05', 'B', 'UX', '', 90, 'Esperando CV (IA)'],
+    ['2026-11-05', 'C', 'UX', '', 80, 'Pendiente'],
+    ['2026-11-04', 'D', 'UX', '', 60, 'Descartada: vieja']
+  ], [
+    ['2026-11-05', 'C', 'UX', 'Lista', 'Lista para enviar'],
+    ['2026-11-04', 'D', 'UX', 'Lista', 'Lista para enviar']
+  ], [
+    ['Borrador preparado, no enviado'], ['Enviado, sin rebote'], ['Borrador preparado, no enviado']
+  ], '2026-11-05');
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(pulse)), {
+    registradas: 3, descartadas: 1, esperando: 1, hv: 1, listas: 1, borradores: 2
+  });
+  assert.strictEqual(context.dailyOpsMetrics_([], [], [], '2026-11-05').registradas, 0);
+
 
   assert.strictEqual(estancado.o.jefe.estado, 'atencion', 'el jefe debe señalar la falla de la tarea externa');
   assert.ok(/tarea programada de Claude/.test(estancado.o.jefe.resumen));
