@@ -2,7 +2,7 @@
 
 **Política permanente:** [POLITICA_OPERATIVA.md](POLITICA_OPERATIVA.md). Este equipo conserva el mismo contrato y presupuesto con Claude, ChatGPT o cualquier ejecutor. Solo una plataforma por fase; trabajar por **papel/tanda**, nunca por vacante.
 
-Decisión del usuario (27 oct 2026). Oscar le pide algo a un **jefe**. El jefe reparte el trabajo entre agentes especializados, revisa lo que entregan y le responde. La ejecución de IA puede usar el proveedor disponible y no depende de Oscar: sin API pagada, sin servidor propio.
+Decisión del usuario (27 oct 2026). Oscar le pide algo a un **jefe**. El jefe reparte el trabajo entre agentes especializados, revisa lo que entregan y le responde. La IA puede usar el proveedor disponible sin API de modelos adicional ni servidor propio, **pero depende de una tarea activa, cuota y permisos vigentes de ese proveedor**. El pipeline determinista de Apps Script corre por separado.
 
 Lo que ya existía se reutiliza sin cambios:
 - Las skills de `.claude/skills/`.
