@@ -215,9 +215,13 @@ function buildAgentsModel(d, now) {
   const messages = agentMessages(d.agentes || []);
   const threads = agentThreads(messages);
   const open = threads.filter(t => t.estado !== 'hecho' && t.estado !== 'cancelado');
-  set('jefe', { estado: open.some(t => t.pregunta || t.estado === 'bloqueado') ? 'atencion' : open.length ? 'trabajando' : 'libre',
-    resumen: open.length ? open.length + (open.length === 1 ? ' pedido abierto' : ' pedidos abiertos') : 'Sin pedidos: déjame uno en el buzón',
-    cifras: [['abiertos', open.length]] });
+  // La búsqueda en Apps Script no garantiza la ejecución del jefe externo (tarea de Claude).
+  // Cuando termina la ventana de IA y siguen pendientes sin una sola HV, mostrar el bloqueo también en Jefe.
+  const iaStalled = now.slice(11, 16) >= '08:45' && waiting > 0 && todayPending.length === 0;
+  set('jefe', { estado: iaStalled || open.some(t => t.pregunta || t.estado === 'bloqueado') ? 'atencion' : open.length ? 'trabajando' : 'libre',
+    resumen: iaStalled ? 'Revisar tarea programada de Claude: ' + waiting + ' vacantes siguen sin HV' :
+      open.length ? open.length + (open.length === 1 ? ' pedido abierto' : ' pedidos abiertos') : 'Sin pedidos: déjame uno en el buzón',
+    cifras: [['abiertos', open.length], ['sin HV hoy', iaStalled ? waiting : 0]] });
   ['vigia', 'constructor'].forEach(id => set(id, { resumen: 'A pedido del jefe' }));
   AGENT_IDS_.forEach(id => {
     const mine = messages.filter(m => m.de === id);
