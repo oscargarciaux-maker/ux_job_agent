@@ -240,6 +240,8 @@ function roleTitleClass(title) {
   // \bux\b: "Linux" contiene "ux" (el 2026-10-19 entraron 2 vacantes de infraestructura Linux)
   // 2026-11-05: revisión lingüística no es diseño UX/UI, aunque el título mencione UI.
   if (/\b(review lead|translation reviewer|linguistic reviewer|localization reviewer|post.editing lead)\b/i.test(t)) return 'excluded';
+  // 2026-11-05: falsos positivos reales que no diseñan productos digitales UX/UI.
+  if (/\binterior\s+(?:e-?commerce\s+)?designer\b|\b(?:digital\s+)?interior\s+e-?commerce\s+designer\b|\blearning experience designer\b|^\s*(?:senior\s+)?content designer\b/i.test(t)) return 'excluded';
   if (/copywrit|writer|redactor|\bseo\b|developer|desarrollador|programador|engineer|ingenier/i.test(t)) return 'excluded';
   // 2026-10-28 (decisión del usuario: «acepta más cargos»): también diseño de servicios, de interacción y
   // conversacional, investigación con usuarios y arquitectura de información
