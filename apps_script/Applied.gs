@@ -79,6 +79,10 @@ function sincronizarRegistro_(opts) {
       .forEach(f => collectAppliedFolders_(f.id, f.name, rows, false, f.name, children));
 
     const ss = SpreadsheetApp.openById(getProp_(PROPS.SHEET_ID));
+    // Si Radio no puede pintar carpetas, aplica solo solicitudes explícitas
+    // COLOR PENDIENTE con enlace a una carpeta ya confirmada en CV/.
+    try { aplicarColoresPendientes_(ss, rows); }
+    catch (e) { console.warn('Colores desde Seguimiento -> ' + e.message); }
     const sheet = ss.getSheetByName(CONFIG.APPLIED_SHEET_NAME) ||
                   ss.insertSheet(CONFIG.APPLIED_SHEET_NAME, ss.getNumSheets());  // Al final: la hoja 1 sigue siendo el registro
     try {
@@ -464,6 +468,89 @@ function previousAppliedStatuses_(sheet) {
     if (id) out[id] = String(status[i][0] || '');
   });
   return out;
+}
+
+/**
+ * Cola de colores solicitados por Radio cuando su conector no permite cambiar folderColorRgb.
+ * Solo admite filas de Seguimiento con marcador literal COLOR PENDIENTE,
+ * Fuente no vacía y enlace exacto a carpeta dentro del árbol CV/ ya indexado.
+ * Cada color aplicado produce una fila de confirmación (nunca modifica el registro anterior).
+ * No mira ni cambia Sin revisar, no hace búsquedas pagadas y trabaja dentro del lock de la sincronización.
+ */
+function aplicarColoresPendientes_(ss, appliedRows) {
+  const sheet = ss.getSheetByName(CONFIG.FOLLOWUP_SHEET_NAME);
+  if (!sheet || sheet.getLastRow() < 2) return 0;
+  const header = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getDisplayValues()[0];
+  const colFolder = header.indexOf('Carpeta');
+  if (colFolder === -1) return 0;
+  const n = Math.min(sheet.getLastRow()-1, 250);
+  const from = sheet.getLastRow()-n+1;
+  const data = sheet.getRange(from, 1, n, header.length).getDisplayValues();
+  const folderFormulas = sheet.getRange(from, colFolder+1, n, 1).getFormulas();
+  folderFormulas.forEach((r,i) => { if (r[0]) data[i][colFolder] = r[0]; });
+  const targets = pendingColorActions_([header].concat(data), from, 5);
+  const known = {};
+  (appliedRows || []).forEach(r => { known[r.id] = r; });
+  let applied = 0;
+  targets.forEach(t => {
+    const folder = known[t.id];  // Solo hojas reales del árbol CV/, no IDs arbitrarios ni Sin revisar
+    if (!folder || folder.status === 'Preparada, sin enviar') return;
+    const current = applicationStatusKey(folder.status);
+    const desired = applicationStatusKey(t.estado);
+    // No rebajar una carpeta por silencio ni reabrir rechazos sin evidencia explícita.
+    if (current === 'rechazada' && desired !== 'rechazada' && !/REAPERTURA CONFIRMADA/i.test(t.notas)) return;
+    if (current === 'proceso' && desired !== 'proceso' && desired !== 'rechazada') return;
+    try {
+      Drive.Files.update({ folderColorRgb: t.color }, t.id);
+      const check = Drive.Files.get(t.id, { fields: 'id,folderColorRgb' });
+      if (applicationStatusKey(colorToStatus(check.folderColorRgb)) !== desired)
+        throw new Error('color no confirmado en Drive');
+      const priorStatus = folder.status;
+      folder.color = check.folderColorRgb; // La instantánea de Aplicadas refleja el cambio en esta misma corrida
+      folder.status = colorToStatus(check.folderColorRgb);
+      const stamp = Utilities.formatDate(new Date(), tz_(), 'yyyy-MM-dd');
+      const record = Object.assign({}, t.original, {
+        'Fecha revisión': stamp,
+        'Hecho': 'Apps Script confirmó el color pendiente en Drive',
+        'Estado anterior': priorStatus || t.anterior,
+        'Estado nuevo': t.estado,
+        'Notas': 'COLOR APLICADO (solicitud fila ' + t.fila + ')'
+      });
+      sheet.appendRow(followupRow(header, record));  // La última fila por ID ya no pide otro cambio
+      applied++;
+    } catch (e) {
+      console.warn('COLOR PENDIENTE: carpeta ' + t.id + ' fila ' + t.fila + ' -> ' + e.message);
+    }
+  });
+  if (applied) console.log('Seguimiento: ' + applied + ' colores pendientes aplicados sin IA');
+  return applied;
+}
+
+/** Extrae solicitudes recientes, solo si la última fila del mismo ID todavía pide el color. */
+function pendingColorActions_(values, startRow, limit) {
+  const head = (values[0] || []).map(String);
+  const key = n => head.indexOf(n);
+  const [folder, state, notes, source] = ['Carpeta','Estado nuevo','Notas','Fuente'].map(key);
+  if ([folder,state,notes,source].some(x => x < 0)) return [];
+  const latest = {};
+  (values || []).slice(1).forEach((r,i) => {
+    const id = extractFolderId(r[folder]);
+    if (!id) return;
+    const data = {};
+    head.forEach((h,j) => { data[h] = String(r[j] || ''); });
+    latest[id] = {id, fila: startRow+i, estado: String(r[state] || ''),
+      notas: String(r[notes] || ''), source: String(r[source] || ''), anterior: String(data['Estado anterior'] || ''),
+      color: desiredFolderColor_(r[state]), original: data};
+  });
+  return Object.keys(latest).map(id => latest[id]).filter(v =>
+    /COLOR PENDIENTE/i.test(v.notas) && v.source.trim() && v.color).slice(0, limit || 5);
+}
+function desiredFolderColor_(status) {
+  const t = String(status || '').toLowerCase();
+  if (/^rechazad/.test(t)) return '#f83a22';
+  if (/^en proceso/.test(t)) return '#16a765';
+  if (/^(aplicad|enviad|postulad)/.test(t)) return '#ffad46';
+  return '';
 }
 
 /**
