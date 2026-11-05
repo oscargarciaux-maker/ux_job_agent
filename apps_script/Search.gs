@@ -14,7 +14,7 @@ function searchUxJobs_(startedAt) {
     const previous = byKey[k];
     // Una fuente puede aportar solo un fragmento y Apify el post completo del mismo ID.
     // Conservar el texto completo permite verificarlo y preparar HV, sin duplicar el post.
-    if (!previous || (previous.isPost && v.fromPost && (v.description || '').length > (previous.description || '').length)) {
+    if (!previous || shouldUpgradeLinkedInPost_(previous, v)) {
       v.origin = v.origin || origin;
       byKey[k] = v;
     }
@@ -93,6 +93,13 @@ function searchUxJobs_(startedAt) {
     if (reason) console.log('Descartada (' + reason + '): ' + v.title + ' @ ' + v.company);
     return !reason;
   });
+}
+
+/** La versión con descripción completa prevalece sobre fragmentos, también entre fuentes completas. */
+function shouldUpgradeLinkedInPost_(previous, incoming) {
+  if (!previous || !incoming || !incoming.fromPost) return false;
+  return (previous.isPost || previous.fromPost) &&
+    (incoming.description || '').length > (previous.description || '').length;
 }
 
 /** true si hoy aún no se ha consultado SerpAPI (lastDay y today en yyyy-MM-dd, hora de Bogotá). */
