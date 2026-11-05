@@ -141,15 +141,26 @@ const CONFIG = {
       // el actor falla («Unknown error when trying to fetch posts») con 3 o más grupos de AND/OR, y cualquier palabra con
       // ñ o tilde («diseñador») devuelve 0. Reglas: sin ñ ni tildes, como máximo 2 grupos entre paréntesis, AND, OR y NOT
       // en mayúscula, frases cortas entre comillas
-      // Precisión (2026-11-04, a pedido del usuario: «filtrar antes de que lleguen»): Apify cobra cada publicación, así
-      // que el filtro que ahorra es la búsqueda misma. Con «hiring» + cargo + LATAM/Colombia y NOT engineer/developer
-      // llegaron 13 útiles de 29 (antes 6 de 69); «ui designer» y «ux researcher» solos dieron 0 de 19 y se quitaron
+      // 2026-11-05: Apify se CONSERVA. Se mantienen cinco búsquedas y 0,25 USD de tope por corrida.
+      // Tres consultas probadas se mantienen todos los días; dos rotan entre cargos y modalidades
+      // para alcanzar publicaciones de reclutadores que no aparecen en ATS/JobSpy.
+      // No utilizar ñ ni tildes en el buscador: el actor actual devolvió 0 con esos caracteres.
+      // No crear consultas con 3 o más grupos booleanos: el actor reportó error al procesarlas.
       searches: [
-        { label: 'ux designer hiring', keywords: '"ux designer" AND hiring AND (Colombia OR LATAM) NOT engineer NOT developer' },
-        { label: 'product designer hiring', keywords: '"product designer" AND hiring AND (Colombia OR LATAM) NOT engineer NOT developer' },
-        { label: 'hiring LATAM', keywords: 'hiring AND ("ux designer" OR "ui designer") AND LATAM NOT engineer' },
-        { label: 'ux remoto Colombia', keywords: '"ux designer" AND (remote OR remoto) AND Colombia NOT engineer' },
-        { label: 'vacante Colombia', keywords: 'ux AND vacante AND Colombia NOT desarrollador NOT ingeniero NOT developer' },
+        { label: 'ux hiring Colombia', keywords: '"ux designer" AND hiring AND (Colombia OR LATAM) NOT engineer' },
+        { label: 'product hiring LATAM', keywords: '"product designer" AND hiring AND (Colombia OR LATAM) NOT engineer' },
+        { label: 'ux vacante Colombia', keywords: 'ux AND vacante AND Colombia NOT desarrollador NOT ingeniero' },
+      ],
+      rotatingPerDay: 2,
+      rotatingSearches: [
+        { label: 'uxui buscamos Colombia', keywords: '"ux/ui" AND buscamos AND Colombia NOT developer' },
+        { label: 'ui designer LATAM', keywords: '"ui designer" AND hiring AND LATAM NOT engineer' },
+        { label: 'ux junior Colombia', keywords: '"ux designer" AND junior AND Colombia NOT developer' },
+        { label: 'ux research LATAM', keywords: '"ux researcher" AND (hiring OR vacante) AND LATAM' },
+        { label: 'design systems LATAM', keywords: '"design system" AND hiring AND LATAM NOT engineer' },
+        { label: 'service design LATAM', keywords: '"service designer" AND hiring AND LATAM NOT engineer' },
+        { label: 'uxui vacante LATAM', keywords: '"ux/ui designer" AND vacante AND LATAM NOT engineer' },
+        { label: 'product remoto LATAM', keywords: '"product designer" AND remote AND LATAM NOT manager' },
       ],
     },
     // elempleo.com (2026-10-26): desde el 27 oct 2026 se busca en GitHub Actions (tools/jobspy_buscar.py: desde Google
