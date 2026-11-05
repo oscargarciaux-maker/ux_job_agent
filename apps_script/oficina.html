@@ -404,7 +404,7 @@ dialog::backdrop { background: rgba(5, 20, 40, .45); }
   <div class="lado">
     <section id="buzon" class="seccion tarjeta" aria-labelledby="t-buzon">
       <h2 id="t-buzon"><span aria-hidden="true">📮</span> Buzón del jefe</h2>
-      <p class="ayuda">Pídele algo al Emperador: él lo reparte entre el equipo y te avisa en Pedidos.</p>
+      <p class="ayuda">Aquí se guarda el pedido, pero no se ejecuta por sí solo. Claude debe tener activa la tarea «Jefe (buzón)» o debes usar «Copiar para Claude». Solo se crearán borradores; no se enviarán correos sin autorización.</p>
       <form id="form-pedido" novalidate>
         <div class="campo">
           <label for="para">¿Para quién?</label>
@@ -1276,7 +1276,7 @@ function modeloDemo(ahora) {
         recibir(d);
         $('texto').value = '';
         var p = (modelo && modelo.pedidos || [])[0];
-        r.textContent = 'Pedido en el buzón' + (p ? ' (' + p.id + ')' : '') + '. Lo verás avanzar en Pedidos.';
+        r.textContent = 'Pedido guardado' + (p ? ' (' + p.id + ')' : '') + '. Queda pendiente de la tarea de Claude; también puedes usar «Copiar para Claude».';
       })
       .catch(function (err) { r.textContent = 'No se pudo dejar el pedido: ' + (err && err.message || 'sin conexión') + ' Usa «Copiar para Claude».'; })
       .then(function () { btn.disabled = false; });
