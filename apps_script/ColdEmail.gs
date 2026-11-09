@@ -33,7 +33,7 @@ function crearBorradoresEnFrio() {
   const getShared = () => {
     if (!shared) {
       const template = getTemplateFile_();
-      shared = { template: template, placeholders: listPlaceholders_(template.getId()).map(p => p.slice(2, -2)) };
+      shared = { template: template, placeholders: listPlaceholders_(template.getId()).map(p => p.slice(2, -2)), history: cvHistory_() };
     }
     return shared;
   };
@@ -191,7 +191,7 @@ function buildColdHv_(folder, data, contextText, getShared) {
   let check;
   try {
     cv = parseCvJson(readTextFile_(firstFileByName_(folder, CONFIG.CV_JSON_NAME)));
-    check = validateCvJson(cv, contextText, getShared().placeholders, vacancy);
+    check = validateCvJson(cv, contextText, getShared().placeholders, vacancy, getShared().history.forLabel(folder.getName()));
   } catch (e) {
     return { hv: null, errors: [e.message] };
   }
@@ -200,6 +200,7 @@ function buildColdHv_(folder, data, contextText, getShared) {
   const name = buildCvFileName(Object.assign({}, cv, { _nombre_archivo: data.hv || cv._nombre_archivo }), vacancy, '');
   const copy = getShared().template.makeCopy(name, folder);
   fillCvDocument_(copy.getId(), cv);
+  getShared().history.remember(folder.getName(), cv);
   console.log(folder.getName() + ' -> HV ' + name + ' armada desde ' + CONFIG.CV_JSON_NAME);
   return { hv: copy, errors: [] };
 }

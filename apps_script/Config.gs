@@ -257,6 +257,23 @@ const CONFIG = {
   // Retoma de días anteriores (2026-10-28): el 27 oct la tanda de HV falló por el límite de uso del plan de Claude y las 20
   // vacantes del día quedaron sin HV; la IA y generarCVsDesdeIA también miran los CV_CATCHUP_DAYS días anteriores
   CV_CATCHUP_DAYS: 2,          // Hasta las 22:59: también arma las dudosas que el usuario apruebe en la tarde
+  // Rescate (2026-11-09): sin plan de Claude del 6 al 8 nov, las 12 vacantes del 6 nov quedaron fuera de los 2 días y nadie
+  // las volvió a mirar. La primera pasada de cada hora y la IA (con Hoja 1 como índice) miran hasta CV_RESCUE_DAYS días.
+  CV_RESCUE_DAYS: 7,
+  // HV a pedido (modo C de crear-hv, 2026-11-09): Vacantes con IA/HV a pedido/<Nombre>/ con un Doc Encargo (cargo objetivo,
+  // idioma y, si hay, texto de referencia) y CV_IA.json. Apps Script la arma igual que una vacante, sin registro ni correo.
+  ON_DEMAND_FOLDER_NAME: 'HV a pedido',
+  ON_DEMAND_DETAIL_NAME: 'Encargo',
+  // Medidor ATS (Ats.gs, 2026-11-09): ATS.txt en cada carpeta con el match estimado. Se rechaza la HV si deja fuera más de
+  // ATS_MAX_FIXABLE términos de la vacante que CONTEXTO_CV respalda (o si el cargo de la vacante no está en el título).
+  ATS_REPORT_NAME: 'ATS.txt',
+  ATS_MAX_FIXABLE: 2,
+  // Huellas de HV (2026-11-09): Apps Script comprueba que una HV no repita el perfil ni más de 2 logros de otra de los
+  // últimos 7 días (LECCIONES_HV, 25 oct). La IA ya no tiene que leer las HV anteriores.
+  CV_HISTORY_PROP: 'HV_HUELLAS',
+  CV_HISTORY_DAYS: 7,
+  CV_HISTORY_MAX: 35,
+  CV_MAX_SHARED_LOGROS: 2,
   SHEET_HEADERS: ['Fecha', 'Empresa', 'Cargo', 'Link', 'Match Score', 'Estado', 'Fuente', 'Notas'],
   // Vacantes ya aplicadas por el usuario (carpetas coloreadas: rojo rechazada, verde en proceso, amarillo sin respuesta)
   APPLIED_FOLDER_NAME: 'CV',

@@ -48,7 +48,7 @@ entrevistas; nunca "entrevisté a más de 90"); Seguros Bolívar, equipo de 6 co
    `_keywords` y `_mapa` de `CV_IA.json`). Si la carpeta no tiene `CV_IA.json`, la HV no pasó por `crear-hv`: haz tú el
    mapa de evidencia (skill `crear-hv`, Paso 2) para poder puntuarla.
 3. `CONTEXTO_CV` completo, `REGLAS_CV` y los enlaces del encabezado de `MASTER_TEMPLATE`.
-4. Las HV de los últimos 7 días (para comparar perfiles, logros y cargos), no solo las de hoy.
+4. `ATS.txt` de la carpeta (lo deja Apps Script al armar la HV): el match ATS estimado, los términos de la vacante que faltan o están con otra palabra y las brechas reales. No lo recalcules; corrige en el Doc los términos respaldados que faltan, con la palabra exacta de la vacante. Las repeticiones con HV de otros días ya las rechaza Apps Script (huellas): no leas HV anteriores salvo que Oscar lo pida.
 
 ## Paso 2. Chequeos
 
@@ -125,12 +125,14 @@ PAGINAS: <n>
 PERSONALIZACION: <puntaje>/12 (A <n> · B <n> · C <n> · D <n> · E <n> · F <n>)
 CORREGIDO: <n.º de correcciones>
 PROPUESTAS: <n.º de propuestas>
+MATCH ATS: <% de ATS.txt> (posible <%>)
 ```
 
 - `LISTA_PARA_ENVIAR`: todo pasa (con o sin correcciones); las propuestas que queden son mejoras opcionales.
 - `REVISAR`: personalización por debajo de 9/12 (o un 0 en A, B o D), o falta algo que el candidato debe decidir antes de enviar: un dato que no se pudo comprobar, un perfil
   repetido, cargos repetidos, keywords principales sin cubrir, la HV en el idioma equivocado o algo que no se pudo
-  arreglar en 3 vueltas.
+  arreglar en 3 vueltas. Un MATCH ATS por debajo de 70 % no es REVISAR por sí solo: si la causa son brechas reales
+  (herramientas que Oscar no tiene), dilo en una línea para que él decida si postula.
 
 Después: la lista de correcciones (`antes → después`, una por línea), la lista de propuestas (qué, por qué y el texto
 nuevo listo para pegar) y las keywords cubiertas y faltantes.
