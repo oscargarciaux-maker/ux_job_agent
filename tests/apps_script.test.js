@@ -632,7 +632,7 @@ assert.ok(!context.isCvFile_({ name: 'HV_notas.txt', mimeType: 'text/plain' }));
   assert.strictEqual(context.pendingMessage(JSON.stringify({ _correo_cuerpo: '  Hola, adjunto mi HV.  ' })), 'Hola, adjunto mi HV.');
   assert.strictEqual(context.pendingMessage(''), '');
   assert.strictEqual(context.pendingMessage('{"_idioma":"es"}'), '');
-  assert.deepStrictEqual(JSON.parse(JSON.stringify(run("CONFIG.PENDING_CV_SHEET_HEADERS").slice(-2))), ['PDF', 'Mensaje']);
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(run("CONFIG.PENDING_CV_SHEET_HEADERS").slice(-4))), ['PDF', 'Mensaje', 'Aviso', 'ATS']);
   assert.strictEqual(context.docPdfExportUrl('https://drive.google.com/open?id=1AbCdEfGhIjK', 'HV_Oscar'),
     'https://docs.google.com/document/d/1AbCdEfGhIjK/export?format=pdf');
   assert.strictEqual(context.docPdfExportUrl('https://drive.google.com/open?id=1AbCdEfGhIjK', 'HV_Oscar.pdf'), '');
@@ -1627,6 +1627,29 @@ assert.strictEqual(context.cvScanBack(25), 2);
     'Diseñé el design system en Figma.');
   const line = context.atsTermsLine(terms);
   assert.ok(/^cargo: product designer/.test(line) && /✓ figma/.test(line) && /✓ design system/.test(line) && /✗ jira/.test(line), line);
+}
+
+
+// ¿Sigue abierto el aviso? (2026-11-10: 3 de 20 HV por enviar ya eran de avisos cerrados)
+{
+  assert.strictEqual(context.postingCheckUrl('https://www.linkedin.com/jobs/view/4488191515'),
+    'https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/4488191515');
+  assert.strictEqual(context.postingCheckUrl('https://www.linkedin.com/jobs/view/user-interface-designer-at-stryker-4486715058?position=18'),
+    'https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/4486715058');
+  assert.strictEqual(context.postingCheckUrl('https://www.linkedin.com/posts/ana_activity-7524170831053377536'), '');
+  assert.strictEqual(context.postingCheckUrl('https://www.elempleo.com/co/ofertas-trabajo/x-1886789823'), 'https://www.elempleo.com/co/ofertas-trabajo/x-1886789823');
+  assert.strictEqual(context.postingCheckUrl(''), '');
+  const hoy = '2026-11-10';
+  assert.strictEqual(context.postingStatus(200, '<h3>No longer accepting applications</h3>', hoy), 'cerrada');
+  assert.strictEqual(context.postingStatus(404, '', hoy), 'cerrada');
+  assert.strictEqual(context.postingStatus(429, '', hoy), null, 'LinkedIn bloqueó: se reintenta');
+  assert.strictEqual(context.postingStatus(200, '{"@type":"JobPosting","datePosted":"2026-11-5","validThrough":"2026-11-08"}', hoy), 'cerrada');
+  assert.strictEqual(context.postingStatus(200, '{"@type":"JobPosting","validThrough":"2027-01-04"}', hoy), 'abierta');
+  assert.strictEqual(context.postingStatus(200, '<h2 class="top-card-layout__title">UX</h2>', hoy), 'abierta');
+  assert.strictEqual(context.postingStatus(200, '<html>algo</html>', hoy), null, 'sin señales no se afirma nada');
+  assert.strictEqual(context.postingNote({ s: 'cerrada', d: hoy }), 'CERRADA (2026-11-10)');
+  assert.strictEqual(context.atsFromReport('MATCH ATS: 87%\nPOSIBLE: 91%'), '87%');
+  assert.strictEqual(context.atsFromReport(''), '');
 }
 
 console.log('OK: todas las pruebas de apps_script pasaron');

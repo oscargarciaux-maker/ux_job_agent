@@ -685,12 +685,17 @@ function tandaDeHoy(d) {
   d = d || {};
   var hoy = d.hoy || '';
   var enviadasHoy = (((d.postulaciones || {}).lista) || []).filter(function (a) { return a.clave !== 'preparada' && hoy && diaDe(a.creada) === hoy; }).length;
-  var todas = (d.porEnviar || []).slice().sort(ordenPostulaciones);
+  // Avisos cerrados (2026-11-10): Apps Script comprueba cada día si el aviso sigue abierto; los cerrados no entran a la tanda
+  var cerrada = function (p) { return /^cerrada/i.test(p.aviso || ''); };
+  var cerradas = (d.porEnviar || []).filter(cerrada).map(function (p) {
+    return { empresa: p.empresa || '', cargo: p.cargo || '', carpeta: p.carpeta || '', id: idCarpeta(p.carpeta), aviso: p.aviso || '' };
+  });
+  var todas = (d.porEnviar || []).filter(function (p) { return !cerrada(p); }).sort(ordenPostulaciones);
   var faltanPost = Math.max(0, TANDA_POSTULACIONES - enviadasHoy);
   var postulaciones = todas.slice(0, faltanPost).map(function (p) {
     return { empresa: p.empresa || '', cargo: p.cargo || '', fecha: diaDe(p.fecha), id: idCarpeta(p.carpeta), carpeta: p.carpeta || '',
       vacante: p.vacante || '', hv: p.hv || '', pdf: p.pdfDescarga || p.pdf || '', mensaje: p.mensaje || '',
-      lista: /^lista/i.test(p.revision || ''), revision: p.revision || '' };
+      lista: /^lista/i.test(p.revision || ''), revision: p.revision || '', ats: p.ats || '', abierta: /^abierta/i.test(p.aviso || '') };
   });
   var lista = ((d.correos || {}).lista) || [];
   var grupos = [], porEmpresa = {}, hoyEmpresas = {}, seguimientos = [], conSeguimiento = {};
@@ -721,7 +726,7 @@ function tandaDeHoy(d) {
       carpeta: x.carpeta || '', id: idCarpeta(x.carpeta) };
   });
   minutos += dudosas.length * MINUTOS_TAREA.dudosa;
-  return { dudosas: dudosas, postulaciones: postulaciones, porEnviar: todas.length, enviadasHoy: enviadasHoy,
+  return { dudosas: dudosas, postulaciones: postulaciones, porEnviar: todas.length, cerradas: cerradas, enviadasHoy: enviadasHoy,
     correos: correos, empresasConBorrador: grupos.length, correosHoy: correosHoy, seguimientos: seguimientos,
     minutos: minutos, borradores: borradores, tope: tope, sobreTope: borradores > tope,
     hechas: enviadasHoy + correosHoy, meta: enviadasHoy + correosHoy + postulaciones.length + correos.length };
@@ -1152,10 +1157,13 @@ function modeloDemo(ahora) {
         ]),
       ]);
     }));
-    grupoHoy($('hoy-post'), 'Postulaciones', t.porEnviar > t.postulaciones.length ? t.postulaciones.length + ' de ' + t.porEnviar + ' por enviar' : '', t.postulaciones.map(function (p) {
+    var notaPost = (t.porEnviar > t.postulaciones.length ? t.postulaciones.length + ' de ' + t.porEnviar + ' por enviar' : '') +
+      (t.cerradas && t.cerradas.length ? (t.porEnviar > t.postulaciones.length ? ' · ' : '') + t.cerradas.length + (t.cerradas.length === 1 ? ' aviso cerrado' : ' avisos cerrados') : '');
+    grupoHoy($('hoy-post'), 'Postulaciones', notaPost, t.postulaciones.map(function (p) {
       var li = el('li', { class: 'tarea' }, [
         el('div', { class: 'tarea-cab' }, [el('b', { text: p.empresa }), el('span', { class: 'chip chip--' + (p.lista ? 'listo' : 'atencion'), text: p.lista ? '✓ Lista' : '! Revísala antes' })]),
-        el('p', { text: (p.cargo || 'Sin cargo') + (p.fecha ? ' · lista desde el ' + fechaCorta(p.fecha) : '') }),
+        el('p', { text: (p.cargo || 'Sin cargo') + (p.fecha ? ' · lista desde el ' + fechaCorta(p.fecha) : '') +
+          (p.ats ? ' · match ATS ' + p.ats : '') + (p.abierta ? ' · aviso abierto' : '') }),
       ]);
       if (p.mensaje) li.appendChild(el('p', { class: 'msj', text: p.mensaje }));
       var bs = el('div', { class: 'botones' }, [
@@ -1168,7 +1176,13 @@ function modeloDemo(ahora) {
       ]);
       li.appendChild(bs);
       return li;
-    }));
+    }).concat((t.cerradas || []).map(function (p) {
+      return el('li', { class: 'tarea' }, [
+        el('div', { class: 'tarea-cab' }, [el('b', { text: p.empresa }), el('span', { class: 'chip chip--atencion', text: '✗ El aviso cerró' })]),
+        el('p', { text: (p.cargo || 'Sin cargo') + ' · ' + p.aviso + '. Descártala: ya no recibe postulaciones.' }),
+        el('div', { class: 'botones' }, [enlaceBtn(p.carpeta, 'Carpeta', 'Abrir la carpeta de ' + p.empresa)]),
+      ]);
+    })));
     grupoHoy($('hoy-correos'), 'Correos en frío', t.empresasConBorrador > t.correos.length ? t.correos.length + ' de ' + t.empresasConBorrador + ' empresas' : '', t.correos.map(function (g) {
       var nota = (g.filas.filter(function (f) { return f.aviso; })[0] || {}).notas || '';
       var li = el('li', { class: 'tarea' }, [

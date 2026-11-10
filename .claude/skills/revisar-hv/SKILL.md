@@ -26,8 +26,8 @@ ningún dato fuera de LinkedIn y del contexto). Nunca se envía nada.
 
 `LECCIONES_HV` (lo que al usuario no le ha gustado de sus HV: manda sobre todo lo demás), `CONTEXTO_CV` (los datos),
 `REGLAS_CV` y `GUIA_CV` (las reglas), `MASTER_TEMPLATE` (el formato y los **enlaces del
-encabezado**: son la referencia de cómo deben quedar), la guía "Guia busqueda de vacantes y creacion de HV.md"
-(sección 7, títulos de LinkedIn), la skill `crear-hv` (las reglas con que se escribió la HV) y, de la carpeta de la
+encabezado**: son la referencia de cómo deben quedar; desde el 10 nov 2026 muestran las direcciones visibles), los
+títulos de LinkedIn (sección 5 de `REGLAS_CV`), la skill `crear-hv` solo si hace falta una regla puntual, y, de la carpeta de la
 vacante, `Detalle_Vacante` (o `Empresa` en frío), `Verificacion.txt` y `CV_IA.json` si existen.
 
 Cifras aclaradas por el usuario (mandan sobre `CONTEXTO_CV`): Trezo, cerca de 90 personas en total (50 encuestas y 42

@@ -286,7 +286,11 @@ const CONFIG = {
   PENDING_CV_SHEET_NAME: 'Por enviar',
   // PDF y Mensaje (2026-10-28, paquete de envío): el PDF lo renueva la corrida de cada hora si el Doc cambió; el mensaje es
   // el _correo_cuerpo de CV_IA.json, para copiarlo al postular
-  PENDING_CV_SHEET_HEADERS: ['Fecha', 'Empresa', 'Cargo', 'Verificación', 'Revisión', 'Carpeta', 'HV', 'PDF', 'Mensaje'],
+  // Aviso y ATS (2026-11-10, decisión de Oscar): si el aviso sigue abierto (lo comprueba Apps Script una vez al día, sin IA;
+  // el 10 nov 3 de 20 HV por enviar ya eran de avisos cerrados en LinkedIn) y el match ATS de ATS.txt
+  PENDING_CV_SHEET_HEADERS: ['Fecha', 'Empresa', 'Cargo', 'Verificación', 'Revisión', 'Carpeta', 'HV', 'PDF', 'Mensaje', 'Aviso', 'ATS'],
+  POSTING_CHECKS_PER_RUN: 12,      // avisos que se abren por corrida (cada uno, máximo una vez al día)
+  POSTING_CHECK_PROP_PREFIX: 'AVISO_',
   PENDING_PDF_PER_RUN: 8,
   // Dudosas por decidir (2026-10-29, decisión del usuario: «no me has preguntado»): la corrida de cada hora lista las
   // carpetas de Sin revisar/<fecha>/Dudosas de los últimos CV_CATCHUP_DAYS días con veredicto DUDOSA; la oficina las

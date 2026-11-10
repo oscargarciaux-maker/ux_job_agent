@@ -169,8 +169,8 @@ dijo que los logros de Qentaz sonaban "muy conversacionales"):
   omnicanal…", "Redefiní la experiencia de compra de…"), no una frase nominal suelta ("E-commerce de dispositivos…").
 - `PLANTILLA_HV.pdf` (en `Recursos`) es la referencia de este tono.
 
-**Cargos (`CARGO_EXP_n`):** parten del título de LinkedIn de cada experiencia (tabla "Experiencias y títulos" de la
-sección 7 de "Guia busqueda de vacantes y creacion de HV.md" en Drive) y se ajustan con criterio. Solo la experiencia más
+**Cargos (`CARGO_EXP_n`):** parten del título de LinkedIn de cada experiencia (sección 5 de `REGLAS_CV`,
+copiada de la guía de búsqueda el 10 nov 2026) y se ajustan con criterio. Solo la experiencia más
 relevante puede llevar el cargo de la vacante o uno muy cercano; las demás conservan su título o una variante con otra
 keyword que de verdad corresponda a lo que se hizo. Nunca dos experiencias con el mismo cargo. Sin inflar el nivel
 (Senior, Lead, Manager) más allá del título de LinkedIn.

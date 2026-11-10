@@ -197,6 +197,14 @@ assert.ok(/scope: '\.\/oficina\.html'/.test(html), 'el service worker solo contr
   assert.strictEqual(conDudosas.minutos, t.minutos + 1);
   assert.strictEqual(F('resumenTanda')(conDudosas), '1 dudosa por decidir, 4 postulaciones, 2 empresas con correos y 1 seguimiento · unos 20 min');
   assert.deepStrictEqual(t.dudosas, [], 'sin dudosas en el JSON, la tanda no inventa ninguna');
+  // Avisos cerrados (2026-11-10): no entran a la tanda y se listan aparte; el match ATS viaja a la tarjeta
+  const conAvisos = J(F('tandaDeHoy')(Object.assign({}, d, { porEnviar: d.porEnviar.map((p, i) =>
+    Object.assign({}, p, i === 0 ? { aviso: 'CERRADA (2026-11-10)' } : { aviso: 'Abierta (2026-11-10)', ats: '87%' })) })));
+  assert.strictEqual(conAvisos.cerradas.length, 1);
+  assert.strictEqual(conAvisos.porEnviar, t.porEnviar - 1);
+  assert.ok(conAvisos.postulaciones.every(p => p.empresa !== conAvisos.cerradas[0].empresa));
+  assert.ok(conAvisos.postulaciones.every(p => p.ats === '87%' && p.abierta));
+  assert.deepStrictEqual(t.cerradas, [], 'sin aviso comprobado no se da nada por cerrado');
 }
 
 // Rutinas y tiempos reales (2026-10-28): cada especialista tiene un puesto de trabajo y el guion intercala su trabajo

@@ -23,6 +23,17 @@
   builder (`generarCVsDesdeIA`).
 - **Bug:** `keywordCovered` fundía «UX e IA» en «uxeia» y rechazaba HV correctas; ahora solo junta siglas con / & -.
 
+## 2026-11-10 (tarde) — Decisiones de Oscar aplicadas
+- Ritmo: no se baja con más de 10 HV sin enviar (POLITICA_OPERATIVA punto 3).
+- CONTEXTO_CV: agregadas Creatividad, Comunicación, HTML, Photoshop, Illustrator (dentro de Adobe Creative Suite) y
+  Analítica de datos, confirmadas por Oscar.
+- MASTER_TEMPLATE: el encabezado muestra las direcciones visibles de LinkedIn y del portafolio (enlaces intactos).
+  `TEMPLATE_LABELS_EN_` ya no tiene «Portafolio» que traducir: queda inofensivo.
+- REGLAS_CV sección 5: títulos de LinkedIn copiados de la guía de búsqueda; los prompts ya no la descargan.
+- Tareas programadas: arranque sin respaldo a la rama `claude/funny-gates-0lgwpf`; «Revisión HV diaria» solo a las 7:53.
+- `Por enviar` gana `Aviso` (Apps Script comprueba una vez al día si el aviso sigue abierto: `checkPendingPostings_`,
+  `postingCheckUrl`, `postingStatus`) y `ATS` (de `ATS.txt`); la oficina saca de la tanda los avisos cerrados.
+
 ## 2026-11-10 — Memoria compartida de los agentes (pestaña Tanda IA)
 - Pedido de Oscar: «que no me consuma todo el plan cuando varios agentes lean algo; si uno lo lee, que los demás ya lo
   sepan». Diagnóstico: los subagentes no comparten memoria; el jefe pegaba skills enteras en sus prompts (salida, lo más

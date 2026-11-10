@@ -148,7 +148,8 @@ function atsRoleTitle(title) {
 
 /** Texto de la HV tal como lo leería un ATS: los valores de los marcadores + el texto fijo de la plantilla. */
 function atsCvText(cv) {
-  const fixed = cv && cv._idioma === 'en' ? 'LinkedIn Portfolio WhatsApp Languages' : 'LinkedIn Portafolio WhatsApp Idiomas';
+  // Desde 2026-11-10 el encabezado muestra las direcciones visibles (linkedin.com/in/… y …-portfolio.lovable.app)
+  const fixed = cv && cv._idioma === 'en' ? 'linkedin portfolio WhatsApp Languages' : 'linkedin portfolio WhatsApp Idiomas';
   const values = Object.keys(cv || {}).filter(k => k.charAt(0) !== '_' && typeof cv[k] === 'string').map(k => cv[k]);
   return values.concat([fixed]).join(' \n ');
 }

@@ -160,6 +160,7 @@ function writePendingCvs_(ss, root, children, exportPdf) {
   const sheet = ss.getSheetByName(CONFIG.PENDING_CV_SHEET_NAME) || ss.insertSheet(CONFIG.PENDING_CV_SHEET_NAME, ss.getNumSheets());
   const header = CONFIG.PENDING_CV_SHEET_HEADERS;
   const previous = previousPendingMessages_(sheet, header);
+  const previousAts = previousPendingColumn_(sheet, header, 'ATS');
   const rows = [];
   const doubtful = [];
   const recent = recentDays(Utilities.formatDate(new Date(), tz_(), 'yyyy-MM-dd'), CONFIG.CV_CATCHUP_DAYS);
@@ -246,17 +247,26 @@ function writePendingCvs_(ss, root, children, exportPdf) {
             message = '';
           }
         }
-        rows.push(Object.assign(record, { id: f.id, hvId: hv.id, hv: hv.name, pdfId: pdf ? pdf.id : '', mensaje: message }));
+        let ats = previousAts[f.id] || '';
+        if (!ats && files.some(x => x.name === CONFIG.ATS_REPORT_NAME)) {
+          try { ats = atsFromReport(text(CONFIG.ATS_REPORT_NAME)); } catch (e) { ats = ''; }
+        }
+        rows.push(Object.assign(record, { id: f.id, hvId: hv.id, hv: hv.name, pdfId: pdf ? pdf.id : '', mensaje: message, ats: ats }));
       });
     });
   }
   rows.sort((a, b) => (a.fecha < b.fecha ? 1 : a.fecha > b.fecha ? -1 : 0));
+  try {
+    checkPendingPostings_(rows, rows.length ? dashboardRows(signals().registry) : []);
+  } catch (e) {
+    console.warn('Avisos: ' + e.message);  // Nunca frena la sincronización
+  }
   sheet.clear();
   const values = [header].concat(rows.map(r => [r.fecha, r.empresa, r.cargo, r.verificacion, r.revision,
     '=HYPERLINK("https://drive.google.com/drive/folders/' + r.id + '","Abrir")',
     '=HYPERLINK("https://drive.google.com/open?id=' + r.hvId + '","' + r.hv.replace(/"/g, "'") + '")',
     r.pdfId ? '=HYPERLINK("https://drive.google.com/open?id=' + r.pdfId + '","PDF")' : '',
-    r.mensaje]));
+    r.mensaje, r.aviso || '', r.ats || '']));
   sheet.getRange(1, 1, values.length, header.length).setValues(values);
   sheet.getRange(1, 1, 1, header.length).setFontWeight('bold');
   sheet.setFrozenRows(1);
@@ -349,6 +359,11 @@ function writeDoubtfulSheet_(ss, rows) {
   const header = CONFIG.DOUBTFUL_SHEET_HEADERS;
   const sheet = ss.getSheetByName(CONFIG.DOUBTFUL_SHEET_NAME) || ss.insertSheet(CONFIG.DOUBTFUL_SHEET_NAME, ss.getNumSheets());
   rows.sort((a, b) => (a.fecha < b.fecha ? 1 : a.fecha > b.fecha ? -1 : 0));
+  try {
+    checkPendingPostings_(rows, rows.length ? dashboardRows(signals().registry) : []);
+  } catch (e) {
+    console.warn('Avisos: ' + e.message);  // Nunca frena la sincronización
+  }
   sheet.clear();
   const values = [header].concat(rows.map(r => [r.fecha, r.empresa, r.cargo, r.motivo, r.vacante,
     '=HYPERLINK("https://drive.google.com/drive/folders/' + r.id + '","Abrir")']));
@@ -438,6 +453,91 @@ function doubtfulDecisionText(approved, previousText, today) {
 }
 
 /** Mensaje de la corrida anterior por id de carpeta (sale de la fórmula de la columna Carpeta). */
+/**
+ * ¿Sigue abierto el aviso de cada HV por enviar? (2026-11-10, decisión de Oscar). Una vez al día por carpeta y como máximo
+ * CONFIG.POSTING_CHECKS_PER_RUN por corrida, sin IA: LinkedIn por su vista pública, el resto por su página (404, texto de
+ * cerrada o JSON-LD vencido). Un aviso cerrado queda cerrado. Las publicaciones de LinkedIn no se comprueban.
+ */
+function checkPendingPostings_(rows, registryRows) {
+  const props = PropertiesService.getScriptProperties();
+  const today = Utilities.formatDate(new Date(), tz_(), 'yyyy-MM-dd');
+  const todo = [];
+  rows.forEach(r => {
+    const key = CONFIG.POSTING_CHECK_PROP_PREFIX + r.id;
+    let cached = null;
+    try { cached = JSON.parse(props.getProperty(key) || 'null'); } catch (e) { cached = null; }
+    if (cached && (cached.d === today || cached.s === 'cerrada')) { r.aviso = postingNote(cached); return; }
+    const link = vacancyLinkFor({ empresa: r.empresa, cargo: r.cargo }, registryRows);
+    const url = postingCheckUrl(link);
+    if (!url) { r.aviso = cached ? postingNote(cached) : (link ? 'Publicación: sin comprobar' : 'Sin enlace'); return; }
+    if (todo.length >= CONFIG.POSTING_CHECKS_PER_RUN) { r.aviso = cached ? postingNote(cached) : 'Por comprobar'; return; }
+    todo.push({ row: r, key: key, url: url, cached: cached });
+  });
+  if (!todo.length) return;
+  const responses = UrlFetchApp.fetchAll(todo.map(t => ({ url: t.url, muteHttpExceptions: true, followRedirects: true,
+    headers: { 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64)', 'Accept-Language': 'es-CO,es;q=0.9,en;q=0.8' } })));
+  todo.forEach((t, i) => {
+    let status = null;
+    try { status = postingStatus(responses[i].getResponseCode(), responses[i].getContentText(), today); } catch (e) { status = null; }
+    if (status) {
+      const value = { d: today, s: status };
+      props.setProperty(t.key, JSON.stringify(value));
+      t.row.aviso = postingNote(value);
+    } else {
+      t.row.aviso = t.cached ? postingNote(t.cached) : 'Sin comprobar';
+    }
+  });
+  const closed = rows.filter(r => /^CERRADA/.test(r.aviso || '')).map(r => r.empresa);
+  console.log('Avisos: ' + todo.length + ' comprobados' + (closed.length ? '; cerrados: ' + closed.join(', ') : ''));
+}
+
+/** URL que se abre para saber si el aviso sigue abierto: la vista pública de LinkedIn o la página; '' si no se comprueba. */
+function postingCheckUrl(link) {
+  const url = String(link || '').trim();
+  if (!/^https?:\/\//.test(url)) return '';
+  const li = url.match(/linkedin\.com\/jobs\/view\/(?:[^/?#]*-)?(\d{6,})/);
+  if (li) return 'https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/' + li[1];
+  if (/linkedin\.com\/(posts|feed)\//.test(url)) return '';  // publicaciones: sin señal fiable de cierre
+  return url;
+}
+
+/** 'cerrada', 'abierta' o null (no se pudo saber) a partir de la respuesta de la página del aviso. */
+function postingStatus(code, html, todayIso) {
+  if (code === 404 || code === 410) return 'cerrada';
+  if (code >= 400 || !html) return null;
+  if (isClosedPosting(html)) return 'cerrada';
+  const dates = extractJobPostingDates(html);
+  if (dates.validThrough && dates.validThrough < todayIso) return 'cerrada';
+  if (/"@type"\s*:\s*"JobPosting"/.test(html) || /top-card-layout__title/.test(html)) return 'abierta';
+  return null;
+}
+
+/** Texto de la columna Aviso: «Abierta (2026-11-10)» o «CERRADA (2026-11-10)». */
+function postingNote(value) {
+  return (value.s === 'cerrada' ? 'CERRADA' : 'Abierta') + ' (' + value.d + ')';
+}
+
+/** «87%» desde la primera línea de ATS.txt («MATCH ATS: 87%»); '' si no hay. */
+function atsFromReport(text) {
+  const m = String(text || '').match(/MATCH ATS:\s*(\d+)%/);
+  return m ? m[1] + '%' : '';
+}
+
+/** Valores de una columna de la corrida anterior de «Por enviar», por id de carpeta (para no releer archivos). */
+function previousPendingColumn_(sheet, header, name) {
+  const out = {};
+  const col = header.indexOf(name);
+  if (col < 0 || sheet.getLastRow() < 2 || sheet.getLastColumn() < col + 1) return out;
+  const n = sheet.getLastRow() - 1;
+  const folders = sheet.getRange(2, header.indexOf('Carpeta') + 1, n, 1).getFormulas();
+  const values = sheet.getRange(2, col + 1, n, 1).getValues();
+  folders.forEach((row, i) => {
+    const id = (String(row[0]).match(/folders\/([\w-]+)/) || [])[1];
+    if (id && values[i][0]) out[id] = String(values[i][0]);
+  });
+  return out;
+}
+
 function previousPendingMessages_(sheet, header) {
   const out = {};
   const col = header.indexOf('Mensaje');
