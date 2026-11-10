@@ -12,7 +12,7 @@ Una especificación que Oscar ya aprobó: qué debe hacer la pieza nueva, qué r
 1. Lee `CLAUDE.md` y `docs/MULTIAGENTE.md`. Para una skill usa la skill `skill-creator`; para un agente, copia la estructura de los de `.claude/agents/`; para código, imita el estilo del archivo que tocas.
 2. Trabaja en la rama de desarrollo de la sesión (nunca en `main`). Un archivo `.gs` nuevo va en `apps_script/files.json`; una función pública nueva, en `exports_()` y en `instalador/Cargador.gs` (avísale a Oscar que debe re-pegar el Cargador). Si cambias el manifiesto, avísale que debe re-pegarlo.
 3. Corre las pruebas: `node tests/apps_script.test.js`, `node tests/juego.test.js`, `node tests/oficina.test.js` y `python3 tests/jobspy_test.py`. Todas en verde antes de subir.
-4. Actualiza `CLAUDE.md` y `docs/REQUISITOS.md` si cambias una regla.
+4. Si cambias una regla: agrega la decisión en `docs/HISTORIAL_TECNICO.md` (sección de su módulo) y en `docs/REQUISITOS.md`; toca `CLAUDE.md` solo si cambia el mapa (es un índice corto: cada sesión lo carga entero).
 5. Abre el PR y deja el enlace. **Nunca fusionas**: Oscar fusiona.
 
 ## Reglas

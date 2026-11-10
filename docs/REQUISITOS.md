@@ -9,6 +9,28 @@ privados `REGLAS_CV` y `CONTEXTO_CV` y en la plantilla `MASTER_TEMPLATE`.
 
 Estados: ✅ hecho y probado · 🟡 parcial · ⏳ pendiente · ❓ falta una decisión del usuario · 🚫 no automatizable en esta arquitectura
 
+## Match ATS, huellas y HV a pedido (9 nov 2026)
+
+Pedido de Oscar: «cuando me postulo me debería decir que mi match con la vacante es alto, pero me deja un 40 %, un 50 %».
+Causa: las keywords eran ideas resumidas, solo se exigían 5, el cargo de la vacante no iba en el título y la HV traducía
+términos que la vacante escribe en inglés. Ningún paso medía el match.
+
+| Regla | Estado | Dónde / cómo se comprueba |
+|---|---|---|
+| Match ATS estimado en cada HV (palabra exacta de la vacante vs. HV vs. `CONTEXTO_CV`) | ✅ | `Ats.gs` (`atsCoverage`, `atsReport`); `ATS.txt` en la carpeta; pruebas «Medidor ATS» |
+| El cargo de la vacante (sin nivel) va en el título profesional o un cargo | ✅ | `atsRoleTitle`, `atsErrors` (rechaza) |
+| Todo término respaldado por `CONTEXTO_CV` se escribe como lo escribe la vacante (tolerancia 2) | ✅ | `atsErrors`, `CONFIG.ATS_MAX_FIXABLE`; un término declarado en `_gaps` deja de exigirse |
+| Términos que la vacante escribe en inglés van así también en una HV en español | ✅ | skill `crear-hv` («Match ATS»), `ia/prompt_cv_diario.md` 4.b; manda sobre la lista en español de `LECCIONES_HV` |
+| Herramientas de la HV deben estar en `CONTEXTO_CV` | ✅ | `atsToolIssues` (error; aviso si va dentro de una suite que sí está) |
+| No repetir el perfil ni más de 2 logros de una HV de los últimos 7 días, sin que la IA lea HV anteriores | ✅ | `cvFingerprint`, `repetitionErrors`, propiedad `HV_HUELLAS` (`cvHistory_`) |
+| HV general o para un perfil con el mismo creador (modo C) | ✅ | `HV a pedido/<Nombre>/` + `Encargo` + `CV_IA.json`; `generarCVsDesdeIA` la arma sin registro ni correo |
+| Vacantes de días anteriores no quedan huérfanas si la IA falla varios días | ✅ | `cvScanBack` (7 días en la primera pasada de cada hora), prompt diario con `Hoja 1` como índice |
+| «UX e IA» o «UX de» no se funden en una palabra al buscar keywords | ✅ | `keywordCovered` (solo junta siglas separadas por / & -) |
+| Memoria compartida: cola de trabajo de la IA con ids y términos ATS, sin recorrer Drive | ✅ | pestaña `Tanda IA` (`writeWorkQueueSheet_`, `workQueueEntry`, `atsVacancyTerms`); prompts diarios la leen primero |
+| Un agente por papel, sin pegar skills en los prompts, respaldos que terminan si no falta nada | ✅ | `ia/prompt_cv_diario.md`, `ia/prompt_revision_diaria.md`, `docs/MULTIAGENTE.md` §3b |
+| Mostrar el match ATS en `Por enviar` y en la oficina | ✅ | columna `ATS` (`atsFromReport`); tarjeta de la tanda en `oficina.html` |
+| Comprobar cada día si las HV por enviar siguen abiertas (avisos de LinkedIn cierran en 3–4 días) | ✅ | columna `Aviso` (`checkPendingPostings_`, `postingStatus`); la oficina saca las cerradas de la tanda; las publicaciones de LinkedIn no se comprueban |
+
 ## Búsqueda y filtros (guía §3)
 
 | Regla | Estado | Dónde / cómo se comprueba |

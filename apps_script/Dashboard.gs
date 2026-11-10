@@ -383,7 +383,8 @@ function buildDashboardModel(tabs, now, timeZone) {
     .map(r => ({ fecha: r['Fecha'], empresa: r['Empresa'], cargo: r['Cargo'], verificacion: r['Verificación'],
                  revision: r['Revisión'], carpeta: r._links['Carpeta'] || '', hv: r._links['HV'] || '',
                  pdf: r._links['PDF'] || '', pdfDescarga: docPdfExportUrl(r._links['HV'], r['HV']),
-                 mensaje: String(r['Mensaje'] || '').slice(0, CONFIG.DASHBOARD_MESSAGE_MAX_CHARS) }));
+                 mensaje: String(r['Mensaje'] || '').slice(0, CONFIG.DASHBOARD_MESSAGE_MAX_CHARS),
+                 aviso: r['Aviso'] || '', ats: r['ATS'] || '' }));
   // Enlace de la vacante para el botón «Vacante» del juego (2026-10-27), desde Hoja 1
   pending.forEach(p => { p.vacante = vacancyLinkFor(p, registry); });
   const followup = followupRows.map(r => ({

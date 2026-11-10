@@ -29,19 +29,30 @@ function generarCVsDesdeIA() {
   try {
   const root = DriveApp.getFolderById(getProp_(PROPS.ROOT_FOLDER_ID));
   const today = Utilities.formatDate(now, tz_(), 'yyyy-MM-dd');
-  // Sin revisar/<día> desde 2026-10-22; <hoy> en la raíz por si alguna corrida anterior la dejó allí
+  // Sin revisar/<día> desde 2026-10-22; <hoy> en la raíz por si alguna corrida anterior la dejó allí. Una vez por hora mira
+  // CV_RESCUE_DAYS días (2026-11-09: las 12 vacantes del 6 nov quedaron huérfanas al pasar los 2 días de retoma).
+  const back = cvScanBack(Number(Utilities.formatDate(now, tz_(), 'm')));
   const pendingIt = root.getFoldersByName(CONFIG.PENDING_FOLDER_NAME);
   const pending = pendingIt.hasNext() ? pendingIt.next() : null;
-  const candidates = recentDays(today, CONFIG.CV_CATCHUP_DAYS).map(day => pending ? pending.getFoldersByName(day) : null)
+  const candidates = recentDays(today, back).map(day => pending ? pending.getFoldersByName(day) : null)
     .concat([root.getFoldersByName(today)]);
   const dateFolders = candidates.filter(it => it && it.hasNext()).map(it => it.next());
-  if (!dateFolders.length) {
+  // HV a pedido (modo C de crear-hv, 2026-11-09): una HV general o para un perfil, sin vacante ni registro
+  const onDemandIt = root.getFoldersByName(CONFIG.ON_DEMAND_FOLDER_NAME);
+  const onDemand = onDemandIt.hasNext() ? onDemandIt.next() : null;
+  if (!dateFolders.length && !onDemand) {
     console.log('No hay carpeta de vacantes para ' + today + '.');
     return;
   }
-  const sheet = getRegistrySheet_();
+  const sheet = dateFolders.length ? getRegistrySheet_() : null;
   dateFolders.forEach(f => buildCvsInFolder_(f, sheet));
+  if (onDemand) buildCvsInFolder_(onDemand, null);
   } finally { lock.releaseLock(); }
+}
+
+/** Días hacia atrás que revisa esta pasada: CV_RESCUE_DAYS en la primera pasada de cada hora, si no CV_CATCHUP_DAYS. */
+function cvScanBack(minute) {
+  return Number(minute) < CONFIG.CV_EVERY_MINUTES ? CONFIG.CV_RESCUE_DAYS : CONFIG.CV_CATCHUP_DAYS;
 }
 
 /** Hoy y los `back` días anteriores, como 'yyyy-MM-dd', de hoy hacia atrás. */
@@ -78,6 +89,7 @@ function buildCvsInFolder_(dateFolder, sheet) {
       contextText: DocumentApp.openById(contextDoc.getId()).getBody().getText(),
       template: template,
       placeholders: listPlaceholders_(template.getId()).map(p => p.slice(2, -2)),
+      history: cvHistory_(),
     };
     return shared;
   };
@@ -121,19 +133,23 @@ function buildCvsInFolder_(dateFolder, sheet) {
         console.log(label + ' -> ya tiene CV generado; estado sincronizado, no se duplica');
         return;
       }
-      const detailFile = firstFileByName_(folder, 'Detalle_Vacante');
+      const detailFile = firstFileByName_(folder, 'Detalle_Vacante') || firstFileByName_(folder, CONFIG.ON_DEMAND_DETAIL_NAME);
       const vacancy = parseVacancyDetail(detailFile ? DocumentApp.openById(detailFile.getId()).getBody().getText() : '');
-      const { contextText, template, placeholders } = getShared();
+      const { contextText, template, placeholders, history } = getShared();
 
       let cv;
       let check;
       try {
         cv = parseCvJson(readTextFile_(jsonFile));
-        check = validateCvJson(cv, contextText, placeholders, vacancy);
+        check = validateCvJson(cv, contextText, placeholders, vacancy, history.forLabel(label));
       } catch (e) {
         check = { errors: [e.message], warnings: [] };
       }
       check.warnings.forEach(w => console.warn(label + ' -> aviso: ' + w));
+      if (check.ats !== undefined) {
+        replaceFile_(folder, CONFIG.ATS_REPORT_NAME, atsReport(check.ats, label));
+        if (check.ats) console.log(label + ' -> match ATS ' + check.ats.score + '% (posible ' + check.ats.potential + '%)');
+      }
       if (check.errors.length) {
         replaceFile_(folder, CONFIG.CV_ERRORS_NAME, check.errors.join('\n'));
         updateVacancyStatus_(sheet, vacancy.link, 'CV rechazado (validación)');
@@ -156,6 +172,7 @@ function buildCvsInFolder_(dateFolder, sheet) {
       }
       removeFiles_(folder, CONFIG.CV_ERRORS_NAME);
       updateVacancyStatus_(sheet, vacancy.link, 'Pendiente');
+      history.remember(label, cv);
 
       let draftNote = 'sin correo directo';
       if (vacancy.email && cv._correo_cuerpo) {
@@ -240,10 +257,11 @@ function extractNumbers_(text) {
 }
 
 /**
- * Valida el contrato y la regla anti-alucinación: toda cifra y toda empresa del CV/correo
- * debe aparecer en CONTEXTO_CV. Devuelve { errors, warnings }.
+ * Valida el contrato y la regla anti-alucinación: toda cifra, empresa y herramienta del CV/correo debe aparecer en
+ * CONTEXTO_CV; mide el match ATS contra la vacante (Ats.gs) y, con `history` ({hash, recent}), que no repita el perfil ni
+ * más de CONFIG.CV_MAX_SHARED_LOGROS logros de otra HV reciente. Devuelve { errors, warnings, ats }.
  */
-function validateCvJson(cv, contextText, placeholders, vacancy) {
+function validateCvJson(cv, contextText, placeholders, vacancy, history) {
   const allowJunior = vacancyAllowsJunior(vacancy);
   const errors = [];
   const warnings = [];
@@ -284,9 +302,48 @@ function validateCvJson(cv, contextText, placeholders, vacancy) {
   cargoErrors(cv, vacancy).forEach(e => errors.push(e));
   targetCompanyErrors(cv, vacancy).forEach(e => errors.push(e));
   personalizationErrors(cv, contextText).forEach(e => errors.push(e));
+  // Anti-alucinación de herramientas y match ATS (2026-11-09: el match de las HV salía en 40–50 %)
+  const tools = atsToolIssues(cv, contextText);
+  tools.errors.forEach(e => errors.push(e));
+  tools.warnings.forEach(w => warnings.push(w));
+  const ats = atsCoverage(vacancy, cv, contextText);
+  atsErrors(ats).forEach(e => errors.push(e));
+  if (history && history.hash) repetitionErrors(cvFingerprint(cv, history.hash), history.recent || []).forEach(e => errors.push(e));
   // Guía Maestra de Cover Letters: el correo de postulación tiene la misma forma que los correos en frío (2026-11-03)
   emailShapeErrors(cv._correo_cuerpo).forEach(e => warnings.push('_correo_cuerpo ' + e));
-  return { errors: errors.filter((e, i, all) => all.indexOf(e) === i), warnings: warnings };
+  return { errors: errors.filter((e, i, all) => all.indexOf(e) === i), warnings: warnings, ats: ats };
+}
+
+/**
+ * Huella de una HV para no repetirla (LECCIONES_HV, 25 oct 2026: «ninguna HV puede compartir el perfil ni más de 2
+ * logros con el mismo texto con otra HV de los últimos 7 días»). Desde 2026-11-09 la comprueba Apps Script: la IA ya no
+ * lee las HV anteriores (era la lectura más cara de la mañana). hash(texto normalizado) -> cadena corta.
+ */
+function cvFingerprint(cv, hash) {
+  const perfil = normText_(String(cv.PERFIL_PERSONALIZADO || '').split(/(?<=[.!?])\s/)[0]);
+  const logros = Object.keys(cv).filter(k => /^LOGRO_\d+_\d+$/.test(k) && normText_(cv[k])).map(k => hash(normText_(cv[k])));
+  return { p: perfil ? hash(perfil) : '', l: logros };
+}
+
+/** Errores si la huella repite el perfil o más de CONFIG.CV_MAX_SHARED_LOGROS logros de una HV de `recent` ({n, d, p, l}). */
+function repetitionErrors(fp, recent) {
+  const errors = [];
+  recent.forEach(r => {
+    if (fp.p && fp.p === r.p) errors.push('PERFIL_PERSONALIZADO: abre con la misma frase que la HV de ' + r.n + ' (' + r.d + '); escríbelo para esta vacante');
+    const shared = fp.l.filter(h => (r.l || []).indexOf(h) !== -1).length;
+    if (shared > CONFIG.CV_MAX_SHARED_LOGROS) {
+      errors.push('Repite ' + shared + ' logros con el mismo texto de la HV de ' + r.n + ' (' + r.d + '); máximo ' +
+        CONFIG.CV_MAX_SHARED_LOGROS + ': elige o redacta otros desde el mapa de evidencia');
+    }
+  });
+  return errors;
+}
+
+/** Huellas guardadas de los últimos CV_HISTORY_DAYS días, sin las de la misma carpeta y hasta CV_HISTORY_MAX. */
+function pruneCvHistory(entries, today, label) {
+  const limit = new Date(Date.UTC(+today.slice(0, 4), +today.slice(5, 7) - 1, +today.slice(8, 10)) -
+    CONFIG.CV_HISTORY_DAYS * 86400000).toISOString().slice(0, 10);
+  return (entries || []).filter(e => e && e.d >= limit && e.n !== label).slice(-CONFIG.CV_HISTORY_MAX);
 }
 
 /** Texto sin mayúsculas, tildes ni signos (palabras separadas por un espacio). */
@@ -302,8 +359,10 @@ const KEYWORD_STOPWORDS_ = ['and', 'the', 'for', 'with', 'from', 'para', 'con', 
  * palabra exacta.
  */
 function keywordCovered(keyword, text) {
-  // Siglas partidas por signos se juntan ("A/B" → "ab", "UX/UI" → "uxui") en la keyword y en el texto
-  const join = x => normText_(x).replace(/\b([a-z0-9]{1,2})((?: [a-z0-9]{1,2}\b)+)/g, (m, a, rest) => a + rest.replace(/ /g, ''));
+  // Siglas partidas por signos se juntan ("A/B" → "ab", "UX/UI" → "uxui") en la keyword y en el texto. Solo con / & -
+  // entre ellas (2026-11-09: antes «UX e IA» o «UX de» quedaban «uxeia»/«uxde» y la keyword UX no se encontraba)
+  const join = x => normText_(String(x || '').replace(/\b[A-Za-z0-9]{1,2}(?:\s*[\/&-]\s*[A-Za-z0-9]{1,2})+\b/g,
+    m => m.replace(/[\s\/&-]+/g, '')));
   const k = join(keyword);
   if (!k) return true;
   const t = ' ' + join(text) + ' ';
@@ -456,12 +515,16 @@ function parseVacancyDetail(text) {
   const isField = l => /^(Empresa|Ubicación|Link|Publicada|Nivel|Match Score|Idioma|Correo de contacto|Fuente|Tipo|Rol|Aviso empresa|Inglés|Portal oficial): /.test(l);
   const heading = lines.map(l => l.trim()).filter(l => l && !isField(l))[0] || '';
   const title = heading.replace(/^#+\s*/, '').trim();
+  // La descripción (para el medidor ATS): lo que sigue a "Descripción completa"; en un Encargo sin ese título, todo
+  const start = lines.findIndex(l => /^#*\s*Descripci[oó]n completa\s*$/i.test(l.trim()));
+  const description = (start === -1 ? lines.filter(l => !isField(l)) : lines.slice(start + 1)).join('\n').trim();
   return {
     title: title && title !== 'Descripción completa' ? title : null,
     company: field('Empresa'),
     link: field('Link'),
     email: field('Correo de contacto'),
     language: (field('Idioma') || 'es').toLowerCase(),
+    description: description,
   };
 }
 
@@ -532,6 +595,25 @@ function replaceLiteral_(section, search, replacement) {
     text.deleteText(start, end);
     found = section.findText(pattern);
   }
+}
+
+/** Huellas de las HV recientes (propiedad CV_HISTORY_PROP): `forLabel(carpeta)` para validar, `remember` al armar. */
+function cvHistory_() {
+  const props = PropertiesService.getScriptProperties();
+  const today = Utilities.formatDate(new Date(), tz_(), 'yyyy-MM-dd');
+  const hash = t => Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, t, Utilities.Charset.UTF_8)).slice(0, 8);
+  let entries = [];
+  try { entries = JSON.parse(props.getProperty(CONFIG.CV_HISTORY_PROP) || '[]'); } catch (e) { entries = []; }
+  return {
+    forLabel: label => ({ hash: hash, recent: pruneCvHistory(entries, today, label) }),
+    remember: (label, cv) => {
+      try {
+        const fp = cvFingerprint(cv, hash);
+        entries = pruneCvHistory(entries, today, label).concat([{ d: today, n: String(label).slice(0, 40), p: fp.p, l: fp.l }]);
+        props.setProperty(CONFIG.CV_HISTORY_PROP, JSON.stringify(entries));
+      } catch (e) { console.warn('Huellas de HV: ' + e.message); }  // Nunca frena una HV
+    },
+  };
 }
 
 function findDocByName_(name) {

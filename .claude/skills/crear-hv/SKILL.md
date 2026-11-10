@@ -1,6 +1,6 @@
 ---
 name: crear-hv
-description: Crea la hoja de vida (HV) personalizada del candidato para una vacante o para una empresa a la que se le escribirá en frío, siguiendo GUIA_CV con los datos reales de CONTEXTO_CV sobre la plantilla MASTER_TEMPLATE, sin inventar nada y en máximo 2 páginas. Úsala cuando el usuario pida "crea/haz/adapta la HV (hoja de vida, CV) para esta vacante / esta empresa", para un correo en frío, o cuando la tarea diaria deba escribir el CV_IA.json de las vacantes verificadas.
+description: Crea la hoja de vida (HV) del candidato en tres modos —para una vacante, para una empresa a la que se le escribirá en frío, o una HV general o para un perfil (sin vacante ni empresa)— siguiendo GUIA_CV con los datos reales de CONTEXTO_CV sobre la plantilla MASTER_TEMPLATE, con las palabras exactas que busca un ATS, sin inventar nada y en máximo 2 páginas. Úsala cuando el usuario pida "crea/haz/adapta la HV (hoja de vida, CV) para esta vacante / esta empresa", "hazme una HV general", "una HV para Product Designer fintech", para un correo en frío, o cuando la tarea diaria deba escribir el CV_IA.json de las vacantes verificadas.
 ---
 
 # Crear HV
@@ -24,7 +24,7 @@ Cifras aclaradas por el usuario que deben respetarse aunque `CONTEXTO_CV` las di
 en total (50 encuestas y 42 entrevistas; nunca "entrevisté a más de 90"); Seguros Bolívar, equipo de 6 contándolo a él,
 lideraba a 5.
 
-## Dos modos
+## Tres modos (un solo creador de HV, 9 nov 2026: «que me la pueda crear sin tener que crear otro agente»)
 
 **A. Vacante.** Hay un aviso: una carpeta `Vacantes con IA/Sin revisar/<fecha>/<Empresa>` con su `Detalle_Vacante`,
 o un enlace.
@@ -43,18 +43,56 @@ o un enlace.
 - Las keywords salen de la empresa (producto, sector, lo que publica), no de un aviso.
 - Los correos (direcciones, mensaje y borradores) los prepara la skill `correo-en-frio`.
 
+**C. HV general o a pedido.** No hay vacante ni empresa: Oscar quiere una HV para un perfil («HV general», «HV para
+Product Designer fintech», «HV en inglés para remoto LATAM», «HV para una feria de empleo»).
+- **Carpeta:** `Vacantes con IA/HV a pedido/<Nombre corto>/` (créala si no existe) con un Google Doc `Encargo`:
+  primera línea `# <cargo objetivo>`, luego `Idioma: ES|EN`, `Tipo: HV general` y `## Descripción completa` con lo que
+  pidió Oscar y, si hay, el texto de 2 o 3 vacantes típicas de ese perfil (de `Hoja 1` o de `Sin revisar`): de ahí
+  salen las keywords y el medidor ATS de Apps Script.
+- **Keywords:** los términos que más se repiten en esas vacantes típicas y que `CONTEXTO_CV` respalda; el perfil cuenta
+  las fortalezas más fuertes de Oscar (las que más pruebas tienen en `CONTEXTO_CV`), no una vacante.
+- **Salida:** solo `CV_IA.json` en esa carpeta (mismo contrato; `_correo_cuerpo` = `""`). Apps Script la arma en su
+  siguiente pasada (cada 10 minutos, de 5:00 a 22:59), deja `ATS.txt` y no toca el registro ni Gmail. En una
+  conversación también se puede armar de inmediato (ver «En una conversación»).
+
 ## Paso 1. Leer
 
 Lee completos `LECCIONES_HV`, `GUIA_CV`, `REGLAS_CV`, `CONTEXTO_CV`, los marcadores de `MASTER_TEMPLATE` y el
-`Detalle_Vacante` (o la investigación de la empresa). Si hay `Verificacion.txt`, léelo: dice qué baja la vacante (años,
-inglés…). Lee también las HV de los últimos 7 días (los `CV_IA.json` de `Sin revisar/<fecha>/` y las HV `HV_…` de esas
-carpetas): la nueva no puede repetir su perfil ni más de 2 de sus logros con el mismo texto.
+`Detalle_Vacante` (o la investigación de la empresa, o el `Encargo`). Si hay `Verificacion.txt`, léelo: dice qué baja la
+vacante (años, inglés…). En una tanda, léelos **una sola vez** para todas las HV.
+
+**No leas las HV anteriores** (desde 9 nov 2026; era la lectura más cara de la mañana): Apps Script guarda una huella de
+cada HV armada y rechaza la nueva si repite el perfil o más de 2 logros con el mismo texto de una HV de los últimos 7
+días, diciendo con cuál (`CV_IA_ERRORES.txt`). Dentro de tu propia tanda sí evita repetirte: tienes esas HV a la vista.
 
 `CONTEXTO_CV` es largo **a propósito** (decisión del usuario, 25 oct 2026): cuenta funciones y situaciones, no solo
 cifras, para que la HV se ajuste a cualquier vacante aunque el usuario no use las mismas palabras. Léelo entero cada vez;
 no te quedes con los 5 o 6 logros con cifras más visibles.
 
 ## Paso 2. Análisis (GUIA_CV Paso 2 y 2.1)
+
+### Match ATS (9 nov 2026: «me debería decir que mi match es alto, pero me deja un 40 %, un 50 %»)
+
+Los ATS y los medidores (Jobscan, Adaptia, LinkedIn) cuentan **la palabra exacta de la vacante** en la HV, no la idea.
+Por eso el match salía bajo aunque Oscar tuviera la experiencia: la HV decía «sistema de diseño» y la vacante «Design
+System», «panel» y la vacante «dashboards», «prototipos» y la vacante «prototipado», y el cargo de la vacante no estaba
+en el título. Reglas:
+1. **Las `_keywords` son términos literales de la vacante** (herramientas, métodos, entregables, sector, cargo y
+   habilidades blandas que nombra), copiados con su forma exacta, no ideas resumidas («flujos completos»).
+2. **El cargo de la vacante va en `TITULO_SUBTITULO_PROFESIONAL`** tal como lo escribe, sin el nivel que Oscar no tiene
+   (sin Senior, Lead, Semi Senior, Staff; «Junior» solo si la vacante lo dice).
+3. **Cada término que `CONTEXTO_CV` respalda aparece en la HV con la palabra de la vacante** al menos una vez (perfil,
+   descripción, logro o habilidades); los 5 principales, fuera de habilidades. Si la vacante escribe un término en
+   inglés («Design System», «dashboard», «handoff», «user flows»), úsalo así también en una HV en español: esta
+   excepción viene de Oscar (9 nov 2026) y manda sobre la lista de términos en español de `LECCIONES_HV`, que sigue
+   valiendo para los términos que la vacante no usa.
+4. **Lo que `CONTEXTO_CV` no respalda no se escribe**: va en `_gaps` con su nombre y la respuesta del Paso 2.1. Si un
+   término sí aparece en `CONTEXTO_CV` pero no es experiencia real (p. ej. WordPress, que solo descartó), también va en
+   `_gaps` con la razón: así Apps Script deja de exigirlo.
+5. Apps Script mide el match con el léxico de `apps_script/Ats.gs`, deja `ATS.txt` en la carpeta («MATCH ATS: 87 %»,
+   lo que falta y lo que es brecha real) y **rechaza** la HV si el cargo no está en el título o si quedan fuera más de 2
+   términos respaldados. Una HV honesta queda en 80–90 % cuando la vacante encaja; si queda baja es porque la vacante
+   pide herramientas que Oscar no tiene (eso lo dice `ATS.txt`, y es información para decidir si postular).
 
 - Las 10 keywords en ranking, hard skills, soft skills, requisitos de experiencia y qué es lo que más valora el rol.
 - El match: qué tiene el candidato, qué no, qué puede mejorar.
@@ -131,8 +169,8 @@ dijo que los logros de Qentaz sonaban "muy conversacionales"):
   omnicanal…", "Redefiní la experiencia de compra de…"), no una frase nominal suelta ("E-commerce de dispositivos…").
 - `PLANTILLA_HV.pdf` (en `Recursos`) es la referencia de este tono.
 
-**Cargos (`CARGO_EXP_n`):** parten del título de LinkedIn de cada experiencia (tabla "Experiencias y títulos" de la
-sección 7 de "Guia busqueda de vacantes y creacion de HV.md" en Drive) y se ajustan con criterio. Solo la experiencia más
+**Cargos (`CARGO_EXP_n`):** parten del título de LinkedIn de cada experiencia (sección 5 de `REGLAS_CV`,
+copiada de la guía de búsqueda el 10 nov 2026) y se ajustan con criterio. Solo la experiencia más
 relevante puede llevar el cargo de la vacante o uno muy cercano; las demás conservan su título o una variante con otra
 keyword que de verdad corresponda a lo que se hizo. Nunca dos experiencias con el mismo cargo. Sin inflar el nivel
 (Senior, Lead, Manager) más allá del título de LinkedIn.
@@ -218,6 +256,14 @@ la llena, exporta el PDF y crea los borradores en su corrida horaria; si el JSON
 `Correos_ERRORES.txt`. Después de esa corrida aplica `revisar-hv` (revisión visual) al menos a una HV por tanda y a las
 que tu estimación marcó en riesgo.
 
+### Modo C (HV general o a pedido): solo `CV_IA.json`
+Escribe `CV_IA.json` en `HV a pedido/<Nombre>/` junto al `Encargo` (mismo contrato; `_nombre_archivo` =
+`HV_Oscar_Garcia_<Cargo objetivo>` o `CV_…` en inglés; `_correo_cuerpo` = `""`). Apps Script la valida (cifras,
+empresas, herramientas, ATS contra el `Encargo`, repeticiones), copia `MASTER_TEMPLATE`, la llena y deja `ATS.txt` en
+menos de 10 minutos; si no pasa, deja `CV_IA_ERRORES.txt`: corrige exactamente esos errores. Después aplica `revisar-hv`.
+Sirve como base para correos en frío o ferias: si luego hace falta para una vacante concreta, se hace una HV nueva en
+modo A (la general no se reutiliza para una vacante: perdería el match ATS).
+
 ### En una conversación (inmediato)
 Cuando el usuario la pide en el chat, arma la HV en ese momento (con los conectores de Google Drive y Google Docs; lee
 antes la skill `google-workspace` si está disponible):
@@ -252,7 +298,8 @@ antes la skill `google-workspace` si está disponible):
 
 ```
 HV lista: <nombre del archivo> (enlace al Google Doc) — <idioma> — <páginas> páginas
-Para: <Empresa> — <Cargo> (<modo vacante | frío>)
+Para: <Empresa> — <Cargo> (<modo vacante | frío | a pedido>)
+Match ATS: <% de ATS.txt> (posible <%>) — falta: <términos>; brechas reales: <términos>
 Perfil (primera frase): ...
 Experiencias: <empresa · cargo usado · n.º de logros> × 3 o 4
 Mapa: <keyword → dónde va> de las 10 (las GAP, aparte)

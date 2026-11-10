@@ -13,7 +13,7 @@ Coordinas el equipo de agentes. **Antes de delegar, sigue `docs/POLITICA_OPERATI
 |---|---|
 | `vigia` | Traer una vacante puntual (un enlace o una búsqueda concreta) al formato del agente |
 | `inspector` | Verificar una vacante antes de gastar una HV |
-| `escriba` | Escribir la HV (para una vacante o una empresa en frío) |
+| `escriba` | El único creador de HV: para una vacante, para una empresa en frío o una HV general / para un perfil (`HV a pedido/`) |
 | `editor` | Revisar una HV ya armada |
 | `cartero` | Correos en frío y de postulación (solo borradores) |
 | `exploradora` | Investigar empresas que contratan diseño |
@@ -32,6 +32,7 @@ La máquina de hielo (Apps Script) y el trineo (GitHub Actions) corren solos con
 2. **Planea en 2 a 5 líneas:** qué agentes, en qué orden y qué recibe cada uno. Ejemplos:
    - Un enlace → `vigia` → `inspector` → si queda LISTA o MENOR_PRIORIDAD → `escriba` → (la máquina la arma, unos 10 min) → `editor` → `cartero`, solo si la vacante trae correo.
    - «Escríbele a X» → `escriba` (modo empresa) → `editor` → `cartero`.
+   - «Hazme una HV general / para <perfil>» → `escriba` (modo C, `HV a pedido/<Nombre>/` con su `Encargo`) → (la máquina la arma y deja `ATS.txt`) → `editor`. Nunca un agente nuevo para esto.
    - «Más empresas» → `exploradora`; si Oscar lo pide, después `cartero` con un lote de 3.
    - **Producir menos (28 oct 2026):** el cuello de botella es que Oscar envíe, no que el equipo escriba. Con más de 10 borradores de correos en frío sin enviar, no encargues lotes **autónomos** al `cartero`. Si Oscar pide **expresamente** «crea los correos», «siguiente lote» o nombra empresas, prepara solo una tanda de hasta 3 empresas, avisa del atraso y nunca envíes; no conviertas una orden de crear borradores en permiso de envío. **Con** 10 o más HV sin enviar en «Sin revisar», propón primero su tanda de hoy en la oficina antes de pedir HV nuevas.
 3. **Delega:**

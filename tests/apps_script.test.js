@@ -532,7 +532,7 @@ assert.strictEqual(context.escapeRegex_('{{A_1}}'), '\\{\\{A_1\\}\\}');
 const detalle = context.parseVacancyDetail(['Diseñador UX/UI Junior', 'Empresa: Acme', 'Link: https://x.co/1',
   'Idioma: EN', 'Correo de contacto: N/D', 'Descripción completa'].join('\n'));
 assert.deepStrictEqual(JSON.parse(JSON.stringify(detalle)),
-  { title: 'Diseñador UX/UI Junior', company: 'Acme', link: 'https://x.co/1', email: null, language: 'en' });
+  { title: 'Diseñador UX/UI Junior', company: 'Acme', link: 'https://x.co/1', email: null, language: 'en', description: '' });
 // Detalle_Vacante real: DocumentApp.create deja un párrafo vacío antes del encabezado (2026-11-05)
 const detallePost = context.parseVacancyDetail(['', '🎨 UX/UI & Graphic Designer - Argentina, Perú…', 'Empresa: Post Ana Pérez',
   'Link: https://www.linkedin.com/posts/x', 'Correo de contacto: ana@example.com', 'Descripción completa', 'texto'].join('\n'));
@@ -632,7 +632,7 @@ assert.ok(!context.isCvFile_({ name: 'HV_notas.txt', mimeType: 'text/plain' }));
   assert.strictEqual(context.pendingMessage(JSON.stringify({ _correo_cuerpo: '  Hola, adjunto mi HV.  ' })), 'Hola, adjunto mi HV.');
   assert.strictEqual(context.pendingMessage(''), '');
   assert.strictEqual(context.pendingMessage('{"_idioma":"es"}'), '');
-  assert.deepStrictEqual(JSON.parse(JSON.stringify(run("CONFIG.PENDING_CV_SHEET_HEADERS").slice(-2))), ['PDF', 'Mensaje']);
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(run("CONFIG.PENDING_CV_SHEET_HEADERS").slice(-4))), ['PDF', 'Mensaje', 'Aviso', 'ATS']);
   assert.strictEqual(context.docPdfExportUrl('https://drive.google.com/open?id=1AbCdEfGhIjK', 'HV_Oscar'),
     'https://docs.google.com/document/d/1AbCdEfGhIjK/export?format=pdf');
   assert.strictEqual(context.docPdfExportUrl('https://drive.google.com/open?id=1AbCdEfGhIjK', 'HV_Oscar.pdf'), '');
@@ -798,6 +798,9 @@ assert.ok(/CARGO_EXP_1: palabra prohibida/.test(erroresGuia) && /sin dos puntos/
   assert.strictEqual(context.keywordCovered('Prototyping', 'Built interactive prototypes in Figma'), true, 'raíz de la palabra');
   assert.strictEqual(context.keywordCovered('Internal tools', 'Designed an internal admin tool'), true);
   assert.strictEqual(context.keywordCovered('A/B testing', 'Ran usability testing'), false);
+  assert.strictEqual(context.keywordCovered('A/B testing', 'Ran A/B tests'), true);
+  assert.strictEqual(context.keywordCovered('investigación UX', 'Combiné investigación UX e IA'), true, '«UX e IA» no se funde');
+  assert.strictEqual(context.keywordCovered('UX/UI Designer', 'UX/UI Designer en Meevent'), true);
   assert.strictEqual(context.keywordCovered('UX', 'Lux design'), false, 'las siglas piden la palabra exacta');
   assert.strictEqual(context.keywordCovered('A/B testing', 'Ran A/B tests'), true);
   assert.strictEqual(context.keywordCovered('UX/UI Design', 'UX/UI designer for web'), true);
@@ -1527,6 +1530,126 @@ assert.ok(fs.readFileSync(path.join(__dirname, '..', 'instalador', 'Cargador.gs'
   assert.ok(textFiles().every(f => !/apify_api_[A-Za-z0-9]{10,}/.test(fs.readFileSync(path.join(dir, f), 'utf8'))));
   assert.ok(/apifyKickoff_\(\)/.test(fs.readFileSync(path.join(dir, 'Applied.gs'), 'utf8')), 'la madrugada deja la corrida lista');
   assert.ok(/searchApifyPosts_\(startedAt\)/.test(fs.readFileSync(path.join(dir, 'Search.gs'), 'utf8')));
+}
+
+
+// Medidor ATS (2026-11-09: el match de las HV salía en 40–50 % aunque Oscar tenía la experiencia)
+{
+  assert.strictEqual(context.atsRoleTitle('Diseñador/a (Semi Senior) de Experiencia UI - Bienestar Financiero'), 'disenador de experiencia ui');
+  assert.strictEqual(context.atsRoleTitle('Mid Product Designer'), 'product designer');
+  assert.strictEqual(context.atsRoleTitle('¡buscamos  analista de diseño (ux/ui)!'), 'analista de diseno');
+  assert.strictEqual(context.atsRoleTitle('Elkin Pérez, PhD - remoto #hiring'), '', 'un título de publicación no es un cargo');
+  assert.strictEqual(context.atsHasForm_(' usamos design systems y wireframes ', 'design system'), true, 'plural');
+  assert.strictEqual(context.atsHasForm_(' interfaces claras ', 'interface'), true);
+  assert.strictEqual(context.atsHasForm_(' figmatic ', 'figma'), false, 'palabra completa');
+  const relleno = ' Trabajarás con producto, negocio y tecnología en un equipo que valora la evidencia y la claridad.'.repeat(3);
+  const vac = { title: 'Mid Product Designer', description: 'Aplicar el Design System en Figma, prototipado de flujos y ' +
+    'dashboards para clientes. Deseable Jira.' + relleno };
+  const ctx = 'Definí el design system en Figma. Diseñé el Dashboard y prototipos de alta fidelidad. Adobe Creative Suite.';
+  const cv = { _idioma: 'es', _gaps: [], TITULO_SUBTITULO_PROFESIONAL: 'Diseñador UX/UI', CARGO_EXP_1: 'Diseñador UX',
+    PERFIL_PERSONALIZADO: 'Reduje tiempos con un sistema de diseño en Figma.', LOGRO_1_1: 'Diseñé el panel y prototipos.' };
+  const ats = context.atsCoverage(vac, cv, ctx);
+  assert.ok(ats.literal.indexOf('Figma') !== -1);
+  assert.ok(ats.equivalent.some(e => e.label === 'Design System' && e.supported && e.use === 'design system'));
+  assert.ok(ats.equivalent.some(e => e.label === 'Prototipado' && e.use === 'prototipado'));
+  assert.ok(ats.fixable.some(e => e.label === 'Dashboards'));
+  assert.ok(ats.gaps.some(e => e.label === 'Jira'), 'Jira no está en CONTEXTO_CV: brecha real');
+  assert.strictEqual(ats.title.covered, false);
+  assert.ok(ats.potential > ats.score);
+  const errs = context.atsErrors(ats).join('\n');
+  assert.ok(/cargo de la vacante/.test(errs) && /«dashboard»/.test(errs) && /«design system»/.test(errs), errs);
+  // Con la palabra de la vacante y el cargo en el título, sube y no hay errores; una brecha declarada en _gaps no se exige
+  const cvBien = Object.assign({}, cv, { TITULO_SUBTITULO_PROFESIONAL: 'Product Designer | UX/UI',
+    PERFIL_PERSONALIZADO: 'Reduje tiempos con un Design System en Figma.', LOGRO_1_1: 'Diseñé dashboards con prototipado en Figma.' });
+  const atsBien = context.atsCoverage(vac, cvBien, ctx);
+  assert.strictEqual(context.atsErrors(atsBien).length, 0, context.atsErrors(atsBien).join());
+  assert.ok(atsBien.score > ats.score);
+  const declarado = context.atsCoverage(vac, Object.assign({}, cv, { _gaps: ['Dashboards: solo diseñé uno'] }), ctx);
+  assert.ok(declarado.declared.some(e => e.label === 'Dashboards') && !declarado.fixable.length);
+  assert.ok(/MATCH ATS: \d+%/.test(context.atsReport(ats, 'Acme')));
+  assert.strictEqual(context.atsCoverage({ title: 'UX', description: 'corto' }, cv, ctx), null, 'sin aviso no se mide');
+  // Herramientas que CONTEXTO_CV no menciona: error; dentro de una suite que sí está, aviso
+  const tools = context.atsToolIssues({ DETALLE_SKILL_1: 'Figma, Jira, Photoshop' }, ctx);
+  assert.ok(tools.errors.some(e => /Jira/.test(e)) && !tools.errors.some(e => /Figma/.test(e)));
+  assert.ok(tools.warnings.some(w => /Photoshop/.test(w)));
+  // La descripción de Detalle_Vacante llega al medidor
+  const det = context.parseVacancyDetail(['', '# UX Designer', 'Empresa: Acme', '## Descripción completa', 'Usa Figma.'].join('\n'));
+  assert.strictEqual(det.description, 'Usa Figma.');
+  assert.ok(context.parseVacancyDetail('# HV general Product Designer\nIdioma: ES\nPerfil fintech con Figma').description.indexOf('fintech') !== -1);
+}
+
+// Huellas: no repetir perfil ni más de 2 logros de una HV reciente (la IA ya no lee las HV anteriores)
+{
+  const id = t => t;
+  const base = { PERFIL_PERSONALIZADO: 'Escalo productos financieros. Segunda frase.', LOGRO_1_1: 'Uno', LOGRO_1_2: 'Dos',
+    LOGRO_1_3: 'Tres', LOGRO_2_1: 'Cuatro', LOGRO_2_2: '' };
+  const fp = context.cvFingerprint(base, id);
+  assert.strictEqual(fp.p, 'escalo productos financieros');
+  assert.strictEqual(fp.l.length, 4);
+  const recent = [{ n: 'Bancolombia', d: '2026-11-08', p: 'escalo productos financieros', l: ['uno', 'dos', 'tres'] }];
+  const rep = context.repetitionErrors(fp, recent).join('\n');
+  assert.ok(/misma frase/.test(rep) && /Repite 3 logros/.test(rep), rep);
+  assert.strictEqual(context.repetitionErrors(fp, [{ n: 'X', d: '2026-11-08', p: 'otra', l: ['uno', 'dos'] }]).length, 0);
+  const pruned = context.pruneCvHistory([{ d: '2026-10-30', n: 'Vieja' }, { d: '2026-11-05', n: 'A' }, { d: '2026-11-08', n: 'Misma' }],
+    '2026-11-09', 'Misma');
+  assert.strictEqual(pruned.map(e => e.n).join(), 'A');
+  const conHistoria = context.validateCvJson(Object.assign({}, cvOk), contexto, marcadores, null,
+    { hash: id, recent: [{ n: 'Otra', d: '2026-11-08', p: context.cvFingerprint(cvOk, id).p, l: [] }] });
+  assert.ok(conHistoria.errors.some(e => /misma frase/.test(e)));
+}
+
+// Rescate: la primera pasada de cada hora mira 7 días (las del 6 nov quedaron huérfanas con 2)
+assert.strictEqual(context.cvScanBack(3), 7);
+assert.strictEqual(context.cvScanBack(25), 2);
+
+
+// Tanda IA: la memoria compartida de los agentes (siguiente paso por carpeta, sin recorrer Drive)
+{
+  const doc = 'application/vnd.google-apps.document';
+  const f = (name, mimeType) => ({ id: 'id-' + name, name: name, mimeType: mimeType || 'text/plain' });
+  const det = f('Detalle_Vacante', doc);
+  assert.strictEqual(context.workQueueEntry('2026-11-10', 'Acme', [det], '').paso, 'verificar');
+  assert.strictEqual(context.workQueueEntry('2026-11-10', 'Acme', [det, f('Verificacion.txt')], 'VEREDICTO: LISTA\nMOTIVO: ok').paso, 'escribir HV');
+  assert.strictEqual(context.workQueueEntry('2026-11-10', 'Acme', [det, f('Verificacion.txt')], 'VEREDICTO: DUDOSA\nMOTIVO: x'), null);
+  assert.strictEqual(context.workQueueEntry('2026-11-10', 'Acme', [det, f('Verificacion.txt')],
+    'VEREDICTO: MENOR_PRIORIDAD\nMOTIVO: x\nRESERVA: pasa').paso, 'reserva');
+  assert.ok(/^corregir/.test(context.workQueueEntry('2026-11-10', 'Acme', [det, f('Verificacion.txt'), f('CV_IA.json'),
+    f('CV_IA_ERRORES.txt')], 'VEREDICTO: LISTA').paso));
+  const conHv = [det, f('Verificacion.txt'), f('CV_IA.json'), f('HV_Oscar_Garcia_UX', doc)];
+  const rev = context.workQueueEntry('2026-11-10', 'Acme', conHv, 'VEREDICTO: LISTA');
+  assert.strictEqual(rev.paso, 'revisar HV');
+  assert.strictEqual(rev.hvId, 'id-HV_Oscar_Garcia_UX');
+  assert.strictEqual(rev.cvIaId, 'id-CV_IA.json');
+  assert.strictEqual(context.workQueueEntry('2026-11-10', 'Acme', conHv.concat([f('Revision.txt')]), 'VEREDICTO: LISTA'), null);
+  assert.strictEqual(context.workQueueEntry('2026-11-10', 'Acme', [f('Verificacion.txt')], ''), null, 'sin Detalle no es vacante');
+  assert.ok(context.workQueueOrder({ paso: 'verificar' }) < context.workQueueOrder({ paso: 'escribir HV' }));
+  const terms = context.atsVacancyTerms({ title: 'Mid Product Designer', description: 'Figma, Design System y Jira.' },
+    'Diseñé el design system en Figma.');
+  const line = context.atsTermsLine(terms);
+  assert.ok(/^cargo: product designer/.test(line) && /✓ figma/.test(line) && /✓ design system/.test(line) && /✗ jira/.test(line), line);
+}
+
+
+// ¿Sigue abierto el aviso? (2026-11-10: 3 de 20 HV por enviar ya eran de avisos cerrados)
+{
+  assert.strictEqual(context.postingCheckUrl('https://www.linkedin.com/jobs/view/4488191515'),
+    'https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/4488191515');
+  assert.strictEqual(context.postingCheckUrl('https://www.linkedin.com/jobs/view/user-interface-designer-at-stryker-4486715058?position=18'),
+    'https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/4486715058');
+  assert.strictEqual(context.postingCheckUrl('https://www.linkedin.com/posts/ana_activity-7524170831053377536'), '');
+  assert.strictEqual(context.postingCheckUrl('https://www.elempleo.com/co/ofertas-trabajo/x-1886789823'), 'https://www.elempleo.com/co/ofertas-trabajo/x-1886789823');
+  assert.strictEqual(context.postingCheckUrl(''), '');
+  const hoy = '2026-11-10';
+  assert.strictEqual(context.postingStatus(200, '<h3>No longer accepting applications</h3>', hoy), 'cerrada');
+  assert.strictEqual(context.postingStatus(404, '', hoy), 'cerrada');
+  assert.strictEqual(context.postingStatus(429, '', hoy), null, 'LinkedIn bloqueó: se reintenta');
+  assert.strictEqual(context.postingStatus(200, '{"@type":"JobPosting","datePosted":"2026-11-5","validThrough":"2026-11-08"}', hoy), 'cerrada');
+  assert.strictEqual(context.postingStatus(200, '{"@type":"JobPosting","validThrough":"2027-01-04"}', hoy), 'abierta');
+  assert.strictEqual(context.postingStatus(200, '<h2 class="top-card-layout__title">UX</h2>', hoy), 'abierta');
+  assert.strictEqual(context.postingStatus(200, '<html>algo</html>', hoy), null, 'sin señales no se afirma nada');
+  assert.strictEqual(context.postingNote({ s: 'cerrada', d: hoy }), 'CERRADA (2026-11-10)');
+  assert.strictEqual(context.atsFromReport('MATCH ATS: 87%\nPOSIBLE: 91%'), '87%');
+  assert.strictEqual(context.atsFromReport(''), '');
 }
 
 console.log('OK: todas las pruebas de apps_script pasaron');
