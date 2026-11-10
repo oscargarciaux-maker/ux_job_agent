@@ -1602,4 +1602,31 @@ assert.ok(fs.readFileSync(path.join(__dirname, '..', 'instalador', 'Cargador.gs'
 assert.strictEqual(context.cvScanBack(3), 7);
 assert.strictEqual(context.cvScanBack(25), 2);
 
+
+// Tanda IA: la memoria compartida de los agentes (siguiente paso por carpeta, sin recorrer Drive)
+{
+  const doc = 'application/vnd.google-apps.document';
+  const f = (name, mimeType) => ({ id: 'id-' + name, name: name, mimeType: mimeType || 'text/plain' });
+  const det = f('Detalle_Vacante', doc);
+  assert.strictEqual(context.workQueueEntry('2026-11-10', 'Acme', [det], '').paso, 'verificar');
+  assert.strictEqual(context.workQueueEntry('2026-11-10', 'Acme', [det, f('Verificacion.txt')], 'VEREDICTO: LISTA\nMOTIVO: ok').paso, 'escribir HV');
+  assert.strictEqual(context.workQueueEntry('2026-11-10', 'Acme', [det, f('Verificacion.txt')], 'VEREDICTO: DUDOSA\nMOTIVO: x'), null);
+  assert.strictEqual(context.workQueueEntry('2026-11-10', 'Acme', [det, f('Verificacion.txt')],
+    'VEREDICTO: MENOR_PRIORIDAD\nMOTIVO: x\nRESERVA: pasa').paso, 'reserva');
+  assert.ok(/^corregir/.test(context.workQueueEntry('2026-11-10', 'Acme', [det, f('Verificacion.txt'), f('CV_IA.json'),
+    f('CV_IA_ERRORES.txt')], 'VEREDICTO: LISTA').paso));
+  const conHv = [det, f('Verificacion.txt'), f('CV_IA.json'), f('HV_Oscar_Garcia_UX', doc)];
+  const rev = context.workQueueEntry('2026-11-10', 'Acme', conHv, 'VEREDICTO: LISTA');
+  assert.strictEqual(rev.paso, 'revisar HV');
+  assert.strictEqual(rev.hvId, 'id-HV_Oscar_Garcia_UX');
+  assert.strictEqual(rev.cvIaId, 'id-CV_IA.json');
+  assert.strictEqual(context.workQueueEntry('2026-11-10', 'Acme', conHv.concat([f('Revision.txt')]), 'VEREDICTO: LISTA'), null);
+  assert.strictEqual(context.workQueueEntry('2026-11-10', 'Acme', [f('Verificacion.txt')], ''), null, 'sin Detalle no es vacante');
+  assert.ok(context.workQueueOrder({ paso: 'verificar' }) < context.workQueueOrder({ paso: 'escribir HV' }));
+  const terms = context.atsVacancyTerms({ title: 'Mid Product Designer', description: 'Figma, Design System y Jira.' },
+    'Diseñé el design system en Figma.');
+  const line = context.atsTermsLine(terms);
+  assert.ok(/^cargo: product designer/.test(line) && /✓ figma/.test(line) && /✓ design system/.test(line) && /✗ jira/.test(line), line);
+}
+
 console.log('OK: todas las pruebas de apps_script pasaron');

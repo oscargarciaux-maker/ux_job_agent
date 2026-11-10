@@ -164,6 +164,8 @@ function writePendingCvs_(ss, root, children, exportPdf) {
   const doubtful = [];
   const recent = recentDays(Utilities.formatDate(new Date(), tz_(), 'yyyy-MM-dd'), CONFIG.CV_CATCHUP_DAYS);
   const drafts = { pending: 0, map: null };  // borradores sin enviar por destinatario: se leen solo si hace falta
+  const queue = [];
+  const queueDays = recentDays(Utilities.formatDate(new Date(), tz_(), 'yyyy-MM-dd'), CONFIG.CV_RESCUE_DAYS);
   let exported = 0;
   let cache = null;  // Hoja 1 y Seguimiento, leídas una sola vez y solo si hay carpetas que revisar
   const signals = () => cache || (cache = {
@@ -201,13 +203,24 @@ function writePendingCvs_(ss, root, children, exportPdf) {
         const files = listChildFiles_(f.id);
         const cv = pendingCvFiles(files);
         const hv = cv.doc || cv.pdf;
-        if (!hv) return;
         const text = name => {
           const file = files.find(x => x.name === name);
           return file ? readTextFile_(DriveApp.getFileById(file.id)) : '';
         };
+        // Tanda IA (2026-11-09): la cola de trabajo de los agentes, con los mismos archivos ya listados (0 lecturas extra
+        // salvo Verificacion.txt y, para las que esperan HV, Detalle_Vacante y CONTEXTO_CV una vez por corrida)
+        const verification = text(CONFIG.VERIFICATION_FILE_NAME);
+        if (queueDays.indexOf(day.name) !== -1) {
+          try {
+            const entry = workQueueEntry(day.name, f.name, files, verification);
+            if (entry) queue.push(Object.assign(entry, { id: f.id }));
+          } catch (e) {
+            console.warn('Tanda IA ' + f.name + ' -> ' + e.message);
+          }
+        }
+        if (!hv) return;
         const record = pendingCvRecord(day.name, f.name, files.filter(isCvFile_).map(x => x.name),
-                                       text(CONFIG.VERIFICATION_FILE_NAME), text('Revision.txt'));
+                                       verification, text('Revision.txt'));
         if (!record) return;
         let pdf = cv.pdf;
         if (exportPdf && cv.stale && exported < CONFIG.PENDING_PDF_PER_RUN) {
@@ -249,6 +262,74 @@ function writePendingCvs_(ss, root, children, exportPdf) {
   sheet.setFrozenRows(1);
   console.log('Por enviar: ' + rows.length + ' HV en ' + CONFIG.PENDING_FOLDER_NAME + (exported ? ' (' + exported + ' PDF nuevos)' : ''));
   writeDoubtfulSheet_(ss, doubtful);
+  try { writeWorkQueueSheet_(ss, queue); } catch (e) { console.warn('Tanda IA: ' + e.message); }  // Nunca frena la sincronización
+}
+
+/**
+ * Pestaña «Tanda IA» (2026-11-09, pedido de Oscar: «si uno lo lee, que los demás ya lo sepan»): la memoria compartida de
+ * los agentes. Una fila por vacante de Sin revisar (últimos CV_RESCUE_DAYS días) a la que le falta un paso de IA, con su
+ * siguiente paso, los ids de sus archivos y, si espera HV, sus términos ATS ya cruzados con CONTEXTO_CV. El jefe la lee
+ * con UNA llamada en vez de recorrer Drive por páginas, y cada agente abre solo los ids de su fila.
+ */
+function writeWorkQueueSheet_(ss, queue) {
+  let contextText = null;
+  const context = () => {
+    if (contextText !== null) return contextText;
+    const doc = findDocByName_(CONFIG.CONTEXT_DOC_NAME);
+    contextText = doc ? DocumentApp.openById(doc.getId()).getBody().getText() : '';
+    return contextText;
+  };
+  queue.forEach(q => {
+    if (!/^(escribir|corregir)/.test(q.paso) || !q.detalleId) return;
+    try {
+      const vacancy = parseVacancyDetail(DocumentApp.openById(q.detalleId).getBody().getText());
+      q.terminos = atsTermsLine(atsVacancyTerms(vacancy, context()));
+    } catch (e) {
+      q.terminos = '';
+    }
+  });
+  const header = CONFIG.WORK_QUEUE_HEADERS;
+  const sheet = ss.getSheetByName(CONFIG.WORK_QUEUE_SHEET_NAME) || ss.insertSheet(CONFIG.WORK_QUEUE_SHEET_NAME, ss.getNumSheets());
+  const stamp = Utilities.formatDate(new Date(), tz_(), 'yyyy-MM-dd HH:mm');
+  queue.sort((a, b) => workQueueOrder(a) - workQueueOrder(b) || (a.fecha < b.fecha ? 1 : a.fecha > b.fecha ? -1 : 0));
+  const values = [header].concat(queue.map(q => [stamp, q.fecha, q.carpeta, q.paso, q.veredicto, q.id, q.detalleId,
+    q.cvIaId, q.hvId, q.terminos || '']));
+  if (!queue.length) values.push([stamp, '', '', 'nada pendiente', '', '', '', '', '', '']);
+  sheet.clear();
+  sheet.getRange(1, 1, values.length, header.length).setValues(values);
+  sheet.getRange(1, 1, 1, header.length).setFontWeight('bold');
+  sheet.setFrozenRows(1);
+  console.log('Tanda IA: ' + (queue.length ? queue.map(q => q.carpeta + ' (' + q.paso + ')').join(', ') : 'nada pendiente'));
+}
+
+/**
+ * Siguiente paso de IA de una carpeta de vacante (lógica pura). null si no falta nada de IA: descartadas o dudosas (las
+ * aparta Apps Script), HV ya revisada (va en «Por enviar») o carpeta sin Detalle_Vacante.
+ */
+function workQueueEntry(dayName, folderName, files, verificationText) {
+  const byName = name => files.find(f => f.name === name);
+  const detail = byName('Detalle_Vacante');
+  if (!detail) return null;
+  const hv = files.find(isCvFile_);
+  const verdict = parseVerdict(verificationText).verdict;
+  let paso;
+  if (!byName(CONFIG.VERIFICATION_FILE_NAME)) paso = 'verificar';
+  else if (verdict === 'DESCARTAR' || verdict === 'DUDOSA') return null;
+  else if (hv) { if (byName('Revision.txt')) return null; paso = 'revisar HV'; }
+  else if (byName(CONFIG.CV_ERRORS_NAME)) paso = 'corregir HV (' + CONFIG.CV_ERRORS_NAME + ')';
+  else if (byName(CONFIG.CV_JSON_NAME)) paso = 'armando (Apps Script)';
+  else if (/^RESERVA:/m.test(String(verificationText || ''))) paso = 'reserva';
+  else paso = 'escribir HV';
+  const json = byName(CONFIG.CV_JSON_NAME);
+  return { fecha: dayName, carpeta: folderName, paso: paso, veredicto: verdict || '', id: '',
+    detalleId: detail.id, cvIaId: json ? json.id : '', hvId: hv ? hv.id : '' };
+}
+
+/** Orden de la Tanda IA: primero lo que desbloquea a otro agente. */
+function workQueueOrder(entry) {
+  const order = ['verificar', 'corregir', 'escribir', 'revisar', 'armando', 'reserva'];
+  const i = order.findIndex(p => String(entry.paso).indexOf(p) === 0);
+  return i === -1 ? order.length : i;
 }
 
 /** Mueve a CV/<semana actual> una vacante de Sin revisar que ya se envió, como el botón «Ya la envié» del juego. */

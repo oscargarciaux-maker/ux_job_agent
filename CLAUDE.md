@@ -31,7 +31,7 @@ Buscar cada día vacantes reales de Diseñador UX/UI (junior a mid; sistemas de 
 | `CV.gs` | Fase 3: valida `CV_IA.json` (contrato, anti-alucinación, personalización, ATS, huellas), llena `MASTER_TEMPLATE`, aparta descartadas/dudosas, borrador si hay correo. Mira hoy + 2 días cada 10 min y 7 días una vez por hora; también `HV a pedido/`. |
 | `Ats.gs` | Medidor ATS determinista: términos literales de la vacante vs. HV vs. `CONTEXTO_CV`, `ATS.txt` en cada carpeta, herramientas no respaldadas. |
 | `ColdEmail.gs` | Correos en frío desde `Correos.json` (+ HV desde `CV_IA.json`), seguimiento a los 8–30 días. Solo borradores. |
-| `Applied.gs` | `sincronizarAplicadas`: `Aplicadas`, `Por enviar`, `Dudosas`, PDF de HV, colores, calidad por fuente. |
+| `Applied.gs` | `sincronizarAplicadas`: `Aplicadas`, `Por enviar`, `Dudosas`, **`Tanda IA`** (memoria compartida de los agentes: cola de trabajo con ids y términos ATS), PDF de HV, colores, calidad por fuente. |
 | `Dashboard.gs`, `Acciones.gs`, `Agentes.gs` | API del tablero, juego y oficina (`doGet`, clave `&k=`/`&e=`), acciones con confirmación, modelo de agentes. |
 | `EnvioProgramado.gs` | La única excepción de envío (ver regla 1). |
 | `Setup.gs` | `configurarAgente`: carpetas, hoja, plantilla y activadores (idempotente). |
@@ -43,10 +43,11 @@ Otros: `tools/jobspy_buscar.py` + `.github/workflows/jobspy.yml` (Indeed, Linked
 - **Equipo** (`.claude/agents/`, diseño en `docs/MULTIAGENTE.md`): `jefe` (skill) coordina; `inspector` (`verificar-vacante`), `escriba` (`crear-hv`, **único creador de HV en 3 modos: vacante, empresa en frío, HV general/a pedido**), `editor` (`revisar-hv`), `cartero` (`correo-en-frio`), `exploradora` (`investigar-empresas`), `radio` (`seguimiento`), `vigia`, `constructor` (código, siempre por PR). Uno por papel y por tanda.
 - **Contrato `CV_IA.json`** (igual para cualquier proveedor y modo): una clave por marcador de `MASTER_TEMPLATE` (`""` borra ese párrafo) + `_idioma`, `_keywords` (términos literales de la vacante), `_gaps`, `_mapa` (`{keyword, cita textual de CONTEXTO_CV, donde}`), `_nombre_archivo` (`HV_Oscar_Garcia_<Cargo>` en español, `CV_…` en inglés), `_correo_cuerpo`.
 - **Archivos por carpeta:** `Detalle_Vacante` (o `Encargo` en `HV a pedido/`) → `Verificacion.txt` (`VEREDICTO: LISTA|MENOR_PRIORIDAD|DUDOSA|DESCARTAR`) → `CV_IA.json` → HV (Doc `HV_…`/`CV_…`) + `ATS.txt` → `Revision.txt`. Errores de validación en `CV_IA_ERRORES.txt`.
+- **Memoria compartida** (`docs/MULTIAGENTE.md` §3b): el jefe lee la pestaña `Tanda IA` en vez de recorrer Drive; un agente por papel, nunca dos en paralelo; el jefe pasa URLs, no pega skills; lo calculable lo calcula Apps Script.
 - **Prioridad de reglas de HV:** `LECCIONES_HV` > `REGLAS_CV` > `GUIA_CV`, salvo la excepción ATS de la regla 3.
 
 ## Drive (`Vacantes con IA/`)
-`CV/<semana>/` (lo enviado, con color: rojo rechazo, verde en proceso, amarillo sin respuesta) · `Sin revisar/<fecha>/` (+ `Dudosas`, `Posts`) · `Correos en frío/` · `HV a pedido/` · `Recursos/` (docs privados, se buscan por nombre: no renombrar) · Sheet `Vacantes UX - Registro` (pestañas `Hoja 1`, `Aplicadas`, `Por enviar`, `Dudosas`, `Correos en frío`, `Seguimiento`, `Empresas objetivo`, `Fuentes`, `Calidad por fuente`, `Agentes`).
+`CV/<semana>/` (lo enviado, con color: rojo rechazo, verde en proceso, amarillo sin respuesta) · `Sin revisar/<fecha>/` (+ `Dudosas`, `Posts`) · `Correos en frío/` · `HV a pedido/` · `Recursos/` (docs privados, se buscan por nombre: no renombrar) · Sheet `Vacantes UX - Registro` (pestañas `Hoja 1`, `Aplicadas`, `Por enviar`, `Dudosas`, `Tanda IA`, `Correos en frío`, `Seguimiento`, `Empresas objetivo`, `Fuentes`, `Calidad por fuente`, `Agentes`).
 
 ## Documentos
 `docs/POLITICA_OPERATIVA.md` (manda) · `docs/MULTIAGENTE.md` (equipo y bitácora) · `docs/REQUISITOS.md` (cada regla y dónde se comprueba) · `docs/HISTORIAL_TECNICO.md` (todas las decisiones) · `docs/ARQUITECTURA_INFORMACION.md` (entidades y JSON del tablero) · `docs/JUEGO_LABORAL.md` · `docs/RECUPERACION_IA.md` · `INSTALACION.md`.

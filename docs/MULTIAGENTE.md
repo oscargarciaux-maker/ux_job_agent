@@ -76,6 +76,29 @@ Es una bitácora en la que solo se agregan filas; nadie edita la fila de otro.
 - Si a la escritura en la pestaña le falla algo, el agente sigue con su trabajo. La bitácora nunca detiene un trabajo.
 - Un `pregunta` es para Oscar: la oficina lo muestra con un «!» y el jefe lo repite en su resumen.
 
+## 3b. Memoria compartida: lo que uno lee, los demás ya lo saben (9 nov 2026)
+
+Un subagente de Claude empieza **sin memoria**: no ve lo que leyó el jefe ni otro agente. Si cinco agentes necesitan la
+misma información y cada uno la busca, el plan se paga cinco veces. Por eso la información compartida no viaja de agente
+en agente: **la deja escrita una sola vez quien la obtiene más barato**, y cada agente lee solo su parte.
+
+| Capa | Quién la escribe | Qué guarda | Quién la lee |
+|---|---|---|---|
+| Pestaña **`Tanda IA`** | Apps Script (cada hora, 0 tokens) | Una fila por vacante de `Sin revisar` (7 días) a la que le falta IA: siguiente paso, ids de carpeta, `Detalle_Vacante`, `CV_IA.json` y HV, y los **términos ATS** ya cruzados con `CONTEXTO_CV` | El jefe (una llamada en vez de recorrer Drive por páginas) y, por sus filas, cada agente |
+| Archivos de la carpeta | Cada agente al terminar | `Verificacion.txt` (inspector) → `CV_IA.json` (escriba) → `ATS.txt` (Apps Script) → `Revision.txt` (editor) | El siguiente en la cadena: no rehace el trabajo del anterior |
+| Huellas `HV_HUELLAS` | Apps Script al armar cada HV | Perfil y logros de las HV de 7 días | Apps Script (rechaza repeticiones): ningún agente relee HV viejas |
+| Pestaña `Agentes` | Todos | Inicio, resultado, preguntas | El jefe y las corridas de respaldo (40 filas) |
+
+Reglas de gasto:
+1. **Un agente por papel y por tanda, nunca dos en paralelo** (dos escribas leen dos veces `CONTEXTO_CV`).
+2. **El jefe no pega skills ni roles en el prompt** de un subagente: le pasa la URL y el subagente la descarga. Lo que el
+   jefe escribe es salida, lo más caro de la sesión.
+3. **Lo que se puede calcular con código lo calcula Apps Script** (cifras, términos ATS, repeticiones, si un aviso cerró),
+   no un agente.
+4. **Las corridas de respaldo leen primero la `Tanda IA`**: si no falta nada, terminan sin leer skills ni recursos.
+5. Los recursos grandes (`CONTEXTO_CV`, `GUIA_CV`, `REGLAS_CV`, `LECCIONES_HV`) los lee **solo** el agente que los usa,
+   **una vez por tanda**: el inspector no los necesita; el editor, solo la HV, `ATS.txt` y `LECCIONES_HV`.
+
 ## 4. El método del jefe (skill `jefe`)
 
 1. **Leer el pedido** (del chat o del buzón: filas `pedido` con estado `pendiente`) y anotarlo con su Id.

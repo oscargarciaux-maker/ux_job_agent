@@ -23,6 +23,17 @@
   builder (`generarCVsDesdeIA`).
 - **Bug:** `keywordCovered` fundía «UX e IA» en «uxeia» y rechazaba HV correctas; ahora solo junta siglas con / & -.
 
+## 2026-11-10 — Memoria compartida de los agentes (pestaña Tanda IA)
+- Pedido de Oscar: «que no me consuma todo el plan cuando varios agentes lean algo; si uno lo lee, que los demás ya lo
+  sepan». Diagnóstico: los subagentes no comparten memoria; el jefe pegaba skills enteras en sus prompts (salida, lo más
+  caro), recorría Drive por páginas de 5 (JSON de ~700 caracteres por archivo), podía lanzar 2 inspectores o 2 escribas
+  (doble lectura de los recursos) y las corridas de respaldo leían skills y recursos para concluir «nada pendiente».
+- Arreglo: `writeWorkQueueSheet_` (dentro de `writePendingCvs_`, cada hora) escribe la pestaña `Tanda IA` con el siguiente
+  paso, los ids y los términos ATS de cada vacante; los prompts la leen primero, pasan URLs en vez de pegar texto, un
+  agente por papel, y los respaldos terminan si no falta nada. Ver `docs/MULTIAGENTE.md` §3b.
+- Revisión del 10 nov: de 20 HV en `Por enviar`, 3 avisos ya estaban cerrados en LinkedIn (BairesDev Senior UX Designer,
+  Confidentiel User Experience Designer y GraceMark UX Researcher): carpetas a la papelera y Hoja 1 con el motivo.
+
 ## Texto original de CLAUDE.md (hasta 2026-11-09)
 
 **REGLA PERMANENTE Y VINCULANTE PARA CLAUDE:** antes de orquestar cualquier tarea lee [docs/POLITICA_OPERATIVA.md](docs/POLITICA_OPERATIVA.md). Esa política es independiente del proveedor de IA y prevalece en presupuesto, coordinación, permisos y bitácora. Evita volver al diseño costoso de un agente por vacante. La guía temporal de ChatGPT no es la fuente de verdad.

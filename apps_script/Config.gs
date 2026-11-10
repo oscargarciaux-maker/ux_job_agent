@@ -270,6 +270,10 @@ const CONFIG = {
   ATS_MAX_FIXABLE: 2,
   // Huellas de HV (2026-11-09): Apps Script comprueba que una HV no repita el perfil ni más de 2 logros de otra de los
   // últimos 7 días (LECCIONES_HV, 25 oct). La IA ya no tiene que leer las HV anteriores.
+  // Memoria compartida de los agentes (2026-11-09): pestaña «Tanda IA» con la cola de trabajo, la escribe sincronizarAplicadas
+  WORK_QUEUE_SHEET_NAME: 'Tanda IA',
+  WORK_QUEUE_HEADERS: ['Actualizada', 'Fecha', 'Carpeta', 'Siguiente paso', 'Veredicto', 'Id carpeta', 'Id Detalle_Vacante',
+                       'Id CV_IA.json', 'Id HV', 'Términos ATS (✓ en CONTEXTO_CV · ✗ brecha)'],
   CV_HISTORY_PROP: 'HV_HUELLAS',
   CV_HISTORY_DAYS: 7,
   CV_HISTORY_MAX: 35,

@@ -254,3 +254,29 @@ function atsReport(ats, label) {
     'como un ATS. Es una estimación: cada portal usa su propio algoritmo.',
   ].join('\n');
 }
+
+/**
+ * Términos ATS de una vacante cruzados con CONTEXTO_CV, ANTES de escribir la HV (para la «Tanda IA»): el escriba los usa
+ * como lista de chequeo en vez de deducirlos. [{label, use, supported}] en el orden del léxico; el cargo va primero.
+ */
+function atsVacancyTerms(vacancy, contextText) {
+  const vacancyText = String((vacancy && (vacancy.description || vacancy.text)) || '');
+  const vac = atsNorm_(((vacancy && vacancy.title) || '') + ' \n ' + vacancyText);
+  const ctx = atsNorm_(contextText);
+  const out = [];
+  const role = atsRoleTitle(vacancy && vacancy.title);
+  if (role) out.push({ label: 'Cargo', use: role, supported: true });
+  ATS_TERMS_.forEach(t => {
+    const used = atsFormsIn_(vac, t[1]);
+    if (!used.length) return;
+    const parent = t[3] && ATS_TERMS_.filter(o => o[0] === t[3])[0];
+    const supported = atsFormsIn_(ctx, t[1]).length > 0 || !!(parent && atsFormsIn_(ctx, parent[1]).length);
+    out.push({ label: t[0], use: used[0], supported: supported });
+  });
+  return out;
+}
+
+/** «cargo: product designer · ✓ design system · ✓ figma · ✗ jira» (corto, para una celda). */
+function atsTermsLine(terms) {
+  return terms.map(t => (t.label === 'Cargo' ? 'cargo: ' : (t.supported ? '✓ ' : '✗ ')) + t.use).join(' · ');
+}
