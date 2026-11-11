@@ -241,8 +241,9 @@ Escribe `CV_IA.json` en la carpeta de la vacante (`create_file`, `application/js
 marcador de `MASTER_TEMPLATE` (sin llaves; `""` = se borra ese párrafo) más `_idioma`, `_keywords`, `_gaps`, `_mapa`,
 `_nombre_archivo` y `_correo_cuerpo` (si `Detalle_Vacante` trae correo: el mensaje de postulación según el Prompt 2 de la
 "Guía Maestra de Cover Letters" —la guía principal de correos—: [reto crítico de la vacante] + [métrica de `CONTEXTO_CV`]
-+ [CTA de reunión] + [adjuntos: HV, LinkedIn, Portafolio], con la forma de `correo-en-frio` Paso 4: **saludo + idealmente 2
-párrafos (máximo 3) de máximo 35 palabras** —hito y felicitación; interés en la vacante con la métrica e invitación breve—; si no,
++ [CTA de reunión] + [adjuntos: HV, LinkedIn, Portafolio], con la forma de `correo-en-frio` Paso 4: **la estructura de Oscar del
+10 nov 2026** —saludo; hito o reto de la vacante con felicitación si aplica; puente de motivación, caso real con su porqué y
+resultado, aporte e invitación; firma «Oscar Garcia / Diseñador UX/UI | Product Designer»—; si no,
 `""`).
 Apps Script lo valida y arma la HV en su siguiente pasada (cada 10 minutos, de 5:00 a 22:59).
 
