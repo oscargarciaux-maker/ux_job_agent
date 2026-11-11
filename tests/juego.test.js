@@ -332,4 +332,15 @@ assert.ok(efectos.every(f => typeof f.despues.avalancha === 'boolean'));
   ['libre(); })', 'aplicarPendiente(); libre(); });'].forEach(t => assert.ok(html.includes(t), 'la fila se suelta al quedar libre: ' + t));
 }
 
+// Clave de escritura pegada (2026-11-11): enlace completo del juego u oficina, o la clave sola
+{
+  const c = J('claveDeEnlace');
+  assert.strictEqual(c('https://x.github.io/a/apps_script/juego.html#api=AKfy_1&k=abc&e=Wr1te-Key_000000'), 'Wr1te-Key_000000');
+  assert.strictEqual(c('  https://x.github.io/a/apps_script/oficina.html#e=abcdEFGH12345678&api=Z&k=Y '), 'abcdEFGH12345678');
+  assert.strictEqual(c('abcdEFGH12345678xyz'), 'abcdEFGH12345678xyz', 'la clave sola');
+  assert.strictEqual(c('https://x.github.io/a/apps_script/juego.html#api=AKfy_1&k=abc'), '', 'sin &e= no hay clave');
+  assert.strictEqual(c('hola'), '');
+  assert.strictEqual(c(''), '');
+}
+
 console.log('OK: todas las pruebas del motor del juego pasaron');
