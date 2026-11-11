@@ -1137,6 +1137,17 @@ assert.strictEqual(run('pickCurrentWeek')([]), null);
 assert.deepStrictEqual(Array.from(run('followupRow')(['Fecha revisión', 'Empresa', 'Hecho', 'Plazo'], { 'Empresa': 'Pavago', 'Hecho': '=IMPORTXML(1)', 'Otra': 'x', 'Fecha revisión': '2026-10-27' })),
   ['2026-10-27', 'Pavago', "'=IMPORTXML(1)", ''], 'en el orden del encabezado y sin fórmulas');
 assert.strictEqual(run('safeCell')('+57 300'), "'+57 300");
+// Acciones ligeras del juego (2026-11-11): filas de Por enviar/Aplicadas por id de carpeta, sin releer Drive
+assert.strictEqual(run('rowOfFolder')([['=HYPERLINK("https://drive.google.com/drive/folders/aaaaaaaaaa1","Abrir")'],
+  ['=HYPERLINK("https://drive.google.com/drive/folders/bbbbbbbbbb2","Abrir")']], 'bbbbbbbbbb2'), 1);
+assert.strictEqual(run('rowOfFolder')([['=HYPERLINK("https://drive.google.com/drive/folders/aaaaaaaaaa1","Abrir")']], 'zzz'), -1);
+assert.strictEqual(run('rowOfFolder')([], 'x'), -1);
+assert.deepStrictEqual(Array.from(run('appliedSheetRow')('Nubank_Product Designer', 'idCarpeta123', '5. Quinta semana', '2026-11-11')),
+  ['5. Quinta semana', 'Nubank', 'Product Designer', 'Aplicada', '', '=HYPERLINK("https://drive.google.com/drive/folders/idCarpeta123","Abrir")',
+   '2026-11-11', '5. Quinta semana'], 'mismo orden que APPLIED_SHEET_HEADERS');
+assert.strictEqual(run('CONFIG').APPLIED_SHEET_HEADERS.length, 8);
+assert.ok(run('LIGHT_GAME_ACTIONS_').indexOf('enviada') !== -1 && run('LIGHT_GAME_ACTIONS_').indexOf('dudosa') === -1,
+  'enviar y descartar ya no releen Drive; la dudosa sí (mueve carpetas entre días)');
 // Carpeta pintada a mano en Drive (2026-10-28, Bancolombia): Seguimiento gana la fila con la fecha para que el juego la reproduzca
 {
   const seg = [['Fecha revisión', 'Empresa', 'Cargo', 'Estado nuevo'], ['2026-10-20', 'Experian', '', 'Rechazada (rojo)']];

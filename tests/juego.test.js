@@ -324,12 +324,58 @@ assert.ok(efectos.every(f => typeof f.despues.avalancha === 'boolean'));
   assert.ok(!/oscar\.png|Press Start 2P|VT323/.test(html), 'sin la foto ni las fuentes anteriores');
 }
 
-// Acciones confirmadas mientras el juego lee Drive o repite eventos (2026-10-28: «Descartar» no hacía nada): esperan en fila
+// Acciones confirmadas (2026-10-28 nunca se ignoran; 2026-11-11 se pintan al instante y Drive las guarda por detrás)
 {
   const fn = /function accionJuego\(datos, listo\) \{([\s\S]*?)\n  \}/.exec(html)[1];
   assert.ok(!/sincronizando \|\| replayActivo[^;]*\) return;/.test(fn), 'accionJuego no puede ignorar en silencio una acción confirmada');
-  assert.ok(/enEspera\.push/.test(fn), 'si está ocupado, la acción queda en espera');
-  ['libre(); })', 'aplicarPendiente(); libre(); });'].forEach(t => assert.ok(html.includes(t), 'la fila se suelta al quedar libre: ' + t));
+  assert.ok(/porGuardar\.push/.test(fn) && /aplicarLocal\(modelo, datos/.test(fn), 'se pinta ya y queda en la fila para Drive');
+}
+
+// aplicarLocal (2026-11-11): lo que hará Drive, aplicado en una copia del JSON e idempotente
+{
+  const al = (m, d, hoy) => JSON.parse(JSON.stringify(J('aplicarLocal')(m, d, hoy || '2026-11-11')));
+  const base = JSON.parse(JSON.stringify(modelo));
+  base.postulaciones.semanas.push({ semana: '5. Quinta semana', desde: '2026-11-04', total: 0, rechazada: 0, proceso: 0, sinRespuesta: 0, aplicada: 0 });
+  base.porEnviar = [{ empresa: 'Nueva SA', cargo: 'UX', carpeta: 'https://drive.google.com/drive/folders/carpetaNueva01' },
+                    { empresa: 'Otra', cargo: '', carpeta: 'https://drive.google.com/drive/folders/carpetaOtra002' }];
+  const total = base.postulaciones.total;
+  // Ya la envié: sale de Munición y entra a la semana de número más alto con la fecha de hoy
+  const env = al(base, { accion: 'enviada', id: 'carpetaNueva01' });
+  assert.deepStrictEqual(env.porEnviar.map(p => p.empresa), ['Otra']);
+  const nueva = env.postulaciones.lista.filter(a => a.empresa === 'Nueva SA');
+  assert.strictEqual(nueva.length, 1);
+  assert.strictEqual(nueva[0].semana, '5. Quinta semana');
+  assert.strictEqual(nueva[0].creada, '2026-11-11');
+  assert.strictEqual(env.postulaciones.total, total + 1);
+  assert.strictEqual(env.postulaciones.semanas.filter(w => w.semana === '5. Quinta semana')[0].total, 1);
+  assert.deepStrictEqual(al(env, { accion: 'enviada', id: 'carpetaNueva01' }), env, 'idempotente: aplicarla otra vez no cambia nada');
+  // El ataque sale en la arena: la HV nueva es un evento con la fecha de hoy
+  assert.ok(J('construirEventos')(env).some(e => e.tipo === 'hv' && e.empresa === 'Nueva SA' && e.dia === '2026-11-11'));
+  // Descartar: solo sale de Munición
+  const desc = al(base, { accion: 'descartar', id: 'carpetaOtra002' });
+  assert.deepStrictEqual(desc.porEnviar.map(p => p.empresa), ['Nueva SA']);
+  assert.strictEqual(desc.postulaciones.total, total);
+  // Me rechazaron: cambia la clave, la fecha del estado y las cuentas de su semana
+  const env2 = al(env, { accion: 'rechazada', id: 'carpetaNueva01' });
+  const r = env2.postulaciones.lista.filter(a => a.empresa === 'Nueva SA')[0];
+  assert.strictEqual(r.clave, 'rechazada'); assert.strictEqual(r.estadoFecha, '2026-11-11');
+  const w5 = env2.postulaciones.semanas.filter(w => w.semana === '5. Quinta semana')[0];
+  assert.strictEqual(w5.rechazada, 1); assert.strictEqual(w5.aplicada, 0);
+  assert.deepStrictEqual(al(env2, { accion: 'rechazada', id: 'carpetaNueva01' }), env2, 'idempotente');
+  assert.ok(J('construirEventos')(env2).some(e => e.tipo === 'rechazo' && e.empresa === 'Nueva SA' && e.dia === '2026-11-11'), 'el rechazo sale en la arena');
+  // Ya lo hice: la acción pendiente desaparece
+  const conAccion = Object.assign({}, base, { acciones: [{ empresa: 'Pavago', siguiente: 'Grabar el video' }, { empresa: 'Otra', siguiente: 'Llamar' }] });
+  assert.deepStrictEqual(al(conAccion, { accion: 'hecho', empresa: 'pavago', que: 'Grabar el video' }).acciones.map(a => a.empresa), ['Otra']);
+  // Ya los envié: solo las direcciones marcadas de esa empresa que seguían como borrador
+  const conCorreos = Object.assign({}, base, { correos: { lista: [
+    { empresa: 'Fintech X', para: 'a@x.co', clave: 'borrador', estado: 'Borrador' },
+    { empresa: 'Fintech X', para: 'b@x.co', clave: 'borrador', estado: 'Borrador' },
+    { empresa: 'Otra', para: 'a@x.co', clave: 'borrador', estado: 'Borrador' }] } });
+  const cs = al(conCorreos, { accion: 'correos', empresa: 'Fintech X', para: 'A@x.co' }).correos.lista;
+  assert.deepStrictEqual(cs.map(c => c.clave), ['enviado', 'borrador', 'borrador']);
+  assert.strictEqual(cs[0].dia, '2026-11-11');
+  // No toca el original
+  assert.strictEqual(base.porEnviar.length, 2);
 }
 
 // Clave de escritura pegada (2026-11-11): enlace completo del juego u oficina, o la clave sola

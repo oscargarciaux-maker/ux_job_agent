@@ -21,8 +21,16 @@
 const GAME_ACTIONS_ = ['enviada', 'descartar', 'rechazada', 'proceso', 'hecho', 'correos', 'seguimiento', 'pedido', 'dudosa'];
 const COLD_SENT_STATUS_ = 'Enviado (registrado desde el juego)';
 const GAME_FOLDER_COLORS_ = { rechazada: '#f83a22', proceso: '#16a765' };  // los mismos de la skill seguimiento
+/**
+ * Acciones ligeras (2026-11-11, «se tarda mucho»): cambian solo las filas que tocan (Por enviar, Aplicadas) y recalculan
+ * el JSON desde el Sheet, sin releer Drive ni esperar a la sincronización de cada hora, que sigue ordenando todo después.
+ */
+const LIGHT_GAME_ACTIONS_ = ['enviada', 'descartar', 'rechazada', 'proceso', 'hecho', 'correos', 'seguimiento'];
 
-/** Responde una acción del juego: la aplica, vuelve a leer Drive y devuelve el JSON del tablero (o { error }). */
+/**
+ * Responde una acción del juego: la aplica y devuelve el JSON del tablero (o { error }). Las ligeras lo recalculan desde
+ * el Sheet en segundos; la decisión sobre una dudosa sigue releyendo Drive (mueve carpetas entre días y pestañas).
+ */
 function dashboardAction_(p, key) {
   const out = obj => ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
   if (!dashboardKeyOk(p.k, key)) return out({ error: 'clave' });
@@ -35,10 +43,14 @@ function dashboardAction_(p, key) {
       console.log('Buzón de la oficina: pedido ' + id);
       return ContentService.createTextOutput(warmDashboardCache_()).setMimeType(ContentService.MimeType.JSON);
     }
-    console.log('Acción del juego: ' + runGameAction_(p));
+    const t0 = Date.now();
+    console.log('Acción del juego: ' + runGameAction_(p) + ' (' + ((Date.now() - t0) / 1000).toFixed(1) + ' s)');
   } catch (err) {
     console.error('Acción del juego ' + p.accion + ' -> ERROR: ' + err.message);
     return out({ error: 'accion', detalle: err.message });
+  }
+  if (LIGHT_GAME_ACTIONS_.indexOf(String(p.accion)) !== -1) {
+    return ContentService.createTextOutput(warmDashboardCache_()).setMimeType(ContentService.MimeType.JSON);
   }
   let json = null;
   try {
@@ -94,11 +106,19 @@ function runGameAction_(p) {
       folder.setDescription(sentDescription(today));
       folder.moveTo(DriveApp.getFolderById(week.id));
       updateVacancyStatus_(registry, vacancy.link, 'Aplicada (' + today + ', desde el juego)');
+      patchSheets_(() => {
+        removePendingRow_(ss, folder.getId());
+        const applied = ss.getSheetByName(CONFIG.APPLIED_SHEET_NAME);
+        if (applied && sheetRowOfFolder_(applied, folder.getId()) === -1) {
+          applied.appendRow(appliedSheetRow(folder.getName(), folder.getId(), week.name, today));
+        }
+      });
       return folder.getName() + ' -> enviada, movida a ' + week.name;
     }
     const reason = safeCell(String(p.motivo || 'sin motivo').slice(0, 120));
     updateVacancyStatus_(registry, vacancy.link, 'Descartada: ' + reason + ' (Oscar, desde el juego)');
     folder.setTrashed(true);
+    patchSheets_(() => removePendingRow_(ss, folder.getId()));
     return folder.getName() + ' -> descartada (' + reason + '), a la papelera';
   }
 
@@ -151,6 +171,15 @@ function runGameAction_(p) {
     const old = listChildFolders_(root.getId()).filter(f => CONFIG.APPLIED_OLD_FOLDER_PATTERN.test(String(f.name).trim()));
     const folder = folderInside_(p.id, [cv.getId()].concat(old.map(f => f.id)), 3);
     Drive.Files.update({ folderColorRgb: GAME_FOLDER_COLORS_[action] }, folder.getId());
+    patchSheets_(() => {
+      // El estado en Aplicadas ya queda igual al color: la sincronización de cada hora no lo cuenta como cambio
+      const applied = ss.getSheetByName(CONFIG.APPLIED_SHEET_NAME);
+      const i = applied ? sheetRowOfFolder_(applied, folder.getId()) : -1;
+      if (i === -1) return;
+      const color = GAME_FOLDER_COLORS_[action];
+      applied.getRange(i + 2, 4, 1, 2).setValues([[colorToStatus(color), color]]);
+      applied.getRange(i + 2, 4).setBackground(color);
+    });
     const parsed = parseAppliedFolderName(folder.getName());
     const parent = folder.getParents();
     Object.assign(record, {
@@ -171,6 +200,30 @@ function runGameAction_(p) {
   }
   followup.appendRow(followupRow(header, record));
   return record['Empresa'] + ' -> ' + action;
+}
+
+/** Cambio de filas tras una acción: si falla, solo se registra (la sincronización de cada hora lo deja bien). */
+function patchSheets_(fn) {
+  try {
+    fn();
+  } catch (e) {
+    console.warn('Acción del juego: filas del Sheet -> ' + e.message + ' (las arregla la sincronización de cada hora)');
+  }
+}
+
+/** Fila de datos (0 = la primera después del encabezado) cuyo enlace «Abrir» de la columna Carpeta apunta a `id`, o -1. */
+function sheetRowOfFolder_(sheet, id) {
+  if (sheet.getLastRow() < 2) return -1;
+  const col = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(String).indexOf('Carpeta') + 1;
+  if (!col) return -1;
+  return rowOfFolder(sheet.getRange(2, col, sheet.getLastRow() - 1, 1).getFormulas(), id);
+}
+
+/** Quita de Por enviar la fila de esa carpeta (la HV ya se envió o se descartó). */
+function removePendingRow_(ss, id) {
+  const sheet = ss.getSheetByName(CONFIG.PENDING_CV_SHEET_NAME);
+  const i = sheet ? sheetRowOfFolder_(sheet, id) : -1;
+  if (i !== -1) sheet.deleteRow(i + 2);
 }
 
 /** La carpeta `id` si está dentro (hasta `depth` niveles) de alguna de `ancestorIds`; si no, error. */
@@ -209,6 +262,19 @@ function pickCurrentWeek(folders) {
   const numbered = folders.filter(f => num(f) >= 0);
   const pool = numbered.length ? numbered : folders;
   return pool.slice().sort((a, b) => numbered.length ? num(b) - num(a) : String(b.createdTime || '').localeCompare(String(a.createdTime || '')))[0] || null;
+}
+
+/** Índice de la fila cuya fórmula =HYPERLINK(".../folders/<id>", …) es de la carpeta `id`, o -1. */
+function rowOfFolder(formulas, id) {
+  for (let i = 0; i < (formulas || []).length; i++) if (id && extractFolderId(formulas[i][0]) === id) return i;
+  return -1;
+}
+
+/** Fila nueva de Aplicadas para una HV recién enviada desde el juego (mismo orden que APPLIED_SHEET_HEADERS). */
+function appliedSheetRow(folderName, folderId, weekName, day) {
+  const parsed = parseAppliedFolderName(folderName);
+  return [weekName, parsed.company, parsed.title, colorToStatus(''), '',
+    '=HYPERLINK("https://drive.google.com/drive/folders/' + folderId + '","Abrir")', day, weekName];
 }
 
 /** Fila para Seguimiento en el orden de su encabezado (columnas que no vienen quedan vacías). */

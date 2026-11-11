@@ -643,6 +643,55 @@ function tandaCorreos(lista, hoy, tamano) {
     correos: grupos.reduce(function (n, g) { return n + g.filas.length; }, 0) };
 }
 
+/** Id de una carpeta de Drive a partir de su enlace (…/folders/<id>), o vacío. */
+function idDeCarpeta(url) { var m = /folders\/([\w-]{10,})/.exec(String(url || '')); return m ? m[1] : ''; }
+
+/**
+ * Respuesta al instante (2026-11-11, «se tarda mucho en cargar»): aplica en una copia del JSON lo que hará la acción en
+ * Drive, para pintarlo ya mientras Apps Script la guarda por detrás. Es idempotente (aplicarla sobre datos que ya la traen
+ * no cambia nada), así que se puede volver a aplicar sobre cada respuesta del servidor mientras siga pendiente.
+ * `datos` = lo que el juego manda a Apps Script ({ accion, id, empresa, para, que… }); `hoy` = yyyy-MM-dd en Bogotá.
+ */
+function aplicarLocal(m, datos, hoy) {
+  var n = JSON.parse(JSON.stringify(m || {}));
+  var P = n.postulaciones = n.postulaciones || {};
+  P.lista = P.lista || []; P.semanas = P.semanas || [];
+  var a = String((datos && datos.accion) || ''), id = String((datos && datos.id) || '');
+  var mismaCarpeta = function (x) { return id && idDeCarpeta(x.carpeta) === id; };
+  var semanaDe = function (nombre) { return P.semanas.filter(function (w) { return w.semana === nombre; })[0]; };
+  var sumar = function (w, clave, d) { if (!w) return; if (clave) w[clave] = (w[clave] || 0) + d; };
+  if (a === 'enviada' || a === 'descartar') {
+    var p = (n.porEnviar || []).filter(mismaCarpeta)[0];
+    n.porEnviar = (n.porEnviar || []).filter(function (x) { return !mismaCarpeta(x); });
+    if (a === 'enviada' && p && !P.lista.some(mismaCarpeta)) {
+      // Semana actual: la de número más alto, como pickCurrentWeek en Acciones.gs
+      var actual = P.semanas.slice().sort(function (x, y) { return numeroDeSemana(y.semana, 0) - numeroDeSemana(x.semana, 0); })[0];
+      var nombre = actual ? actual.semana : 'Sin semana';
+      P.lista.push({ empresa: p.empresa || '', cargo: p.cargo || '', estado: 'Aplicada', clave: 'aplicada', semana: nombre,
+        creada: hoy, carpeta: p.carpeta, estadoFecha: '' });
+      P.total = (P.total || 0) + 1; P.aplicada = (P.aplicada || 0) + 1;
+      sumar(actual, 'total', 1); sumar(actual, 'aplicada', 1);
+    }
+  } else if (a === 'rechazada' || a === 'proceso') {
+    P.lista.forEach(function (x) {
+      if (!mismaCarpeta(x) || x.clave === a) return;
+      var w = semanaDe(x.semana);
+      sumar(w, x.clave, -1); sumar(w, a, 1);
+      P[x.clave] = Math.max(0, (P[x.clave] || 0) - 1); P[a] = (P[a] || 0) + 1;
+      x.clave = a; x.estado = a === 'rechazada' ? 'Rechazada' : 'En proceso'; x.estadoFecha = hoy;
+    });
+  } else if (a === 'hecho') {
+    n.acciones = (n.acciones || []).filter(function (x) { return !(mismoNombre(x.empresa, datos.empresa) && x.siguiente === datos.que); });
+  } else if (a === 'correos') {
+    var para = String(datos.para || '').split('|').map(function (x) { return x.trim().toLowerCase(); }).filter(Boolean);
+    ((n.correos && n.correos.lista) || []).forEach(function (c) {
+      if (c.clave !== 'borrador' || !mismoNombre(c.empresa, datos.empresa) || para.indexOf(String(c.para || '').trim().toLowerCase()) === -1) return;
+      c.clave = 'enviado'; c.estado = 'Enviado (registrado desde el juego)'; c.dia = hoy; c.fecha = hoy; c.entregadas = 1;
+    });
+  }
+  return n;
+}
+
 /** La acción que queda pendiente según la historia (la del último hallazgo), o vacío si es esperar o ninguna. */
 function accionPendiente(pasos) {
   var ult = pasos.filter(function (p) { return p.tipo === 'seguimiento'; }).pop();
@@ -1445,7 +1494,8 @@ var ARTE = {
     var ocupado = sincronizando || replayActivo;
     filas.forEach(function (n) {
       var c = n.querySelector('.cuando'), b = n.querySelector('button');
-      c.textContent = avisoDatos || textoBase(); c.className = 'cuando ' + tonoDatos;
+      var enFila = porGuardar && porGuardar.length;
+      c.textContent = avisoDatos || (enFila ? 'Guardando en Drive…' : textoBase()); c.className = 'cuando ' + (tonoDatos || (enFila ? 'cia' : ''));
       b.lastChild.textContent = sincronizando ? 'Leyendo…' : 'Actualizar';
       if (ocupado) b.setAttribute('aria-disabled', 'true'); else b.removeAttribute('aria-disabled');
       if (sincronizando) b.setAttribute('aria-busy', 'true'); else b.removeAttribute('aria-busy');
@@ -1469,16 +1519,14 @@ var ARTE = {
         if (!d || !d.postulaciones) throw new Error('sin datos');
         guardar(CLAVE + ':modelo', d);
         avisoDatos = ''; tonoDatos = '';
-        if (replayActivo || introAbierta) { pendiente = d; avisoDatos = 'Drive leído: lo nuevo va al final'; tonoDatos = 'cia'; pintarDatos(); }
-        else pintarTodo(d, null, true);
+        if (replayActivo || introAbierta) { pendiente = conPendientes(d); avisoDatos = 'Drive leído: lo nuevo va al final'; tonoDatos = 'cia'; pintarDatos(); }
+        else pintarTodo(conPendientes(d), null, true);
         if (!auto) anunciar('Listo. ' + textoBase() + '.');
-        libre();
       })
       .catch(function () {
         sincronizando = false; avisoDatos = 'No se pudo leer Drive. ' + textoBase(); tonoDatos = 'mag';
         pintarDatos();
         if (!auto) anunciar(avisoDatos);
-        libre();
       });
   }
   function verEstado(sync, tono) {
@@ -1501,44 +1549,57 @@ var ARTE = {
   function idCarpeta(url) { var m = /folders\/([\w-]{10,})/.exec(String(url || '')); return m ? m[1] : ''; }
   var MENSAJE_ERROR = { escritura: 'Tu enlace no tiene permiso para cambiar cosas (le falta la clave de escritura).' };
   /**
-   * Acciones confirmadas mientras el juego lee Drive o repite eventos (2026-10-28: «Descartar» no hacía nada porque al
-   * abrir el juego estaba leyendo Drive y la acción se ignoraba sin avisar). Esperan en fila y salen al quedar libre.
+   * Respuesta al instante (2026-11-11, «se tarda mucho en cargar»): cada acción confirmada se pinta ya con aplicarLocal y
+   * va a una fila que Apps Script guarda de a una, por detrás. Toda respuesta del servidor (de una acción o de Actualizar)
+   * se muestra con las acciones que siguen en la fila aplicadas encima, así nada parpadea hacia atrás. Si Drive rechaza una,
+   * se vuelve a la última foto del servidor y se avisa. Antes (2026-10-28) la acción esperaba a que terminara la lectura
+   * de Drive y la respuesta traía la sincronización completa: decenas de segundos por clic.
    */
-  var enEspera = [];
-  function soltarAccion() {
-    if (!enEspera.length || sincronizando || replayActivo || introAbierta) return;
-    var a = enEspera.shift();
-    accionJuego(a.datos, a.listo);
+  var porGuardar = [], guardando = false;
+  function hoyBogota() { return new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Bogota' }).format(new Date()); }
+  function conPendientes(d) {
+    return porGuardar.reduce(function (m, a) { return aplicarLocal(m, a.datos, hoyBogota()); }, d);
   }
-  function libre() { setTimeout(soltarAccion, 0); }
-  /** Manda la acción a Apps Script; con la respuesta (el JSON ya actualizado) repinta y reproduce lo nuevo. */
+  /** Pinta un JSON nuevo; si la arena está repitiendo eventos, lo deja para cuando termine. */
+  function mostrar(d, conReplay) {
+    if (replayActivo || introAbierta) pendiente = d; else pintarTodo(d, null, conReplay);
+  }
+  function avisoGuardando() {
+    avisoDatos = porGuardar.length ? 'Guardando en Drive' + (porGuardar.length > 1 ? ' (' + porGuardar.length + ')' : '') + '…' : '';
+    tonoDatos = porGuardar.length ? 'cia' : ''; pintarDatos();
+  }
   function accionJuego(datos, listo) {
-    if (!ESCRIBE || !URL_DATOS) return;
-    if (sincronizando || replayActivo || introAbierta) {
-      enEspera.push({ datos: datos, listo: listo });
-      var espera = (sincronizando ? 'Leyendo Drive… luego registro ' : 'Al terminar la repetición registro ') +
-        (enEspera.length === 1 ? 'tu acción.' : 'tus ' + enEspera.length + ' acciones.');
-      avisoDatos = espera; tonoDatos = 'cia'; pintarDatos(); anunciar(espera);
-      return;
-    }
-    sincronizando = true; avisoDatos = 'Registrando en Drive…'; tonoDatos = 'cia'; pintarDatos();
-    anunciar('Registrando en Drive.');
+    if (!ESCRIBE || !URL_DATOS || !modelo) return;
+    porGuardar.push({ datos: datos, listo: listo });
+    mostrar(aplicarLocal(modelo, datos, hoyBogota()), true);
+    avisoGuardando(); anunciar(listo + ' Guardando en Drive.');
+    guardarSiguiente();
+  }
+  function guardarSiguiente() {
+    if (guardando || !porGuardar.length) return;
+    guardando = true;
+    var a = porGuardar[0], datos = a.datos;
     var q = Object.keys(datos).map(function (k) { return '&' + k + '=' + encodeURIComponent(datos[k] == null ? '' : datos[k]); }).join('');
     fetch(URL_DATOS + '&fresco=1' + q + '&e=' + encodeURIComponent(params.e), { credentials: 'omit' }).then(function (r) { return r.json(); })
       .then(function (d) {
-        sincronizando = false;
-        if (d && d.error === 'clave') return bloqueado();
+        if (d && d.error === 'clave') { porGuardar = []; guardando = false; return bloqueado(); }
         if (d && d.error) throw new Error(MENSAJE_ERROR[d.error] || ('No se pudo: ' + (d.detalle || d.error)));
         if (!d || !d.postulaciones) throw new Error('No se pudo registrar. Revisa la conexión.');
+        porGuardar.shift(); guardando = false;
         guardar(CLAVE + ':modelo', d);
-        avisoDatos = ''; tonoDatos = '';
-        anunciar(listo);
-        pintarTodo(d, null, true);
-        libre();
+        mostrar(conPendientes(d), true);
+        avisoGuardando();
+        if (!porGuardar.length) anunciar('Guardado en Drive.');
+        guardarSiguiente();
       })
       .catch(function (err) {
-        sincronizando = false; avisoDatos = err.message || 'No se pudo registrar.'; tonoDatos = 'mag'; pintarDatos(); anunciar(avisoDatos);
-        libre();
+        porGuardar.shift(); guardando = false;
+        // Vuelve a la última foto del servidor (con lo que siga en la fila) y dice qué no se guardó
+        var base = leer(CLAVE + ':modelo') || modelo;
+        mostrar(conPendientes(base), false);
+        avisoDatos = 'No se guardó en Drive: ' + String(err.message || 'sin conexión').replace(/^No se pudo: /, '').replace(/\.$/, '') + '. Lo dejé como estaba.'; tonoDatos = 'mag';
+        pintarDatos(); anunciar(avisoDatos);
+        guardarSiguiente();
       });
   }
   /** Paso de confirmación: nada se mueve con un toque accidental. `extra`: nodos opcionales (p. ej. motivos). */
@@ -1889,7 +1950,7 @@ var ARTE = {
       if (it.tamano === 'dialogo') { var t = dialogoDe(it); decir(t.voz, t.dato, []); anunciar(t.voz + ' ' + t.dato); }
       coreografia(it, sig, mostrado)
         .then(function () { return it.tamano === 'mediano' || it.tamano === 'grande' ? modalEvento(it) : espera(1500); })
-        .then(function () { replayActivo = false; pintarDatos(); verArena(final); decirReposo(); aplicarPendiente(); libre(); });
+        .then(function () { replayActivo = false; pintarDatos(); verArena(final); decirReposo(); aplicarPendiente(); });
     };
     alCerrar = null; cerrarModal(); irA('arena'); setTimeout(alTerminar, 0);
   }
@@ -2106,7 +2167,6 @@ var ARTE = {
       decir(r.voz, r.dato + resumen, cola.resumen ? [el('button', { class: 'btn', type: 'button', text: 'Bitácora ▶', onclick: function () { irA('bitacora'); } })] : []);
       guardar(CLAVE + ':visto', ultimoVistoDe(resultado.efectos));
       aplicarPendiente();
-      libre();
     });
   }
   /** Lo que dice el jefe en reposo, con el dato real al lado (principio 1). */
@@ -2183,7 +2243,7 @@ var ARTE = {
     if (!visto) {
       verArena(resultado.estado); decirReposo();
       introAbierta = true;
-      intro().then(function () { introAbierta = false; guardar(CLAVE + ':visto', ultimoVistoDe(resultado.efectos)); aplicarPendiente(); libre(); });
+      intro().then(function () { introAbierta = false; guardar(CLAVE + ':visto', ultimoVistoDe(resultado.efectos)); aplicarPendiente(); });
       return;
     }
     var cola = colaReplay(resultado.efectos, visto);
