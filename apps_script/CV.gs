@@ -365,6 +365,10 @@ function keywordCovered(keyword, text) {
     m => m.replace(/[\s\/&-]+/g, '')));
   const k = join(keyword);
   if (!k) return true;
+  // 2026-11-11: el cargo que llega de atsRoleTitle ya viene normalizado («analista ux cx ui») y la HV escribe
+  // «Analista UX/CX/UI»; se compara también con las siglas separadas para no pedir un cargo que ya está.
+  const split = ' ' + normText_(String(text || '').replace(/[\/&-]/g, ' ')) + ' ';
+  if (split.indexOf(' ' + normText_(String(keyword || '').replace(/[\/&-]/g, ' ')) + ' ') !== -1) return true;
   const t = ' ' + join(text) + ' ';
   if (t.indexOf(' ' + k + ' ') !== -1) return true;
   const stems = {};

@@ -467,6 +467,13 @@ function checkPendingPostings_(rows, registryRows) {
     let cached = null;
     try { cached = JSON.parse(props.getProperty(key) || 'null'); } catch (e) { cached = null; }
     if (cached && (cached.d === today || cached.s === 'cerrada')) { r.aviso = postingNote(cached); return; }
+    // 2026-11-10: la reclutadora de un post publicó otro diciendo «vacante en stand by» y el primero siguió con HV
+    if (postAuthorClosed(r.empresa, registryRows)) {
+      const value = { d: today, s: 'cerrada' };
+      props.setProperty(key, JSON.stringify(value));
+      r.aviso = postingNote(value) + ' · el autor publicó que la cerró o la pausó';
+      return;
+    }
     const link = vacancyLinkFor({ empresa: r.empresa, cargo: r.cargo }, registryRows);
     const url = postingCheckUrl(link);
     if (!url) { r.aviso = cached ? postingNote(cached) : (link ? 'Publicación: sin comprobar' : 'Sin enlace'); return; }
@@ -489,6 +496,17 @@ function checkPendingPostings_(rows, registryRows) {
   });
   const closed = rows.filter(r => /^CERRADA/.test(r.aviso || '')).map(r => r.empresa);
   console.log('Avisos: ' + todo.length + ' comprobados' + (closed.length ? '; cerrados: ' + closed.join(', ') : ''));
+}
+
+/**
+ * Un post («Post <autor>») cuyo mismo autor tiene en Hoja 1 otra publicación descartada por cerrada, cubierta o en
+ * stand by (2026-11-10: una reclutadora). La pausa de la reclutadora vale para su otra publicación.
+ */
+function postAuthorClosed(company, registryRows) {
+  const name = String(company || '').trim();
+  if (!/^Post\s/i.test(name)) return false;
+  return (registryRows || []).some(r => String(r['Empresa'] || '').trim().toLowerCase() === name.toLowerCase() &&
+    /^Descartada/i.test(String(r['Estado'] || '')) && CONFIG.CLOSED_POST_PATTERN.test(String(r['Estado'] || '')));
 }
 
 /** URL que se abre para saber si el aviso sigue abierto: la vista pública de LinkedIn o la página; '' si no se comprueba. */

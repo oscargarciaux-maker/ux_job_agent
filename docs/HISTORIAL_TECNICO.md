@@ -154,6 +154,11 @@ Procedimientos reutilizables en cualquier sesión (nube, escritorio, Cowork). Si
 - Pruebas (obligatorias antes de push): `node tests/apps_script.test.js`, `node tests/juego.test.js`, `node tests/oficina.test.js` y `python3 tests/jobspy_test.py`
 - No hay ejecución local de Apps Script; los servicios de Google solo existen en script.google.com.
 
+## ✉️ Correos con la estructura de Oscar y avisos en stand-by (2026-11-11)
+- Oscar reescribió y programó 26 borradores: párrafos más fluidos de ~50–75 palabras. `COLD_EMAIL_MAX_WORDS` pasa de 35 a 80 y la skill `correo-en-frio` (Paso 4), `crear-hv` (`_correo_cuerpo`), `cartero` y `ia/prompt_cv_diario.md` describen su estructura: P1 hito + felicitación + «Me llamó la atención que…»; P2 puente de motivación + caso real con su porqué y dato + aporte + «¿Conversamos? Adjunto HV, LinkedIn y Portafolio.»; firma «Oscar Garcia / Diseñador UX/UI | Product Designer».
+- Una autora publicó «VACANTE EN STAND BY» y su post de contratación siguió en `Por enviar` con HV: el sistema no cruzaba posts del mismo autor. `CLOSED_POST_PATTERN` y `CLOSED_POSTING_PATTERN` reconocen stand by / en pausa / on hold, y `postAuthorClosed` (`Applied.gs`) marca cerrada la vacante de un `Post …` cuando el mismo autor tiene otro post descartado por cierre o pausa.
+- `keywordCovered` no reconocía el cargo normalizado de `atsRoleTitle` («analista ux cx ui») contra «Analista UX/CX/UI» en la HV (las siglas con barra se fundían en «uxcxui») y rechazaba HV con el cargo bien escrito; ahora compara también con las siglas separadas.
+
 ## 📌 Pendientes conocidos
 - Soporte interactivo para Cartas de Presentación (*Cover Letter*).
 - Historial: la versión Python (OAuth + GitHub Actions) se eliminó en la migración; está en el commit `8957d0d`.

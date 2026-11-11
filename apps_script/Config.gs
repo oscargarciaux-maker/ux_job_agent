@@ -64,7 +64,7 @@ const CONFIG = {
       pattern: /(exclusiv[oa]|dirigid[oa]|solo|[uú]nicamente)\s+(para|a)\s+personas\s+con\s+discapacidad|vacante\s+(para|de)\s+personas\s+con\s+discapacidad|certificado\s+de\s+discapacidad|exclusively\s+for\s+(people|persons|candidates)\s+with\s+disabilit/i },
   ],
   // Texto de la página original que indica que la vacante ya no recibe postulaciones (se lee gratis con UrlFetchApp)
-  CLOSED_POSTING_PATTERN: /no longer accepting applications|this job (is no longer available|has expired)|job (has been )?closed|ya no (acepta|recibe) (solicitudes|postulaciones|aplicaciones)|(oferta|vacante) (cerrada|caducada|finalizada|vencida)|esta oferta (ha caducado|ya no est[aá] disponible)|proceso (de selecci[oó]n )?cerrado/i,
+  CLOSED_POSTING_PATTERN: /no longer accepting applications|this job (is no longer available|has expired)|job (has been )?closed|ya no (acepta|recibe) (solicitudes|postulaciones|aplicaciones)|(oferta|vacante) (cerrada|caducada|finalizada|vencida)|esta oferta (ha caducado|ya no est[aá] disponible)|proceso (de selecci[oó]n )?cerrado|(vacante|oferta|proceso|posici[oó]n) (est[aá] )?(en )?stand[\s-]?by|(vacante|proceso) en pausa/i,
   // Inglés "avanzado" sin decir fluido, nativo, bilingüe ni C1 (2026-10-27): entra con menor prioridad, nota en
   // Detalle_Vacante y "Inglés avanzado" en la columna Notas de Hoja 1 (para medir si vale la pena)
   ENGLISH_ADVANCED_PATTERN: /\b(ingl[eé]s|english)\s*[:\-–(]?\s*(nivel\s+|level\s+)?(avanzado|excelente|advanced|proficient|excellent)\b|\bnivel\s+(de\s+)?ingl[eé]s\s*[:\-]?\s*(avanzado|alto)\b|\bnivel\s+(avanzado|alto)\s+(de|en)\s+(ingl[eé]s|english)\b|\b(excellent|excelente)\s+(command\s+of\s+|level\s+of\s+)?(english|ingl[eé]s)\b|\bingl[eé]s\s+(a\s+)?nivel\s+(avanzado|alto)\b|\b(advanced|proficient)\s+(level\s+(of\s+)?)?(in\s+)?english\b|\benglish\s+proficiency\b|\bproficiency\s+in\s+english\b/i,
@@ -199,7 +199,7 @@ const CONFIG = {
   // Publicación que ya no contrata (2026-10-26: un post de "hiring" terminaba en "we got the people we wanted")
   // Publicaciones que no son vacantes (plan 2026-10-27): gente buscando empleo, cursos, webinars
   POST_NOISE_PATTERN: /#?open ?to ?work|busco (empleo|trabajo|oportunidad)|estoy buscando (empleo|trabajo|oportunidad|nuevos retos)|i'?m (currently )?looking for (a )?(new )?(role|job|position|opportunit)|webinar|inscr[ií]bete|bootcamp|masterclass|stipend|immediate joiners?/i,
-  CLOSED_POST_PATTERN: /caducad|expirad|expired|cerrad|closed|-\s*paused\s*-|\bpausad[ao]\b|ya no|we (got|found|have found) (the|our)|position (has been |is )?filled|no longer (hiring|accepting)|ya (contratamos|encontramos|cubrimos)|vacante (ocupada|cubierta)/i,
+  CLOSED_POST_PATTERN: /caducad|expirad|expired|cerrad|closed|-\s*paused\s*-|\bpausad[ao]\b|ya no|we (got|found|have found) (the|our)|position (has been |is )?filled|no longer (hiring|accepting)|ya (contratamos|encontramos|cubrimos)|vacante (ocupada|cubierta)|stand[\s-]?by|en pausa|on hold/i,
   LINKEDIN_POST_LOCATION_PATTERN: /remot|remote|latam|latinoam|am[eé]rica latina|colombia|bogot|medell|anywhere|work from home|home office/i,
   MAX_POST_AGE_DAYS: 21,
   // Avisos en el portal de empleo de la propia empresa (Greenhouse, Lever, Ashby, Workable): esos portales solo muestran
@@ -314,7 +314,9 @@ const CONFIG = {
   // Forma de los correos (decisión del usuario 2026-11-03: «más humano»): saludo + idealmente 2 párrafos (hito y
   // felicitación; por qué le interesa con su métrica, invitación breve y adjuntos), máximo 3, de máximo 35 palabras cada uno, sin
   // contar el saludo ni la firma. Antes era un solo bloque de 35 palabras y los correos sonaban secos.
-  COLD_EMAIL_MAX_WORDS: 35,                  // por párrafo (Guía Maestra de Cover Letters)
+  // 2026-11-10 (Oscar reescribió y programó 26 borradores): el párrafo del caso cuenta el contexto, la decisión y su porqué
+  // («dado que el 30% no quería descargar más apps») y pasa de 35 palabras. Tope por párrafo 80; lo ideal ~35 + ~70.
+  COLD_EMAIL_MAX_WORDS: 80,                  // por párrafo
   COLD_EMAIL_MAX_PARAGRAPHS: 3,
   COLD_EMAIL_IDEAL_PARAGRAPHS: 2,             // «lo mejor es que no pase de 2 párrafos» (2026-11-03): con 3, aviso
   // Seguimiento de correos en frío sin respuesta (2026-10-28): un borrador corto en el mismo hilo entre 8 y 30 días después
