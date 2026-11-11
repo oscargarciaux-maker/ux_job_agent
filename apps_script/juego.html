@@ -275,6 +275,11 @@ button.fila:focus-visible { outline: 2px solid var(--cian); outline-offset: -2px
 .chips .btn { padding: 0 12px; }
 select.sel { min-height: 48px; padding: 0 12px; background: var(--panel); color: var(--texto); border: 1px solid var(--linea); font: 600 14px var(--f-ui); letter-spacing: .04em; }
 .vacio { color: var(--texto-2); margin: 4px 0; }
+/* Enlace solo de lectura (2026-11-11): pegar el enlace completo activa los botones en este dispositivo */
+.solo-lectura { margin: 4px 0 12px; }
+.solo-lectura .acc { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.solo-lectura .btn { min-height: 48px; padding: 0 16px; }
+.campo { flex: 1 1 220px; min-width: 0; min-height: 48px; padding: 0 12px; background: var(--panel); color: var(--texto); border: 1px solid var(--linea); font: 15px var(--f-num); }
 .radar { display: flex; align-items: flex-end; gap: 3px; height: 48px; margin-top: 8px; }
 .radar i { flex: 1; min-height: 2px; background: linear-gradient(180deg, #80dcd8, #2c8f8b); }
 .grafica { display: grid; gap: 10px; }
@@ -480,6 +485,17 @@ function numeroDeSemana(nombre, i) {
  * `ahoraMs`. Si los datos tienen más de DATOS_VIEJOS_MIN, el juego lee Drive de nuevo al abrir (2026-10-26). Sin fecha: Infinity.
  */
 var DATOS_VIEJOS_MIN = 15;
+
+/**
+ * Clave de escritura pegada por Oscar (2026-11-11: en el computador no salían los botones porque abría un enlace sin &e=):
+ * acepta el enlace completo del juego (o de la oficina) o la clave sola. Sin una clave válida: ''.
+ */
+function claveDeEnlace(texto) {
+  var t = String(texto || '').trim();
+  var m = /[#&?]e=([\w-]+)/.exec(t);
+  if (m) return m[1];
+  return /^[\w-]{16,}$/.test(t) ? t : '';
+}
 function minutosDesde(generado, ahoraMs) {
   var m = /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/.exec(String(generado || ''));
   if (!m) return Infinity;
@@ -1034,8 +1050,13 @@ var ARTE = {
   });
   var MODO_COACH = params.modo === 'coach';
   // Acciones que escriben (2026-10-27): solo con la clave de escritura del enlace de Oscar (&e=) y nunca en modo coach
-  var ESCRIBE = !!params.e && !MODO_COACH;
   var CLAVE = 'juego:' + (params.api || 'sin-api');
+  // Este dispositivo recuerda la clave de escritura (2026-11-11): un marcador o un acceso directo sin &e= sigue teniendo botones
+  if (!MODO_COACH && params.api) {
+    if (params.e) guardar(CLAVE + ':e', params.e);
+    else if (leer(CLAVE + ':e')) params.e = leer(CLAVE + ':e');
+  }
+  var ESCRIBE = !!params.e && !MODO_COACH;
   var modelo = null, resultado = null, mostrado = null, pestana = 'arena', replayActivo = false;
   var URL_DATOS = '', sincronizando = false, avisoDatos = '', tonoDatos = '';
   // Datos que llegan de Drive mientras corre el replay o la introducción: se aplican al terminar (2026-10-26)
@@ -1579,6 +1600,24 @@ var ARTE = {
       function () { accionJuego({ accion: nuevo, id: idCarpeta(a.carpeta), estado: a.estado || '' }, 'Estado de ' + a.empresa + ' actualizado.'); }, null, rech ? 'mag' : 'cia');
   }
 
+  /** Aviso de enlace solo de lectura con un campo para pegar el enlace completo (el del celular) y activar los botones. */
+  function activarBotones() {
+    var campo = el('input', { id: 'clave-pegada', type: 'text', autocomplete: 'off', spellcheck: 'false', class: 'campo',
+      placeholder: 'Pega tu enlace completo' });
+    var error = el('p', { class: 'vacio', role: 'alert' });
+    var activar = function () {
+      var clave = claveDeEnlace(campo.value);
+      if (!clave) { error.textContent = 'Ese enlace no trae la clave de escritura (la parte &e=…). Copia el enlace con el que sí ves los botones.'; return; }
+      guardar(CLAVE + ':e', clave);
+      location.reload();
+    };
+    return el('div', { id: 'solo-lectura', class: 'solo-lectura' }, [
+      el('p', { class: 'vacio', text: 'Este enlace es solo de lectura: le falta la clave de escritura (&e=…), por eso no salen «Ya la envié», «Descartar» ni «Ya lo hice». Pega el enlace completo que usas en el celular y este dispositivo lo recordará.' }),
+      el('label', { class: 'sr', for: 'clave-pegada', text: 'Enlace completo del juego' }),
+      el('div', { class: 'acc rejilla' }, [campo, el('button', { class: 'btn', type: 'button', onclick: activar }, [el('span', { text: 'Activar botones' })])]),
+      error,
+    ]);
+  }
   var verTodosCorreos = false;
   function verMisiones() {
     var m = modelo, v = $('v-misiones'); v.textContent = '';
@@ -1589,8 +1628,7 @@ var ARTE = {
     if (!mun.length && !segs.length) k1.push(el('p', { class: 'vacio', text: 'Sin misiones por hoy. La próxima búsqueda llega a las 5:00.' }));
     else if (!mun.length) k1.push(el('p', { class: 'vacio', text: 'No hay HV listas. Mañana a las 5:00 llegan vacantes nuevas.' }));
     // Sin la clave de escritura los botones no salen (2026-11-04: en el computador no aparecían y parecía una falla)
-    if (!ESCRIBE && !MODO_COACH && (mun.length || segs.length)) k1.push(el('p', { class: 'vacio amb', id: 'solo-lectura',
-      text: 'Este enlace es solo de lectura: le falta la clave de escritura (&e=…). Abre en este dispositivo el enlace del juego que imprime configurarTablero y aparecerán «Ya la envié», «Descartar» y «Ya lo hice».' }));
+    if (!ESCRIBE && !MODO_COACH && (mun.length || segs.length)) k1.push(activarBotones());
     var ul = el('ul', { class: 'lista' });
     mun.forEach(function (p) {
       var dias = hoy && p.fecha ? diasEntre(p.fecha.slice(0, 10), hoy) : 0;
