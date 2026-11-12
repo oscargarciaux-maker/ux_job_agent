@@ -239,7 +239,7 @@ viñeta caben unos 88 caracteres por renglón y en un párrafo unos 95. Antes de
 ### En la tarea diaria (automático)
 Escribe `CV_IA.json` en la carpeta de la vacante (`create_file`, `application/json`, sin convertir): una clave por cada
 marcador de `MASTER_TEMPLATE` (sin llaves; `""` = se borra ese párrafo) más `_idioma`, `_keywords`, `_gaps`, `_mapa`,
-`_nombre_archivo` y `_correo_cuerpo` (si `Detalle_Vacante` trae correo: el mensaje de postulación según el Prompt 2 de la
+`_nombre_archivo` y `_correo_cuerpo` (obligatorio si `Detalle_Vacante` o la línea `CORREO:` de `Verificacion.txt` traen correo —Apps Script rechaza la HV sin él y crea el borrador solo—; si una carpeta con HV tiene `BORRADOR_POSTULACION_ERRORES.txt` porque falta, agrégalo al `CV_IA.json` y borra ese archivo, sin rehacer la HV: el mensaje de postulación según el Prompt 2 de la
 "Guía Maestra de Cover Letters" —la guía principal de correos—: [reto crítico de la vacante] + [métrica de `CONTEXTO_CV`]
 + [CTA de reunión] + [adjuntos: HV, LinkedIn, Portafolio], con la forma de `correo-en-frio` Paso 4: **la estructura de Oscar del
 10 nov 2026** —saludo; hito o reto de la vacante con felicitación si aplica; puente de motivación, caso real con su porqué y

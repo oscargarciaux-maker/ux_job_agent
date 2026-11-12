@@ -159,6 +159,11 @@ Procedimientos reutilizables en cualquier sesión (nube, escritorio, Cowork). Si
 - Una autora publicó «VACANTE EN STAND BY» y su post de contratación siguió en `Por enviar` con HV: el sistema no cruzaba posts del mismo autor. `CLOSED_POST_PATTERN` y `CLOSED_POSTING_PATTERN` reconocen stand by / en pausa / on hold, y `postAuthorClosed` (`Applied.gs`) marca cerrada la vacante de un `Post …` cuando el mismo autor tiene otro post descartado por cierre o pausa.
 - `keywordCovered` no reconocía el cargo normalizado de `atsRoleTitle` («analista ux cx ui») contra «Analista UX/CX/UI» en la HV (las siglas con barra se fundían en «uxcxui») y rechazaba HV con el cargo bien escrito; ahora compara también con las siglas separadas.
 
+## 📨 Borrador automático cuando la postulación trae correo (2026-11-12)
+- Oscar: «si en la postulación aparece correo, genéralo automáticamente». El borrador solo salía si `Detalle_Vacante` traía el correo al armar la HV; un correo hallado después (aviso completo, imagen, Oscar) no generaba nada.
+- Fuentes del correo: `Correo de contacto` de `Detalle_Vacante` o la línea `CORREO: <dirección>` que el inspector deja en `Verificacion.txt` (`verdictEmail`, CV.gs).
+- Con correo, `validateCvJson` exige `_correo_cuerpo`. Una HV ya armada con correo y sin borrador recibe uno en la siguiente pasada (`lateApplicationDraft_`): una vez por carpeta (`Borrador_postulacion.txt`), nunca si ya hay borrador, programado o enviado a esa dirección, y si falta `_correo_cuerpo` deja `BORRADOR_POSTULACION_ERRORES.txt` para que la IA lo agregue. Los posts que piden mensaje directo de LinkedIn no tienen correo: no hay borrador (regla 6).
+
 ## 📌 Pendientes conocidos
 - Soporte interactivo para Cartas de Presentación (*Cover Letter*).
 - Historial: la versión Python (OAuth + GitHub Actions) se eliminó en la migración; está en el commit `8957d0d`.

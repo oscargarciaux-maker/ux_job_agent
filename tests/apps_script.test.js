@@ -1554,6 +1554,9 @@ assert.ok(fs.readFileSync(path.join(__dirname, '..', 'instalador', 'Cargador.gs'
   assert.strictEqual(context.atsRoleTitle('Diseñador/a (Semi Senior) de Experiencia UI - Bienestar Financiero'), 'disenador de experiencia ui');
   assert.strictEqual(context.atsRoleTitle('Mid Product Designer'), 'product designer');
   assert.strictEqual(context.atsRoleTitle('¡buscamos  analista de diseño (ux/ui)!'), 'analista de diseno');
+  assert.strictEqual(context.atsRoleTitle('UX Researcher Senior (Híbrido - Bogotá) K1126'), 'ux researcher', 'sin el código del aviso');
+  assert.strictEqual(context.atsRoleTitle('Senior ux researcher - smartpos'), 'ux researcher');
+  assert.strictEqual(context.atsRoleTitle('Product Designer (Mobile UI/UX & QA)'), 'product designer');
   assert.strictEqual(context.atsRoleTitle('Elkin Pérez, PhD - remoto #hiring'), '', 'un título de publicación no es un cargo');
   assert.strictEqual(context.atsHasForm_(' usamos design systems y wireframes ', 'design system'), true, 'plural');
   assert.strictEqual(context.atsHasForm_(' interfaces claras ', 'interface'), true);
@@ -1682,3 +1685,19 @@ assert.strictEqual(context.cvScanBack(25), 2);
 }
 
 console.log('OK: todas las pruebas de apps_script pasaron');
+
+// 2026-11-12 (Oscar): «si en la postulación aparece correo, genéralo automáticamente»
+{
+  assert.strictEqual(context.verdictEmail('VEREDICTO: LISTA\nMOTIVO: ok\nCORREO: Talento@Kibernum.com (fuente: aviso completo)'), 'talento@kibernum.com');
+  assert.strictEqual(context.verdictEmail('VEREDICTO: LISTA\n- **CORREO:** <rh@empresa.co>'), 'rh@empresa.co');
+  assert.strictEqual(context.verdictEmail('VEREDICTO: LISTA\nCómo aplicar: escribir a rh@empresa.co'), null, 'solo la línea CORREO:');
+  assert.strictEqual(context.verdictEmail(''), null);
+  assert.ok(context.applicationDraftNote('a@b.co', '2026-11-12').indexOf('a@b.co') !== -1);
+  const conCorreo = { title: null, email: 'rh@empresa.co' };
+  const sinCuerpo = Object.assign({}, cvOk, { _correo_cuerpo: '' });
+  assert.ok(context.validateCvJson(sinCuerpo, contexto, marcadores, conCorreo).errors.some(e => /_correo_cuerpo/.test(e)),
+    'con correo, falta el mensaje del borrador');
+  assert.ok(!context.validateCvJson(sinCuerpo, contexto, marcadores, { title: null }).errors.some(e => /_correo_cuerpo/.test(e)),
+    'sin correo no se exige');
+}
+console.log('OK: borrador automático cuando la postulación trae correo');

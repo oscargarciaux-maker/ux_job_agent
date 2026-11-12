@@ -250,6 +250,8 @@ Registro:
   ```
   VEREDICTO: LISTA | MENOR_PRIORIDAD | DUDOSA | DESCARTAR
   MOTIVO: <una frase corta>
+  CORREO: <dirección>   (solo si el aviso completo pide enviar la HV a un correo y Detalle_Vacante dice N/D;
+                         con ella Apps Script crea el borrador de postulación, también si la HV ya existe)
   ```
   Después, el reporte con el formato de arriba. Las publicaciones del documento `Posts` van en
   `Posts/Verificacion_Posts.txt`, una línea por publicación: `<veredicto> | <autor o empresa> | <enlace> | <motivo>`.
