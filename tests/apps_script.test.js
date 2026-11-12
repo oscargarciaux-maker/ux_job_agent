@@ -1682,3 +1682,19 @@ assert.strictEqual(context.cvScanBack(25), 2);
 }
 
 console.log('OK: todas las pruebas de apps_script pasaron');
+
+// 2026-11-12 (Oscar): «si en la postulación aparece correo, genéralo automáticamente»
+{
+  assert.strictEqual(context.verdictEmail('VEREDICTO: LISTA\nMOTIVO: ok\nCORREO: Talento@Kibernum.com (fuente: aviso completo)'), 'talento@kibernum.com');
+  assert.strictEqual(context.verdictEmail('VEREDICTO: LISTA\n- **CORREO:** <rh@empresa.co>'), 'rh@empresa.co');
+  assert.strictEqual(context.verdictEmail('VEREDICTO: LISTA\nCómo aplicar: escribir a rh@empresa.co'), null, 'solo la línea CORREO:');
+  assert.strictEqual(context.verdictEmail(''), null);
+  assert.ok(context.applicationDraftNote('a@b.co', '2026-11-12').indexOf('a@b.co') !== -1);
+  const conCorreo = { title: null, email: 'rh@empresa.co' };
+  const sinCuerpo = Object.assign({}, cvOk, { _correo_cuerpo: '' });
+  assert.ok(context.validateCvJson(sinCuerpo, contexto, marcadores, conCorreo).errors.some(e => /_correo_cuerpo/.test(e)),
+    'con correo, falta el mensaje del borrador');
+  assert.ok(!context.validateCvJson(sinCuerpo, contexto, marcadores, { title: null }).errors.some(e => /_correo_cuerpo/.test(e)),
+    'sin correo no se exige');
+}
+console.log('OK: borrador automático cuando la postulación trae correo');

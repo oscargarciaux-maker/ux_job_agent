@@ -245,6 +245,7 @@ const CONFIG = {
   // <YYYY-MM-DD>/<Empresa>. Fuera de CV/<semana>: allá solo van, movidas por el usuario, las que ya envió.
   PENDING_FOLDER_NAME: 'Sin revisar',
   CV_TEST_FOLDER: 'PRUEBA_IA',       // Carpeta de prueba en la raíz para probarCVsDesdeIA
+  CV_DRAFT_DONE_NAME: 'Borrador_postulacion.txt',  // 2026-11-12: la carpeta ya tiene su borrador (no se repite)
   CV_DRAFT_ERRORS_NAME: 'BORRADOR_POSTULACION_ERRORES.txt', // Error de Gmail sin repetir una HV ni duplicar envío
   CV_EXPORT_PDF: false,      // En pausa: el usuario ajusta a mano el Google Doc del CV y exporta él mismo
   CV_FILE_PREFIX: 'HV_',     // HV_Nombre_Apellido_Cargo (guía Adaptia), en español; el nombre completo lo da _nombre_archivo

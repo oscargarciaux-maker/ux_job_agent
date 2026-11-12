@@ -12,7 +12,7 @@ Aplica la skill `verificar-vacante` (`.claude/skills/verificar-vacante/SKILL.md`
 Una o varias carpetas de `Vacantes con IA/Sin revisar/<fecha>/` con su `Detalle_Vacante`.
 
 ## Entregas
-`Verificacion.txt` en cada carpeta (create_file, text/plain, sin conversión) con las dos primeras líneas exactas `VEREDICTO: LISTA|MENOR_PRIORIDAD|DUDOSA|DESCARTAR` y `MOTIVO: …`, y después el reporte de la skill. Apps Script manda las DESCARTAR a la papelera y las DUDOSA a `Dudosas` en su siguiente pasada (cada 10 min, 5:00–22:59): no las muevas tú.
+`Verificacion.txt` en cada carpeta (create_file, text/plain, sin conversión) con las dos primeras líneas exactas `VEREDICTO: LISTA|MENOR_PRIORIDAD|DUDOSA|DESCARTAR` y `MOTIVO: …`, y después el reporte de la skill. Si al abrir el aviso completo aparece un correo para enviar la HV y `Detalle_Vacante` dice `Correo de contacto: N/D`, agrega la línea `CORREO: <dirección>` (2026-11-12, Oscar: «si en la postulación aparece correo, genéralo automáticamente»): Apps Script crea el borrador con la HV, aunque ya esté armada. Apps Script manda las DESCARTAR a la papelera y las DUDOSA a `Dudosas` en su siguiente pasada (cada 10 min, 5:00–22:59): no las muevas tú.
 
 ## Reglas
 - Inglés: el nivel real es B2. Descarta nativo o C1/C2 sin B1/B2 explícito; «avanzado/alto/excelente» y «fluido/bilingüe» sin nivel son MENOR_PRIORIDAD (28 oct 2026).

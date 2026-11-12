@@ -125,16 +125,22 @@ function buildCvsInFolder_(dateFolder, sheet) {
       }
       const jsonFile = firstFileByName_(folder, CONFIG.CV_JSON_NAME);
       if (!jsonFile) return;
+      // 2026-11-12 (Oscar): si la postulación trae correo, el borrador sale solo. El correo viene del aviso
+      // (Detalle_Vacante) o de la línea CORREO: que el inspector deja en Verificacion.txt al leer el aviso completo.
+      const verifiedEmail = verdictEmail(readOptionalText_(folder, CONFIG.VERIFICATION_FILE_NAME));
       if (hasGeneratedCv_(folder)) {
         // Recuperar el estado en Sheets tras un fallo previo al actualizar la fila.
         const detail = firstFileByName_(folder, 'Detalle_Vacante');
         const priorVacancy = parseVacancyDetail(detail ? DocumentApp.openById(detail.getId()).getBody().getText() : '');
         updateVacancyStatus_(sheet, priorVacancy.link, 'Pendiente');
+        priorVacancy.email = priorVacancy.email || verifiedEmail;
+        if (priorVacancy.email) lateApplicationDraft_(folder, jsonFile, priorVacancy, label);
         console.log(label + ' -> ya tiene CV generado; estado sincronizado, no se duplica');
         return;
       }
       const detailFile = firstFileByName_(folder, 'Detalle_Vacante') || firstFileByName_(folder, CONFIG.ON_DEMAND_DETAIL_NAME);
       const vacancy = parseVacancyDetail(detailFile ? DocumentApp.openById(detailFile.getId()).getBody().getText() : '');
+      vacancy.email = vacancy.email || verifiedEmail;
       const { contextText, template, placeholders, history } = getShared();
 
       let cv;
@@ -184,6 +190,8 @@ function buildCvsInFolder_(dateFolder, sheet) {
           const attachment = pdf ? pdf.getBlob() : copy.getAs(MimeType.PDF).setName(cvName + '.pdf');
           createApplicationDraft_(vacancy.email, subject, cv._correo_cuerpo, attachment);
           removeFiles_(folder, CONFIG.CV_DRAFT_ERRORS_NAME);
+          replaceFile_(folder, CONFIG.CV_DRAFT_DONE_NAME,
+            applicationDraftNote(vacancy.email, Utilities.formatDate(new Date(), tz_(), 'yyyy-MM-dd')));
           draftNote = 'borrador para ' + vacancy.email;
         } catch (mailError) {
           replaceFile_(folder, CONFIG.CV_DRAFT_ERRORS_NAME,
@@ -199,6 +207,54 @@ function buildCvsInFolder_(dateFolder, sheet) {
     }
   });
   console.log('--- Generación de CVs finalizada ---');
+}
+
+/**
+ * Borrador de una HV ya armada cuyo correo apareció después (2026-11-12): el inspector lo anotó en Verificacion.txt,
+ * Oscar lo escribió en Detalle_Vacante o la HV se armó antes de que hubiera _correo_cuerpo. Una sola vez por carpeta
+ * (CV_DRAFT_DONE_NAME) y nunca si ya hay un borrador, un programado o un enviado a esa dirección.
+ */
+function lateApplicationDraft_(folder, jsonFile, vacancy, label) {
+  if (firstFileByName_(folder, CONFIG.CV_DRAFT_DONE_NAME)) return;
+  // Un error de Gmail espera a Oscar; el aviso de «falta _correo_cuerpo» se resuelve solo cuando la IA lo agrega.
+  const pendingError = firstFileByName_(folder, CONFIG.CV_DRAFT_ERRORS_NAME);
+  if (pendingError && !/^Falta _correo_cuerpo/.test(readTextFile_(pendingError))) return;
+  const today = Utilities.formatDate(new Date(), tz_(), 'yyyy-MM-dd');
+  let cv;
+  try { cv = parseCvJson(readTextFile_(jsonFile)); } catch (e) { return; }
+  if (!String(cv._correo_cuerpo || '').trim()) {
+    if (pendingError) return;
+    replaceFile_(folder, CONFIG.CV_DRAFT_ERRORS_NAME, 'Falta _correo_cuerpo en CV_IA.json para el borrador a ' + vacancy.email +
+      '. Agrégalo (estructura de Oscar) y borra este archivo; la HV no se rehace.');
+    console.warn(label + ' -> hay correo (' + vacancy.email + ') pero falta _correo_cuerpo');
+    return;
+  }
+  const found = Gmail.Users.Messages.list('me', { q: '(in:drafts OR in:sent OR in:scheduled) to:' + vacancy.email, maxResults: 1 });
+  if (found.messages && found.messages.length) {
+    replaceFile_(folder, CONFIG.CV_DRAFT_DONE_NAME, applicationDraftNote(vacancy.email, today) + ' (ya había un correo a esa dirección)');
+    return;
+  }
+  const pdf = firstPdfCv_(folder);
+  if (!pdf) return;  // sincronizarAplicadas exporta el PDF; el borrador sale en la siguiente pasada
+  if (pendingError) pendingError.setTrashed(true);
+  try {
+    createApplicationDraft_(vacancy.email, buildApplicationEmail(vacancy, cv._idioma).subject, cv._correo_cuerpo, pdf.getBlob());
+    replaceFile_(folder, CONFIG.CV_DRAFT_DONE_NAME, applicationDraftNote(vacancy.email, today));
+    console.log(label + ' -> borrador de postulación para ' + vacancy.email + ' (HV ya armada)');
+  } catch (mailError) {
+    replaceFile_(folder, CONFIG.CV_DRAFT_ERRORS_NAME, 'No se confirmó el borrador para ' + vacancy.email + ': ' + mailError.message +
+      '\nRevisar Gmail antes de reintentar; una respuesta de API perdida puede haber creado el borrador.');
+  }
+}
+
+/** PDF de la HV de la carpeta (HV_… o CV_…, no CV_IA), o null. */
+function firstPdfCv_(folder) {
+  const it = folder.getFilesByType(MimeType.PDF);
+  while (it.hasNext()) {
+    const f = it.next();
+    if (/^(HV|CV)_/.test(f.getName()) && f.getName().indexOf(CONFIG.CV_JSON_NAME) !== 0) return f;
+  }
+  return null;
 }
 
 /** Saca del día una vacante que no pasó la verificación: DESCARTAR -> papelera (recuperable); DUDOSA -> Dudosas. */
@@ -238,6 +294,20 @@ function parseVerdict(text) {
   else if (/MENOR/.test(v)) verdict = 'MENOR_PRIORIDAD';
   else if (/LISTA/.test(v)) verdict = 'LISTA';
   return { verdict: verdict, reason: reason };
+}
+
+/**
+ * Correo para postular que el inspector leyó en el aviso completo (2026-11-12): línea «CORREO: dirección» de
+ * Verificacion.txt. Devuelve la dirección en minúsculas o null.
+ */
+function verdictEmail(text) {
+  const line = String(text || '').match(/^[\s*#>-]*CORREO\s*:[ \t*]*<?([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})\b/im);
+  return line ? line[1].toLowerCase() : null;
+}
+
+/** Contenido de Borrador_postulacion.txt: marca que esa carpeta ya tiene su borrador. */
+function applicationDraftNote(email, today) {
+  return 'Borrador de postulación creado para ' + email + ' el ' + today + ' (solo borrador; Oscar lo revisa y lo envía).';
 }
 
 function parseCvJson(text) {
@@ -311,6 +381,10 @@ function validateCvJson(cv, contextText, placeholders, vacancy, history) {
   if (history && history.hash) repetitionErrors(cvFingerprint(cv, history.hash), history.recent || []).forEach(e => errors.push(e));
   // Guía Maestra de Cover Letters: el correo de postulación tiene la misma forma que los correos en frío (2026-11-03)
   emailShapeErrors(cv._correo_cuerpo).forEach(e => warnings.push('_correo_cuerpo ' + e));
+  // 2026-11-12 (Oscar): «si en la postulación aparece correo, genéralo automáticamente»
+  if (vacancy && vacancy.email && !String(cv._correo_cuerpo || '').trim()) {
+    errors.push('_correo_cuerpo: la postulación trae correo (' + vacancy.email + ') y falta el mensaje para el borrador');
+  }
   return { errors: errors.filter((e, i, all) => all.indexOf(e) === i), warnings: warnings, ats: ats };
 }
 
