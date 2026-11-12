@@ -142,7 +142,8 @@ function atsFormsIn_(padded, forms) {
 function atsRoleTitle(title) {
   const clean = String(title || '').replace(/\([^)]*\)/g, ' ').split(/\s[-–—|]\s|[|•]/)[0]
     .replace(/\b(\w+)\/(a|as|os|o)\b/gi, '$1');  // "Diseñador/a" → "Diseñador"
-  const words = normText_(clean).replace(ATS_TITLE_NOISE_, ' ').replace(/\s+/g, ' ').trim();
+  // 2026-11-12: los códigos internos del aviso («K1126», «REQ-2041») no son parte del cargo
+  const words = normText_(clean).replace(ATS_TITLE_NOISE_, ' ').replace(/\b\w*\d\w*\b/g, ' ').replace(/\s+/g, ' ').trim();
   return ATS_ROLE_WORD_.test(' ' + words + ' ') && words.split(' ').length <= 8 ? words : '';
 }
 

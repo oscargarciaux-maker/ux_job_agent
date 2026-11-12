@@ -1554,6 +1554,9 @@ assert.ok(fs.readFileSync(path.join(__dirname, '..', 'instalador', 'Cargador.gs'
   assert.strictEqual(context.atsRoleTitle('Diseñador/a (Semi Senior) de Experiencia UI - Bienestar Financiero'), 'disenador de experiencia ui');
   assert.strictEqual(context.atsRoleTitle('Mid Product Designer'), 'product designer');
   assert.strictEqual(context.atsRoleTitle('¡buscamos  analista de diseño (ux/ui)!'), 'analista de diseno');
+  assert.strictEqual(context.atsRoleTitle('UX Researcher Senior (Híbrido - Bogotá) K1126'), 'ux researcher', 'sin el código del aviso');
+  assert.strictEqual(context.atsRoleTitle('Senior ux researcher - smartpos'), 'ux researcher');
+  assert.strictEqual(context.atsRoleTitle('Product Designer (Mobile UI/UX & QA)'), 'product designer');
   assert.strictEqual(context.atsRoleTitle('Elkin Pérez, PhD - remoto #hiring'), '', 'un título de publicación no es un cargo');
   assert.strictEqual(context.atsHasForm_(' usamos design systems y wireframes ', 'design system'), true, 'plural');
   assert.strictEqual(context.atsHasForm_(' interfaces claras ', 'interface'), true);
